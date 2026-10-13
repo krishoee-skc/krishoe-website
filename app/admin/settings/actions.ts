@@ -12,6 +12,7 @@ import { prepareChequesDatabase } from "@/lib/cheques";
 import { prepareWorkerPortalDatabase } from "@/lib/worker-portal-db";
 import { prepareNotificationTypes } from "@/lib/notification-types-database";
 import { prepareStockMovementTypes } from "@/lib/stock-movement-types-database";
+import { prepareLedgerReversal } from "@/lib/ledger-reversal-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -323,6 +324,29 @@ export async function prepareNotificationTypesAction(formData: FormData) {
  * pair, or a shelf count that found fewer, can come off the stock (owner,
  * 2026-10-11).
  */
+/**
+ * Room on a customer's ledger line to be taken back and kept, instead of
+ * deleted (owner, 2026-10-13).
+ */
+export async function prepareLedgerReversalAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the two columns.");
+    }
+    const { applied } = await prepareLedgerReversal();
+    await recordAdminAuditEvent(
+      "settings_database_ledger_reversal_ready",
+      applied
+        ? "Customer ledger lines can now be taken back and kept (2 columns added)."
+        : "Customer ledger lines could already be taken back.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("A line on a customer's account is now taken back and kept, never deleted.");
+}
+
 export async function prepareStockMovementTypesAction(formData: FormData) {
   try {
     await requireAdminPermission("settings:write");

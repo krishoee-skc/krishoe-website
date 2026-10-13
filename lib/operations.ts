@@ -23,6 +23,7 @@ import {
   addVehicleDispatchItemToPostgres,
   addWorkerTaskToPostgres,
   deleteOperationRecordFromPostgres,
+  reverseLedgerTransactionInPostgres,
   getFinishedStockFromPostgres,
   getOperationsDataFromPostgres,
   updateCustomerLedgerToPostgres,
@@ -199,6 +200,9 @@ export type LedgerTransaction = {
   type: LedgerTransactionType;
   amount: number;
   note: string;
+  /** Taken back and kept (owner, 2026-10-13); every sum skips it. */
+  reversedAt?: string;
+  reversalReason?: string;
 };
 
 export type OperationRecordKind =
@@ -1417,7 +1421,15 @@ export async function updateVehicleDispatch(id: string, dispatch: Omit<VehicleDi
   });
 }
 
-export async function updateCustomerLedger(id: string, ledger: Omit<CustomerLedger, "id" | "lastTransaction">) {
+/**
+ * A customer's name, phone, channel and credit limit. Not the money: cash
+ * taken, cheques, credit given and what is due move only by a line on the
+ * account, so every rupee has its reason (owner, 2026-10-13). A box that set
+ * "Balance due" by hand changed it with no trace.
+ */
+export type CustomerLedgerDetails = Pick<CustomerLedger, "customerName" | "channel" | "phone" | "creditLimit">;
+
+export async function updateCustomerLedger(id: string, ledger: CustomerLedgerDetails) {
   return runWithDataBackend({
     storeName: "operations",
     localJson: async () => {
@@ -1431,10 +1443,6 @@ export async function updateCustomerLedger(id: string, ledger: Omit<CustomerLedg
       record.customerName = ledger.customerName.trim() || record.customerName;
       record.channel = ledger.channel;
       record.phone = ledger.phone.trim();
-      record.cashPaid = cleanNumber(ledger.cashPaid);
-      record.chequePaid = cleanNumber(ledger.chequePaid);
-      record.creditGiven = cleanNumber(ledger.creditGiven);
-      record.balanceDue = cleanNumber(ledger.balanceDue);
       record.creditLimit = cleanNumber(ledger.creditLimit);
       record.lastTransaction = today();
 
@@ -1735,6 +1743,7 @@ export async function getOperationsSnapshot() {
   }
 
   for (const transaction of data.ledgerTransactions) {
+    if (transaction.reversedAt) continue;
     ledgerTransactionTotals[transaction.type] += transaction.amount;
   }
 
@@ -2133,6 +2142,35 @@ export async function getOperationsSnapshot() {
   };
 }
 
+/**
+ * Take a customer's ledger line back, keeping it, with the reason (owner,
+ * 2026-10-13: proof of money is never removed). The account's totals move back
+ * exactly as deleting moved them.
+ */
+export async function reverseLedgerTransactionEntry(id: string, reason: string, reversedBy: string) {
+  const why = reason.trim();
+  if (why.length < 5) throw new Error("Write a clear reason for taking this line back.");
+  return runWithDataBackend({
+    storeName: "operations",
+    localJson: async () => {
+      const data = await getOperationsDataFromLocalJson();
+      const transaction = data.ledgerTransactions.find((item) => item.id === id);
+      if (!transaction) throw new Error("That ledger line was not found.");
+      if (transaction.reversedAt) throw new Error("That ledger line has already been taken back.");
+      const ledger = data.customerLedgers.find((item) => item.id === transaction.ledgerId);
+      if (ledger) {
+        Object.assign(ledger, reverseLedgerTransactionFromBalances(ledger, transaction));
+        ledger.lastTransaction = today();
+      }
+      transaction.reversedAt = new Date().toISOString();
+      transaction.reversalReason = `${why} · by ${reversedBy}`;
+      await writeOperationsData(data);
+      return transaction;
+    },
+    postgres: () => reverseLedgerTransactionInPostgres(id, why, reversedBy),
+  });
+}
+
 export async function getCustomerLedgerDetail(id: string) {
   const [data, paymentTransactions] = await Promise.all([
     getOperationsDataForReports(),
@@ -2172,8 +2210,12 @@ export async function getCustomerLedgerDetail(id: string) {
       chequePaid: ledger.chequePaid,
       creditGiven: ledger.creditGiven,
       balanceDue: ledger.balanceDue,
-      transactionCount: transactions.length,
-      transactionTotal: sum(transactions, (transaction) => transaction.amount),
+      // A line taken back stays on the account but counts for nothing.
+      transactionCount: transactions.filter((transaction) => !transaction.reversedAt).length,
+      transactionTotal: sum(
+        transactions.filter((transaction) => !transaction.reversedAt),
+        (transaction) => transaction.amount,
+      ),
       linkedPaymentCount: paymentTransactions.length,
       linkedPaymentTotal: sum(paymentTransactions, (transaction) => transaction.amount),
       collectionTotal,

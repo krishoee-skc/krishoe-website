@@ -1063,7 +1063,10 @@ CREATE TABLE IF NOT EXISTS ledger_transactions (
   customer_name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('Cash Payment', 'Cheque Payment', 'Credit Sale', 'Return Adjustment', 'Manual Adjustment')),
   amount NUMERIC NOT NULL CHECK (amount >= 0),
-  note TEXT NOT NULL DEFAULT ''
+  note TEXT NOT NULL DEFAULT '',
+  -- Taken back, kept (20261013_ledger_transactions_reversed.sql).
+  reversed_at TIMESTAMPTZ,
+  reversal_reason TEXT NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS ledger_transactions_ledger_id_idx ON ledger_transactions(ledger_id);
@@ -1970,6 +1973,9 @@ CREATE TABLE IF NOT EXISTS factory_worker_photos (
   -- Added by 20261003_factory_worker_photos_robot: the robot's guess (shoe,
   -- colour, about how many pairs) for the owner to check. Never the books.
   robot JSONB,
+  -- Added by 20261013_factory_worker_photos_written: what a worker wrote with no photo.
+  color TEXT,
+  size TEXT,
   CONSTRAINT factory_worker_photos_kind_check CHECK (kind IN ('done', 'upper', 'ready', 'problem')),
   CONSTRAINT factory_worker_photos_status_check CHECK (status IN ('new', 'seen', 'added'))
 );

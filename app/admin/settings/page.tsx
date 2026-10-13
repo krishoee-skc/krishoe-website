@@ -22,6 +22,7 @@ import {
   prepareWorkerPortalDatabaseAction,
   prepareNotificationTypesAction,
   prepareStockMovementTypesAction,
+  prepareLedgerReversalAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
@@ -37,6 +38,7 @@ import { isAiConfigured } from "@/lib/ai/gemini";
 import PhotoRobotSwitch from "./PhotoRobotSwitch";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
 import { stockMovementTypesStatus } from "@/lib/stock-movement-types-database";
+import { ledgerReversalStatus } from "@/lib/ledger-reversal-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 // Enter walks box to box on the forms that take typing, and asks before it
@@ -175,6 +177,10 @@ export default async function AdminSettingsPage({
   });
   const stockMovementTypes = await stockMovementTypesStatus().catch((error) => {
     reportError("check the stock movement types", error);
+    return null;
+  });
+  const ledgerReversal = await ledgerReversalStatus().catch((error) => {
+    reportError("check the ledger reversal columns", error);
     return null;
   });
   const posDatabase = await posDatabaseStatus().catch((error) => {
@@ -899,6 +905,42 @@ export default async function AdminSettingsPage({
               <form action={prepareStockMovementTypesAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, put it right" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {/* Money on a customer's account is taken back and kept, never
+            deleted (owner, 2026-10-13). */}
+        {ledgerReversal && !ledgerReversal.ready ? (
+          <section id="ledger-reversal" className="scroll-mt-24 self-start rounded-lg border-2 border-brand-clay/60 bg-brand-clay-tint p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-clay">
+              🧾 <T en="Keep a customer's ledger line that is taken back — add room for it" ne="ग्राहकको खाताको फिर्ता गरिएको लाइन राख्ने — ठाउँ थप्ने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-green-ink">
+              <T
+                en="A line on a customer's account (cash, cheque, credit sale) used to be deleted. Now it is taken back and kept, crossed out with the reason. This adds two columns to keep that mark. No line, balance or other record changes. Take a backup first (Activity → Export backup)."
+                ne="ग्राहकको खाताको लाइन (नगद, चेक, उधारो बिक्री) पहिले मेटिन्थ्यो। अब फिर्ता गरेर, कारणसहित काटेर राखिन्छ। त्यो चिन्ह राख्न दुई column थपिन्छन्। कुनै लाइन, बाँकी वा अरू रेकर्ड बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is changed:" ne="यति बदलिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                <li>
+                  <T en={ledgerReversal.label.en} ne={ledgerReversal.label.ne} />
+                </li>
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed: nothing ✅ · Records changed: none ✅" ne="मेटिने: केही छैन ✅ · बदलिने रेकर्ड: कुनै छैन ✅" />
+              </p>
+              <form action={prepareLedgerReversalAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, add the room" />
               </form>
             </details>
           </section>

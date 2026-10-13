@@ -342,13 +342,14 @@ function matchingInvoiceLedgerTransaction(invoice: PosInvoice, operations: Opera
   const expectedType = invoiceLedgerTransactionType(invoice.kind);
   const expectedAmount = invoice.kind === "Sale" ? invoice.creditAmount : invoice.total;
   const isExpectedTransaction = (transaction: OperationsData["ledgerTransactions"][number]) =>
+    !transaction.reversedAt &&
     transaction.ledgerId === invoice.ledgerId &&
     transaction.type === expectedType &&
     transaction.amount === expectedAmount;
 
   if (invoice.ledgerTransactionId) {
     const linked = operations.ledgerTransactions.find(
-      (transaction) => transaction.id === invoice.ledgerTransactionId,
+      (transaction) => transaction.id === invoice.ledgerTransactionId && !transaction.reversedAt,
     );
 
     if (linked) {

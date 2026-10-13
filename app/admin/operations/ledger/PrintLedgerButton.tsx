@@ -1,5 +1,7 @@
 "use client";
 
+import T from "@/components/T";
+
 export default function PrintLedgerButton() {
   return (
     <button
@@ -7,7 +9,7 @@ export default function PrintLedgerButton() {
       onClick={() => window.print()}
       className="inline-flex h-10 items-center rounded-full bg-brand-green px-4 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink print:hidden"
     >
-      Print ledger
+      🖨️ <T en="Print ledger" ne="खाता छाप्ने" />
     </button>
   );
 }

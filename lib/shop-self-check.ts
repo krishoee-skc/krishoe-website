@@ -2,6 +2,7 @@ import { queryPostgres } from "@/lib/postgres/client";
 import { reportError } from "@/lib/report-error";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
 import { stockMovementTypesStatus } from "@/lib/stock-movement-types-database";
+import { ledgerReversalStatus } from "@/lib/ledger-reversal-database";
 
 /**
  * The shop looking for its own faults, so the owner does not have to.
@@ -255,6 +256,24 @@ export async function runShopSelfCheck(): Promise<SelfCheck[]> {
         action: "Put the rule right",
         actionNe: "नियम मिलाउने",
         count: missing.length,
+      };
+    },
+    // 10. A customer's ledger line cannot be taken back and kept until the
+    //     two columns are added (owner, 2026-10-13).
+    async () => {
+      const { ready } = await ledgerReversalStatus();
+      if (ready) return null;
+      return {
+        id: "ledger-reversal",
+        severity: "warning",
+        title: "A customer's ledger line cannot be taken back yet",
+        titleNe: "ग्राहकको खाताको लाइन अझै फिर्ता गर्न मिल्दैन",
+        detail: "Press OK in Settings to add the room that keeps it.",
+        detailNe: "Settings मा OK थिचेर त्यसलाई राख्ने ठाउँ थप्नुहोस्।",
+        href: "/admin/settings#ledger-reversal",
+        action: "Add the room",
+        actionNe: "ठाउँ थप्ने",
+        count: 1,
       };
     },
   ];

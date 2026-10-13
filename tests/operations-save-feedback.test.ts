@@ -19,7 +19,8 @@ describe("operations save feedback", () => {
       if (call.startsWith("refreshOperationsPage(message")) continue; // the declaration
       // Every save says something back, in both languages — savedMessage(en, ne)
       // packs the pair for the URL, and the page shows the reader's half.
-      expect(call, call).toMatch(/refreshOperationsPage\(\s*savedMessage\("/);
+      // pairedMessage({ en, ne }) is the same pair, written side by side.
+      expect(call, call).toMatch(/refreshOperationsPage\(\s*(savedMessage\("|pairedMessage\(\{)/);
     }
   });
 

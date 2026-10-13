@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { savedMessage } from "@/lib/saved-message";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { ledgerReversalStatus } from "@/lib/ledger-reversal-database";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { reportingErrors } from "@/lib/report-error";
 import {
@@ -19,6 +20,7 @@ import {
   addVehicleDispatchItem,
   addWorkerTask,
   deleteOperationRecord,
+  reverseLedgerTransactionEntry,
   getOperationsData,
   updateCustomerLedger,
   updateFinishedStock,
@@ -517,10 +519,7 @@ export async function updateCustomerLedgerAction(formData: FormData) {
     customerName,
     channel: optionValue(textValue(formData, "channel"), ledgerChannels, "Wholesale"),
     phone: textValue(formData, "phone"),
-    cashPaid: numberValue(formData, "cashPaid"),
-    chequePaid: numberValue(formData, "chequePaid"),
-    creditGiven: numberValue(formData, "creditGiven"),
-    balanceDue: numberValue(formData, "balanceDue"),
+    // The money moves only by a line on the account (owner, 2026-10-13).
     creditLimit: numberValue(formData, "creditLimit"),
   });
   await auditOperationsAction("operations_update_customer_ledger", `Customer ledger ${id} updated.`);
@@ -618,6 +617,47 @@ export async function updateWorkerTaskStatusAction(formData: FormData) {
   refreshOperationsPage(savedMessage("Worker status updated ✅", "कामदारको अवस्था मिलाइयो ✅"));
 }
 
+/** A saved message from one { en, ne } pair, so the two sit side by side. */
+function pairedMessage(words: { en: string; ne: string }) {
+  return savedMessage(words.en, words.ne);
+}
+
+/**
+ * Take a line on a customer's account back, keeping it with the reason
+ * (owner, 2026-10-13: proof of money is never removed). It used to be deleted.
+ */
+export async function reverseLedgerTransactionAction(formData: FormData) {
+  const { session } = await requireAdminPermission("operations:write");
+  const id = textValue(formData, "id");
+  const reason = textValue(formData, "reason");
+  const back = operationsReturnPath(formData);
+  if (!(await ledgerReversalStatus()).ready) {
+    refreshOperationsPage(
+      pairedMessage({
+        en: "⚠ Not taken back yet: press OK in Settings first, to make room to keep the line.",
+        ne: "⚠ अझै फिर्ता भएन: पहिले Settings मा OK थिच्नुहोस्, लाइन राख्ने ठाउँ बनाउन।",
+      }),
+      back,
+    );
+  }
+  let message: string;
+  try {
+    const line = await reverseLedgerTransactionEntry(id, reason, session.name || session.email || "Owner");
+    await auditOperationsAction(
+      "operations_ledger_transaction_reversed",
+      `${line.customerName}: ${line.type} Rs. ${line.amount} taken back (${line.id}). Reason: ${reason.trim()}. The line stays on the account.`,
+    );
+    message = pairedMessage({ en: "Taken back ✅ — the line stays, crossed out", ne: "फिर्ता भयो ✅ — लाइन काटिएर रहन्छ" });
+  } catch (error) {
+    const why = error instanceof Error ? error.message : "";
+    message = pairedMessage({
+      en: `⚠ Not taken back: ${why || "try again"}`,
+      ne: `⚠ फिर्ता भएन: ${why || "फेरि प्रयास गर्नुहोस्"}`,
+    });
+  }
+  refreshOperationsPage(message, back);
+}
+
 export async function deleteOperationRecordAction(formData: FormData) {
   await requireAdminPermission("operations:write");
 
@@ -626,6 +666,18 @@ export async function deleteOperationRecordAction(formData: FormData) {
 
   if (!id) {
     throw new Error("Record id is required.");
+  }
+
+  // Money on a customer's account is taken back, never deleted (owner,
+  // 2026-10-13).
+  if (kind === "ledgerTransaction") {
+    refreshOperationsPage(
+      pairedMessage({
+        en: "⚠ Not deleted: a line on a customer's account is taken back from the account.",
+        ne: "⚠ मेटिएन: ग्राहकको खाताको लाइन खातामै फिर्ता गरिन्छ।",
+      }),
+      operationsReturnPath(formData),
+    );
   }
 
   await deleteOperationRecord(kind, id);

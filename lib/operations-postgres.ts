@@ -149,6 +149,9 @@ type LedgerTransactionRow = {
   type: LedgerTransaction["type"];
   amount: number | string;
   note: string;
+  /** Absent until 20261013_ledger_transactions_reversed.sql is applied. */
+  reversed_at?: string | null;
+  reversal_reason?: string | null;
 };
 
 function createId(prefix: string) {
@@ -324,6 +327,7 @@ function ledgerTransactionFromRow(row: LedgerTransactionRow): LedgerTransaction 
     type: row.type,
     amount: cleanNumber(Number(row.amount)),
     note: row.note,
+    ...(row.reversed_at ? { reversedAt: isoDate(row.reversed_at), reversalReason: row.reversal_reason ?? "" } : {}),
   };
 }
 
@@ -378,7 +382,7 @@ export async function getOperationsDataFromPostgres(): Promise<OperationsData> {
     ),
     queryPostgres<LedgerTransactionRow>(
       "operations",
-      "SELECT id, created_at, ledger_id, customer_name, type, amount, note FROM ledger_transactions ORDER BY created_at DESC",
+      "SELECT id, created_at, ledger_id, customer_name, type, amount, note, (to_jsonb(ledger_transactions) ->> 'reversed_at') AS reversed_at, coalesce(to_jsonb(ledger_transactions) ->> 'reversal_reason', '') AS reversal_reason FROM ledger_transactions ORDER BY created_at DESC",
     ),
   ]);
 
@@ -1419,14 +1423,13 @@ export async function updateVehicleDispatchToPostgres(
 
 export async function updateCustomerLedgerToPostgres(
   id: string,
-  ledger: Omit<CustomerLedger, "id" | "lastTransaction">,
+  ledger: Pick<CustomerLedger, "customerName" | "channel" | "phone" | "creditLimit">,
 ) {
   const rows = await queryPostgres<CustomerLedgerRow>(
     "operations",
     `
       UPDATE customer_ledgers
-      SET customer_name = $2, channel = $3, phone = $4, cash_paid = $5, cheque_paid = $6,
-        credit_given = $7, balance_due = $8, credit_limit = $9, last_transaction = $10, updated_at = now()
+      SET customer_name = $2, channel = $3, phone = $4, credit_limit = $5, last_transaction = $6, updated_at = now()
       WHERE id = $1
       RETURNING id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
     `,
@@ -1435,10 +1438,6 @@ export async function updateCustomerLedgerToPostgres(
       cleanText(ledger.customerName),
       ledger.channel,
       cleanText(ledger.phone),
-      cleanNumber(ledger.cashPaid),
-      cleanNumber(ledger.chequePaid),
-      cleanNumber(ledger.creditGiven),
-      cleanNumber(ledger.balanceDue),
       cleanNumber(ledger.creditLimit),
       today(),
     ],
@@ -1594,6 +1593,54 @@ async function deleteLedgerTransaction(db: PostgresExecutor, id: string) {
   }
 
   await db.query<{ id: string }>("DELETE FROM ledger_transactions WHERE id = $1 RETURNING id", [id]);
+}
+
+/**
+ * Take a customer's ledger line back, keeping it (owner, 2026-10-13: proof of
+ * money is never removed). The account's totals move back exactly as a delete
+ * moved them; the line stays, marked reversed with its reason, and every sum
+ * skips it. Needs the two columns of 20261013_ledger_transactions_reversed.sql.
+ */
+export async function reverseLedgerTransactionInPostgres(id: string, reason: string, reversedBy: string) {
+  return transactionPostgres("operations", async (db) => {
+    const transactionRows = await db.query<LedgerTransactionRow>(
+      `
+        SELECT id, created_at, ledger_id, customer_name, type, amount, note, reversed_at, reversal_reason
+        FROM ledger_transactions
+        WHERE id = $1
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [id],
+    );
+    const row = transactionRows[0];
+    if (!row) throw new Error("That ledger line was not found.");
+    if (row.reversed_at) throw new Error("That ledger line has already been taken back.");
+    const transaction = ledgerTransactionFromRow(row);
+
+    const ledgerRows = await db.query<CustomerLedgerRow>(
+      `
+        SELECT id, customer_name, channel, phone, cash_paid, cheque_paid, credit_given, balance_due, credit_limit, last_transaction
+        FROM customer_ledgers
+        WHERE id = $1
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [transaction.ledgerId],
+    );
+    if (ledgerRows[0]) {
+      await updateCustomerLedgerTotals(
+        db,
+        reverseLedgerTransaction(customerLedgerFromRow(ledgerRows[0]), transaction),
+      );
+    }
+
+    await db.query(
+      `UPDATE ledger_transactions SET reversed_at = now(), reversal_reason = $2 WHERE id = $1 AND reversed_at IS NULL`,
+      [id, `${reason} · by ${reversedBy}`],
+    );
+    return transaction;
+  });
 }
 
 async function deleteMaterialConsumption(db: PostgresExecutor, id: string) {

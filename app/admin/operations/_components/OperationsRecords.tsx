@@ -845,11 +845,10 @@ function CustomerLedgerTable({ snapshot }: { snapshot: OperationsSnapshot }) {
                           <option>Online</option>
                         </select>
                       </div>
-                      <div className="grid grid-cols-4 gap-2">
-                        <input name="cashPaid" type="number" min="0" className={compactInputClass} defaultValue={ledger.cashPaid} aria-label="Cash paid" />
-                        <input name="chequePaid" type="number" min="0" className={compactInputClass} defaultValue={ledger.chequePaid} aria-label="Cheque paid" />
-                        <input name="creditGiven" type="number" min="0" className={compactInputClass} defaultValue={ledger.creditGiven} aria-label="Credit given" />
-                        <input name="balanceDue" type="number" min="0" className={compactInputClass} defaultValue={ledger.balanceDue} aria-label="Balance due" />
+                      {/* The money moves only by a line on the account
+                          (owner, 2026-10-13), so it is read in the columns
+                          beside, not typed here. */}
+                      <div className="grid grid-cols-1 gap-2">
                         <input name="creditLimit" type="number" min="0" className={compactInputClass} defaultValue={ledger.creditLimit} aria-label="Credit limit (0 = no limit)" />
                       </div>
                       <SaveButton />
@@ -1017,7 +1016,20 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
                   <td data-label="Amount" data-label-ne="रकम" className="py-3 pr-3 font-bold">{money(transaction.amount)}</td>
                   <td data-label="Note" data-label-ne="टिप्पणी" className="max-w-56 py-3 pr-3 text-brand-muted">{transaction.note || "-"}</td>
                   <td data-label="Manage" data-label-ne="मिलाउने" className="py-3 pr-3">
-                    <DeleteRecordForm kind="ledgerTransaction" id={transaction.id} />
+                    {/* Taken back on the account, with a reason; never deleted
+                        (owner, 2026-10-13). */}
+                    {transaction.reversedAt ? (
+                      <span className="rounded bg-brand-clay-tint px-2 py-0.5 text-sm font-black text-brand-clay">
+                        <T en="taken back" ne="फिर्ता" />
+                      </span>
+                    ) : (
+                      <Link
+                        href={`/admin/operations/ledger/${transaction.ledgerId}`}
+                        className="text-sm font-black text-brand-clay underline underline-offset-2"
+                      >
+                        ↩ <T en="Take back on the account" ne="खातामा फिर्ता गर्ने" />
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}
