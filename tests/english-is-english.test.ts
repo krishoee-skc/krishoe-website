@@ -304,7 +304,8 @@ const STILL_OWED: Record<string, number> = {
   // +5 on 2026-10-02: the worker's home was rebuilt bigger and Nepali-first (see the worker-app exemptions).
   // +1 on 2026-10-13: the "write today's work" button, first on the worker's home.
   "app/worker/dashboard/page.tsx": 21,
-  "app/worker/payslip/page.tsx": 11,
+  // +1 on 2026-10-14: the phone's card a month repeats the table's own words (बाँकी, जोडी, कमाइ, पाएको) — the worker app is Nepali-first, and T would show English to a worker who never chose a language.
+  "app/worker/payslip/page.tsx": 12,
   "app/worker/production/page.tsx": 8,
   "components/worker/WorkerPortalShell.tsx": 3,
   // +3 on 2026-10-02: "your account is closed", for a worker who has left — Nepali first, English under it.

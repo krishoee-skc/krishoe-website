@@ -65,7 +65,28 @@ export default async function WorkerPayslipPage() {
             अझै कुनै महिनाको हिसाब बनेको छैन।
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <>
+          {/* A card a month on a phone (owner's sample 8, 2026-10-14): the
+              560px table made a worker slide sideways to see "बाँकी". The
+              month and what is still owed first, the rest under it. Paper and
+              a computer keep the table. */}
+          <ul className="mt-4 grid list-none gap-2 pl-0 md:hidden print:hidden">
+            {detail.months.map((month) => (
+              <li key={`card-${month.month}`} className="grid gap-1 rounded-lg border border-brand-green-line p-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-sm font-bold text-brand-green-ink">{month.month}</span>
+                  <span className="text-right text-lg font-black text-brand-gold-ink">
+                    <span className="text-sm font-bold text-brand-muted">बाँकी </span>
+                    {money(month.finalBalance)}
+                  </span>
+                </div>
+                <p className="text-sm text-brand-muted">
+                  {month.totalPairs} जोडी · कमाइ <b className="text-brand-green">{money(month.totalEarned)}</b> · पाएको {money(month.totalPaid)}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 hidden overflow-x-auto md:block print:block">
             <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
                 <tr className="border-b border-brand-green-line text-brand-muted">
@@ -93,6 +114,7 @@ export default async function WorkerPayslipPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
         <p className="mt-4 rounded-lg bg-brand-mist px-4 py-3 text-xs leading-5 text-brand-muted">
           &quot;बाँकी&quot; भनेको त्यो महिनासम्मको जम्मा हिसाब हो। रकम नमिलेको लागे
