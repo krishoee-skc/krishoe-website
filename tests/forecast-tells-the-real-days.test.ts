@@ -44,6 +44,8 @@ describe("the Analytics forecast tab", () => {
       salesTotal: 3800,
       salesDays: 2,
       lastSalesDay: "2026-10-04",
+      bills: 0,
+      averageBill: 0,
     });
   });
 });
@@ -73,5 +75,24 @@ describe("the 30-day trends", () => {
     const trends = engine.slice(engine.indexOf("export async function getSalesTrend"), engine.indexOf("export async function getKeyMetrics"));
     expect(trends).not.toContain("SUBSTRING");
     expect(trends.match(/getDailyTrends\(\)/g)).toHaveLength(3);
+  });
+});
+
+describe("the goals and the average bill", () => {
+  it("are the owner's own goal and the bills' own totals", async () => {
+    const dashboard = await read("components/admin/AdvancedAnalyticsDashboard.tsx");
+    expect(dashboard).toContain('fetch("/api/admin/analytics?section=month_goals")');
+    expect(dashboard).not.toContain("analytics.goals.map");
+    expect(dashboard).not.toContain("customerAnalytics.avgOrderValue");
+    expect(dashboard).toContain('href="/admin/settings#goals"');
+    const source = await read("lib/recent-averages.ts");
+    expect(source).toContain("getBusinessGoal(monthKey)");
+    expect(source).toContain("netSalesBetween(invoices as SaleLike[], month.startKey, month.endKey)");
+  });
+
+  it("averages the bills", async () => {
+    const { averagesOf } = await import("@/lib/recent-averages");
+    expect(averagesOf(30, [], [], [2100, 900]).averageBill).toBe(1500);
+    expect(averagesOf(30, [], [], []).averageBill).toBe(0);
   });
 });

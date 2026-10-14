@@ -5,7 +5,7 @@ import { formatAdminDate } from "@/lib/format-date";
 import { useLanguage } from "@/components/LanguageProvider";
 import { Amount, AmountsToggle } from "@/components/admin/PageKit";
 import { roundedMoney } from "@/lib/format-money";
-import type { RecentAverages } from "@/lib/recent-averages";
+import type { MonthGoals, RecentAverages } from "@/lib/recent-averages";
 
 interface TrendDataPoint {
   date: string;
@@ -65,6 +65,7 @@ export default function AdvancedAnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [workers, setWorkers] = useState<WorkerMetric[]>([]);
   const [recent, setRecent] = useState<RecentAverages | null>(null);
+  const [monthGoals, setMonthGoals] = useState<MonthGoals | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "trends" | "forecast" | "goals" | "workers">(
     "overview"
@@ -73,11 +74,17 @@ export default function AdvancedAnalyticsDashboard() {
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const [analyticsRes, workersRes, recentRes] = await Promise.all([
+      const [analyticsRes, workersRes, recentRes, goalsRes] = await Promise.all([
         fetch("/api/admin/analytics"),
         fetch("/api/admin/analytics?section=workers"),
         fetch("/api/admin/analytics?section=recent"),
+        fetch("/api/admin/analytics?section=month_goals"),
       ]);
+
+      if (goalsRes.ok) {
+        const data = await goalsRes.json();
+        setMonthGoals(data.data ?? null);
+      }
 
       if (recentRes.ok) {
         const data = await recentRes.json();
@@ -114,26 +121,6 @@ export default function AdvancedAnalyticsDashboard() {
       default:
         return "➡️";
     }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ahead":
-        return "text-green-600 bg-green-50";
-      case "on_track":
-        return "text-brand-green bg-brand-green-wash";
-      case "behind":
-        return "text-orange-600 bg-orange-50";
-      default:
-        return "text-brand-muted bg-brand-paper-deep";
-    }
-  };
-
-  const getProgressColor = (progress: number) => {
-    if (progress >= 100) return "bg-green-500";
-    if (progress >= 75) return "bg-brand-green";
-    if (progress >= 50) return "bg-yellow-500";
-    return "bg-red-500";
   };
 
   if (loading) {
@@ -228,55 +215,42 @@ export default function AdvancedAnalyticsDashboard() {
             ))}
           </div>
 
-          {/* Customer Analytics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">👥 {text("Customers", "ग्राहक")}</h3>
+          {/* Customers and the average bill (owner, 2026-10-14). "Average
+              order" read the first digits of a website order's total text
+              ("Rs. 2,100" as 2); the average bill is now the POS bills' own
+              total, and the customer counts say they are the website's. */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <h3 className="mb-4 font-semibold text-brand-green-ink">👥 {text("Website customers", "website का ग्राहक")}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-brand-muted">{text("Total customers", "जम्मा ग्राहक")}</span>
-                  <span className="font-bold text-brand-green-ink">
-                    {analytics.customerAnalytics.totalCustomers}
-                  </span>
+                  <span className="text-brand-muted">{text("Ordered on the website", "website मा अर्डर गरेका")}</span>
+                  <span className="font-bold text-brand-green-ink">{analytics.customerAnalytics.totalCustomers}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-brand-muted">{text("Came back", "फेरि आएका")}</span>
-                  <span className="font-bold text-brand-green-ink">
-                    {analytics.customerAnalytics.returningCustomers}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-brand-muted">{text("Average order", "औसत अर्डर")}</span>
-                  <span className="font-bold text-brand-green-ink">
-                    Rs. {analytics.customerAnalytics.avgOrderValue.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-brand-muted">{text("Ordered again", "फेरि अर्डर गर्ने")}</span>
-                  <span className="font-bold text-brand-green-ink">
-                    {analytics.customerAnalytics.repeatOrderRate}%
-                  </span>
+                  <span className="text-brand-muted">{text("Ordered more than once", "एकभन्दा बढी पटक अर्डर गरेका")}</span>
+                  <span className="font-bold text-brand-green-ink">{analytics.customerAnalytics.returningCustomers}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">📞 {text("What it means", "यसको अर्थ")}</h3>
-              <div className="space-y-2 text-sm text-brand-muted">
-                <p>
-                  ✨ {analytics.customerAnalytics.repeatOrderRate}% of customers
-                  made repeat purchases
-                </p>
-                <p>
-                  💰 Average order value is Rs.{" "}
-                  {analytics.customerAnalytics.avgOrderValue.toLocaleString()}
-                </p>
-                <p>
-                  👥 {analytics.customerAnalytics.returningCustomers} out of{" "}
-                  {analytics.customerAnalytics.totalCustomers} customers are
-                  repeat buyers
-                </p>
+            <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <h3 className="font-semibold text-brand-green-ink">🧾 {text("Average bill (30 days)", "औसत बिल (३० दिन)")}</h3>
+                <AmountsToggle />
               </div>
+              {recent && recent.bills > 0 ? (
+                <>
+                  <p className="text-2xl font-black tabular-nums text-brand-green-ink">
+                    <Amount>{roundedMoney(recent.averageBill)}</Amount>
+                  </p>
+                  <p className="mt-1 text-sm text-brand-muted">
+                    {text(`${recent.bills} bills, voided ones left out`, `${recent.bills} वटा बिल, रद्द गरिएका बाहेक`)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-brand-muted">{text("No bill was cut in the last 30 days.", "पछिल्लो ३० दिनमा कुनै बिल काटिएको छैन।")}</p>
+              )}
             </div>
           </div>
         </div>
@@ -398,45 +372,84 @@ export default function AdvancedAnalyticsDashboard() {
         </div>
       )}
 
-      {/* Goals Tab */}
-      {activeTab === "goals" && analytics && (
+      {/* Goals Tab — the owner's own goal for this Bikram month, from
+          Settings (owner, 2026-10-14). It showed 150 orders, 5,000 pairs and
+          Rs. 10 lakh written into the code. */}
+      {activeTab === "goals" && (
         <div className="space-y-4">
-          {analytics.goals.map((goal) => (
-            <div
-              key={goal.id}
-              className={`rounded-lg border p-4 ${getStatusColor(goal.status)}`}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="font-semibold">{goal.name}</h3>
-                <span className="text-xs font-medium px-2 py-1 rounded bg-brand-paper">
-                  {goal.status.replace(/_/g, " ").toUpperCase()}
-                </span>
+          {monthGoals === null ? (
+            <p className="rounded-lg border border-dashed border-brand-green-line p-4 text-sm text-brand-muted">
+              {text("The goal could not be read just now. Open the page again.", "अहिले लक्ष्य पढ्न सकिएन। page फेरि खोल्नुहोस्।")}
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-bold text-brand-green-ink">
+                  {text(
+                    `${monthGoals.monthEn} · day ${monthGoals.dayOfMonth} of ${monthGoals.daysInMonth}`,
+                    `${monthGoals.monthNe} · ${monthGoals.daysInMonth} दिनमध्ये ${monthGoals.dayOfMonth} औँ दिन`,
+                  )}
+                </p>
+                <AmountsToggle />
               </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>{text("Progress", "प्रगति")}</span>
-                  <span className="font-bold">
-                    {Math.round(goal.achieved)} / {goal.target}
-                  </span>
-                </div>
-
-                <div className="w-full bg-brand-green-line rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all ${getProgressColor(
-                      goal.progress
-                    )}`}
-                    style={{ width: `${Math.min(goal.progress, 100)}%` }}
-                  ></div>
-                </div>
-
-                <div className="flex justify-between text-xs text-brand-muted">
-                  <span>{text(`${Math.round(goal.progress)}% done`, `${Math.round(goal.progress)}% पूरा`)}</span>
-                  <span>{text("By:", "म्याद:")} {formatAdminDate(goal.deadline)}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+              {[
+                {
+                  key: "sales",
+                  title: text("💰 Sales less returns", "💰 बिक्री, फिर्ता घटाएर"),
+                  goal: monthGoals.salesGoal,
+                  done: monthGoals.salesSoFar,
+                  show: (value: number) => <Amount>{roundedMoney(value)}</Amount>,
+                },
+                {
+                  key: "pairs",
+                  title: text("📦 Pairs made", "📦 बनेका जोडी"),
+                  goal: monthGoals.productionGoal,
+                  done: monthGoals.pairsSoFar,
+                  show: (value: number) => <>{formatNumber(value)}</>,
+                },
+              ].map((row) => {
+                const percent = row.goal > 0 ? (row.done / row.goal) * 100 : 0;
+                const expected = (monthGoals.dayOfMonth / Math.max(1, monthGoals.daysInMonth)) * 100;
+                return (
+                  <div key={row.key} className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+                    <h3 className="font-semibold text-brand-green-ink">{row.title}</h3>
+                    {row.goal <= 0 ? (
+                      <p className="mt-2 text-sm text-brand-muted">
+                        {text("So far: ", "अहिलेसम्म: ")}
+                        <b className="text-brand-green-ink">{row.show(row.done)}</b>
+                        {text(" · no goal set for this month. ", " · यो महिनाको लक्ष्य राखिएको छैन। ")}
+                        <a href="/admin/settings#goals" className="font-bold text-brand-green underline underline-offset-4">
+                          {text("Set a goal", "लक्ष्य राख्ने")}
+                        </a>
+                      </p>
+                    ) : (
+                      <div className="mt-2 grid gap-2">
+                        <div className="flex flex-wrap justify-between gap-2 text-sm">
+                          <span>
+                            <b className="text-brand-green-ink">{row.show(row.done)}</b> / {row.show(row.goal)}
+                          </span>
+                          <span className="font-bold text-brand-green-ink">
+                            {text(`${Math.round(percent)}% done`, `${Math.round(percent)}% पूरा`)}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-brand-green-line">
+                          <div className="h-2 rounded-full bg-brand-green" style={{ width: `${Math.min(percent, 100)}%` }} />
+                        </div>
+                        <p className="text-sm text-brand-muted">
+                          {percent >= expected
+                            ? text("On pace for the month.", "महिनाको गतिमा छ।")
+                            : text(
+                                `Behind: by today ${Math.round(expected)}% would be on pace.`,
+                                `पछि छ: आजसम्म ${Math.round(expected)}% हुनुपर्ने।`,
+                              )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
       )}
 

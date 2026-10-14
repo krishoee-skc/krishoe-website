@@ -12,7 +12,7 @@ import {
   getCustomerAnalytics,
 } from "@/lib/analytics-engine";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getDailyTrends, getRecentAverages } from "@/lib/recent-averages";
+import { getDailyTrends, getMonthGoals, getRecentAverages } from "@/lib/recent-averages";
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,6 +83,10 @@ export async function GET(request: NextRequest) {
         break;
       case "goals":
         data = await getGoalTrackers();
+        break;
+      // The owner's own goal for this Bikram month (2026-10-14).
+      case "month_goals":
+        data = await getMonthGoals();
         break;
       case "workers":
         data = await getWorkerPerformanceMetrics();

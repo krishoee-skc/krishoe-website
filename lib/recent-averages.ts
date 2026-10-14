@@ -1,7 +1,9 @@
 import { queryPostgres } from "@/lib/postgres/client";
 import { KATHMANDU_TODAY_SQL } from "@/lib/kathmandu-today-sql";
 import { getPosInvoices } from "@/lib/pos";
-import { nepalDayKey, salesByDay, type SaleLike } from "@/lib/dashboard-figures";
+import { bsMonthSoFar, nepalDayKey, netSalesBetween, salesByDay, type SaleLike } from "@/lib/dashboard-figures";
+import { bikramMonthLabel } from "@/lib/bikram-sambat";
+import { currentGoalMonthKey, getBusinessGoal } from "@/lib/business-goals";
 
 const STORE = "krishoe";
 
@@ -27,6 +29,9 @@ export type RecentAverages = {
   /** Days on which the net sale was not zero. */
   salesDays: number;
   lastSalesDay: string;
+  /** Bills cut in the days (sales, not voided), and their average. */
+  bills: number;
+  averageBill: number;
 };
 
 /** Pure: the day-by-day figures in, the totals out. */
@@ -34,6 +39,7 @@ export function averagesOf(
   days: number,
   pairsByDay: Array<{ day: string; pairs: number }>,
   salesNetByDay: Array<{ day: string; net: number }>,
+  billTotals: number[] = [],
 ): RecentAverages {
   const sold = salesNetByDay.filter((row) => row.net !== 0);
   const worked = pairsByDay.filter((row) => row.pairs > 0);
@@ -45,6 +51,8 @@ export function averagesOf(
     salesTotal: sold.reduce((sum, row) => sum + row.net, 0),
     salesDays: sold.length,
     lastSalesDay: sold.map((row) => row.day).sort().at(-1) ?? "",
+    bills: billTotals.length,
+    averageBill: billTotals.length ? billTotals.reduce((sum, value) => sum + value, 0) / billTotals.length : 0,
   };
 }
 
@@ -64,10 +72,15 @@ export async function getRecentAverages(days = 30): Promise<RecentAverages> {
     getPosInvoices(),
   ]);
   const sales = salesByDay(invoices as SaleLike[], days).map((day) => ({ day: day.key, net: day.net }));
+  const firstKey = sales[0]?.day ?? "";
+  const billTotals = (invoices as SaleLike[])
+    .filter((invoice) => invoice.kind === "Sale" && invoice.status !== "Voided" && nepalDayKey(invoice.createdAt) >= firstKey)
+    .map((invoice) => Number(invoice.total) || 0);
   return averagesOf(
     days,
     pairRows.map((row) => ({ day: String(row.day), pairs: Number(row.pairs) || 0 })),
     sales,
+    billTotals,
   );
 }
 
@@ -126,4 +139,52 @@ export async function getDailyTrends(days = 30) {
     pairRows.map((row) => ({ day: String(row.day), pairs: Number(row.pairs) || 0 })),
     invoices as SaleLike[],
   );
+}
+
+/**
+ * The owner's own goal for this Bikram month, and how far the month has come
+ * (owner, 2026-10-14: "garau"). The Goals tab showed 150 orders, 5,000 pairs
+ * and Rs. 10 lakh written into the code, and added them up through a join
+ * that multiplied every figure. The goal is the one he sets in Settings — the
+ * dashboard's — and the month so far is counted the dashboard's way.
+ */
+export type MonthGoals = {
+  monthKey: string;
+  monthEn: string;
+  monthNe: string;
+  dayOfMonth: number;
+  daysInMonth: number;
+  salesGoal: number;
+  salesSoFar: number;
+  productionGoal: number;
+  pairsSoFar: number;
+};
+
+export async function getMonthGoals(now: Date = new Date()): Promise<MonthGoals | null> {
+  const month = bsMonthSoFar(now);
+  if (!month) return null;
+  const monthKey = currentGoalMonthKey(now);
+  const [goal, invoices, pairRows] = await Promise.all([
+    getBusinessGoal(monthKey),
+    getPosInvoices(),
+    queryPostgres<{ pairs: number }>(
+      STORE,
+      `SELECT COALESCE(SUM(work.pairs_count), 0)::integer AS pairs
+         FROM factory_daily_work work
+        WHERE work.status <> 'reversed'
+          AND work.date >= $1::date AND work.date < $2::date`,
+      [month.startKey, month.endKey],
+    ),
+  ]);
+  return {
+    monthKey,
+    monthEn: bikramMonthLabel(now, "en"),
+    monthNe: bikramMonthLabel(now, "np"),
+    dayOfMonth: month.dayOfMonth,
+    daysInMonth: month.daysInMonth,
+    salesGoal: goal.salesGoal,
+    salesSoFar: netSalesBetween(invoices as SaleLike[], month.startKey, month.endKey),
+    productionGoal: goal.productionGoal,
+    pairsSoFar: Number(pairRows[0]?.pairs) || 0,
+  };
 }

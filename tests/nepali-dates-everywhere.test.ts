@@ -57,8 +57,10 @@ describe("dates shown to a person", () => {
     const goals = await readFile("components/admin/AdvancedAnalyticsDashboard.tsx", "utf8");
 
     // "Due: 8/31/2026" — an English month-end on a shop that closes its books
-    // on the Nepali one.
-    expect(goals).toContain("formatAdminDate(goal.deadline)");
+    // on the Nepali one. Since 2026-10-14 the goal is the owner's own for the
+    // Bikram month, named as that month, with the day of it.
+    expect(goals).toContain("monthGoals.monthNe");
+    expect(goals).not.toContain("goal.deadline");
   });
 
   it("reaches the two the owner reads for money", async () => {
