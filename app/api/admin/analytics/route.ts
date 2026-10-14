@@ -12,7 +12,7 @@ import {
   getCustomerAnalytics,
 } from "@/lib/analytics-engine";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getRecentAverages } from "@/lib/recent-averages";
+import { getDailyTrends, getRecentAverages } from "@/lib/recent-averages";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,17 +27,17 @@ export async function GET(request: NextRequest) {
 
     // Return all analytics if no specific section requested
     if (!section) {
+      // The three trends from one read of the bills and the ledger.
       const [
-        salesTrend,
-        productionTrend,
-        revenueTrend,
+        { salesTrend, productionTrend, revenueTrend },
         keyMetrics,
         goals,
         customerAnalytics,
       ] = await Promise.all([
-        getSalesTrend(),
-        getProductionTrend(),
-        getRevenueTrend(),
+        getDailyTrends().catch((error) => {
+          console.error("Failed to get the trends:", error);
+          return { salesTrend: [], productionTrend: [], revenueTrend: [] };
+        }),
         getKeyMetrics(),
         getGoalTrackers(),
         getCustomerAnalytics(),

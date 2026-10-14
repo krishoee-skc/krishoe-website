@@ -47,3 +47,31 @@ describe("the Analytics forecast tab", () => {
     });
   });
 });
+
+describe("the 30-day trends", () => {
+  it("counts every Nepal day: bills, pairs, and sales less returns", async () => {
+    const { trendsFrom } = await import("@/lib/recent-averages");
+    const trends = trendsFrom(
+      ["2026-10-03", "2026-10-04"],
+      [{ day: "2026-10-04", pairs: 240 }],
+      [
+        { createdAt: "2026-10-04T03:00:00Z", kind: "Sale", status: "Paid", total: 2100 },
+        { createdAt: "2026-10-04T04:00:00Z", kind: "Sale", status: "Voided", total: 3900 },
+        { createdAt: "2026-10-04T05:00:00Z", kind: "Return", status: "Paid", total: 100 },
+        // 1 a.m. in Nepal on the 4th is still the 3rd in UTC.
+        { createdAt: "2026-10-03T19:30:00Z", kind: "Sale", status: "Paid", total: 500 },
+      ],
+    );
+    expect(trends.salesTrend.map((point) => point.value)).toEqual([0, 2]);
+    expect(trends.productionTrend.map((point) => point.value)).toEqual([0, 240]);
+    expect(trends.revenueTrend.map((point) => point.value)).toEqual([0, 2500]);
+    expect(trends.revenueTrend[1].label).toBe("Oct 4");
+  });
+
+  it("no longer reads the digits of an order's text", async () => {
+    const engine = await read("lib/analytics-engine.ts");
+    const trends = engine.slice(engine.indexOf("export async function getSalesTrend"), engine.indexOf("export async function getKeyMetrics"));
+    expect(trends).not.toContain("SUBSTRING");
+    expect(trends.match(/getDailyTrends\(\)/g)).toHaveLength(3);
+  });
+});

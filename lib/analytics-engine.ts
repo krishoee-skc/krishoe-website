@@ -1,5 +1,6 @@
 import { workerPerformance } from "@/lib/worker-performance";
 import { queryPostgres } from "@/lib/postgres/client";
+import { getDailyTrends } from "@/lib/recent-averages";
 
 const STORE = "krishoe";
 
@@ -49,120 +50,31 @@ export interface WorkerPerformanceMetric {
 
 // Get sales trend (last 30 days)
 export async function getSalesTrend(): Promise<TrendDataPoint[]> {
-  try {
-    const results = await queryPostgres<{
-      date: string;
-      total_sales: number;
-    }>(
-      STORE,
-      `WITH RECURSIVE date_range AS (
-        SELECT CURRENT_DATE - INTERVAL '30 days' as date
-        UNION ALL
-        SELECT date + INTERVAL '1 day' FROM date_range
-        WHERE date < CURRENT_DATE
-      )
-      SELECT
-        date_range.date,
-        COALESCE(COUNT(o.id), 0)::integer as total_sales
-      FROM date_range
-      LEFT JOIN orders o ON o.created_at::date = date_range.date
-      GROUP BY date_range.date
-      ORDER BY date_range.date`,
-      []
-    );
-
-    return results.map((r) => ({
-      date: r.date,
-      label: new Date(r.date).toLocaleDateString("default", {
-        timeZone: "Asia/Kathmandu",
-        month: "short",
-        day: "numeric",
-      }),
-      value: r.total_sales,
-    }));
-  } catch (error) {
-    console.error("Failed to get sales trend:", error);
+  // Bills cut each Nepal day — the website's orders become bills too
+  // (owner, 2026-10-14). It counted website orders only, by the server's day.
+  return getDailyTrends().then((trends) => trends.salesTrend, (error) => {
+    console.error("Failed to get salesTrend:", error);
     return [];
-  }
+  });
 }
 
 // Get production trend (last 30 days)
 export async function getProductionTrend(): Promise<TrendDataPoint[]> {
-  try {
-    const results = await queryPostgres<{
-      date: string;
-      total_pairs: number;
-    }>(
-      STORE,
-      `WITH RECURSIVE date_range AS (
-        SELECT CURRENT_DATE - INTERVAL '30 days' as date
-        UNION ALL
-        SELECT date + INTERVAL '1 day' FROM date_range
-        WHERE date < CURRENT_DATE
-      )
-      SELECT
-        date_range.date,
-        COALESCE(SUM(pwe.total_pairs), 0)::integer as total_pairs
-      FROM date_range
-      LEFT JOIN production_work_entries pwe ON pwe.work_date = date_range.date
-      GROUP BY date_range.date
-      ORDER BY date_range.date`,
-      []
-    );
-
-    return results.map((r) => ({
-      date: r.date,
-      label: new Date(r.date).toLocaleDateString("default", {
-        timeZone: "Asia/Kathmandu",
-        month: "short",
-        day: "numeric",
-      }),
-      value: r.total_pairs,
-    }));
-  } catch (error) {
-    console.error("Failed to get production trend:", error);
+  // Pairs in the piece ledger, taken-back lines left out (owner, 2026-10-14).
+  return getDailyTrends().then((trends) => trends.productionTrend, (error) => {
+    console.error("Failed to get productionTrend:", error);
     return [];
-  }
+  });
 }
 
 // Get revenue trend (last 30 days)
 export async function getRevenueTrend(): Promise<TrendDataPoint[]> {
-  try {
-    const results = await queryPostgres<{
-      date: string;
-      total_revenue: number;
-    }>(
-      STORE,
-      `WITH RECURSIVE date_range AS (
-        SELECT CURRENT_DATE - INTERVAL '30 days' as date
-        UNION ALL
-        SELECT date + INTERVAL '1 day' FROM date_range
-        WHERE date < CURRENT_DATE
-      )
-      SELECT
-        date_range.date,
-        COALESCE(SUM(CAST(SUBSTRING(o.total FROM '[0-9]+') AS INTEGER)), 0)::integer as total_revenue
-      FROM date_range
-      LEFT JOIN orders o ON o.created_at::date = date_range.date
-      WHERE o.status IN ('Closed', 'Contacted')
-      GROUP BY date_range.date
-      ORDER BY date_range.date`,
-      []
-    );
-
-    return results.map((r) => ({
-      date: r.date,
-      label: new Date(r.date).toLocaleDateString("default", {
-        timeZone: "Asia/Kathmandu",
-        month: "short",
-        day: "numeric",
-      }),
-      value: r.total_revenue,
-    }));
-  } catch (error) {
-    console.error("Failed to get revenue trend:", error);
+  // Bills less returns (owner, 2026-10-14). It read the first digits of the
+  // order total's text — "Rs. 2,100" counted as 2 — and dropped empty days.
+  return getDailyTrends().then((trends) => trends.revenueTrend, (error) => {
+    console.error("Failed to get revenueTrend:", error);
     return [];
-  }
+  });
 }
 
 // Get key metrics comparison (this month vs last month)

@@ -282,41 +282,44 @@ export default function AdvancedAnalyticsDashboard() {
         </div>
       )}
 
-      {/* Trends Tab */}
+      {/* Trends Tab — bills, pairs and sales from the shop's own records
+          (owner, 2026-10-14). Rupees print as rupees, behind the eye, and the
+          bars are drawn against the week's highest day. */}
       {activeTab === "trends" && analytics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="flex justify-end lg:col-span-2">
+            <AmountsToggle />
+          </div>
           {[
-            { title: text("📊 Sales (30 days)", "📊 बिक्री (३० दिन)"), data: analytics.salesTrend },
-            { title: text("📦 Production (30 days)", "📦 उत्पादन (३० दिन)"), data: analytics.productionTrend },
-            { title: text("💰 Takings (30 days)", "💰 आम्दानी (३० दिन)"), data: analytics.revenueTrend },
-          ].map((trend, idx) => (
-            <div key={idx} className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">{trend.title}</h3>
-              <div className="space-y-2">
-                {trend.data.slice(-7).map((point) => (
-                  <div key={point.date} className="flex justify-between items-center">
-                    <span className="text-sm text-brand-muted">{point.label}</span>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-6 bg-brand-green rounded"
-                        style={{
-                          width: `${Math.min(point.value / 10, 100)}px`,
-                        }}
-                      ></div>
-                      <span className="font-bold text-brand-green-ink min-w-12">
-                        {point.value}
-                      </span>
+            { title: text("🧾 Bills cut (30 days)", "🧾 काटिएका बिल (३० दिन)"), data: analytics.salesTrend, rupees: false },
+            { title: text("📦 Pairs made (30 days)", "📦 बनेका जोडी (३० दिन)"), data: analytics.productionTrend, rupees: false },
+            { title: text("💰 Sales less returns (30 days)", "💰 बिक्री, फिर्ता घटाएर (३० दिन)"), data: analytics.revenueTrend, rupees: true },
+          ].map((trend) => {
+            const week = trend.data.slice(-7);
+            const highest = Math.max(1, ...week.map((point) => point.value));
+            const total = trend.data.reduce((sum, point) => sum + point.value, 0);
+            const show = (value: number) => (trend.rupees ? <Amount>{roundedMoney(value)}</Amount> : formatNumber(value));
+            return (
+              <div key={trend.title} className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+                <h3 className="mb-4 font-semibold text-brand-green-ink">{trend.title}</h3>
+                <div className="space-y-2">
+                  {week.map((point) => (
+                    <div key={point.date} className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-2">
+                      <span className="text-sm text-brand-muted">{point.label}</span>
+                      <div className="h-5 rounded bg-brand-green-wash">
+                        <div className="h-5 rounded bg-brand-green" style={{ width: `${(point.value / highest) * 100}%` }} />
+                      </div>
+                      <span className="min-w-12 text-right font-bold tabular-nums text-brand-green-ink">{show(point.value)}</span>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-brand-green-line">
-                <p className="text-xs text-brand-muted">
-                  📊 Last 7 days shown. Total: {trend.data.reduce((sum, d) => sum + d.value, 0)}
+                  ))}
+                </div>
+                <p className="mt-4 border-t border-brand-green-line pt-4 text-sm text-brand-muted">
+                  {text("Last 7 days shown · 30 days in all: ", "पछिल्लो ७ दिन देखाइएको · ३० दिनमा जम्मा: ")}
+                  <span className="font-bold text-brand-green-ink">{show(total)}</span>
                 </p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

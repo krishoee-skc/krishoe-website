@@ -1,7 +1,7 @@
 import { queryPostgres } from "@/lib/postgres/client";
 import { KATHMANDU_TODAY_SQL } from "@/lib/kathmandu-today-sql";
 import { getPosInvoices } from "@/lib/pos";
-import { salesByDay, type SaleLike } from "@/lib/dashboard-figures";
+import { nepalDayKey, salesByDay, type SaleLike } from "@/lib/dashboard-figures";
 
 const STORE = "krishoe";
 
@@ -68,5 +68,62 @@ export async function getRecentAverages(days = 30): Promise<RecentAverages> {
     days,
     pairRows.map((row) => ({ day: String(row.day), pairs: Number(row.pairs) || 0 })),
     sales,
+  );
+}
+
+export type DayPoint = { date: string; label: string; value: number };
+
+function shortLabel(key: string) {
+  return new Date(`${key}T00:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+}
+
+/**
+ * The "30-day trends" tab, from the same records (owner, 2026-10-14: "garau").
+ *
+ * The old trends read the first digits of a website order's total text
+ * ("Rs. 2,100" counted as 2), dropped the days without an order, counted
+ * taken-back work, and used the server's day, not Nepal's. Now: bills cut,
+ * pairs in the piece ledger, and sales less returns, for every Nepal day.
+ */
+export function trendsFrom(
+  keys: string[],
+  pairsByDay: Array<{ day: string; pairs: number }>,
+  invoices: SaleLike[],
+) {
+  const pairs = new Map(pairsByDay.map((row) => [row.day, row.pairs]));
+  const bills = new Map<string, number>();
+  for (const invoice of invoices) {
+    if (invoice.kind !== "Sale" || invoice.status === "Voided") continue;
+    const key = nepalDayKey(invoice.createdAt);
+    bills.set(key, (bills.get(key) ?? 0) + 1);
+  }
+  const net = new Map(salesByDay(invoices, keys.length, new Date(`${keys.at(-1)}T12:00:00+05:45`)).map((day) => [day.key, day.net]));
+  const point = (key: string, value: number): DayPoint => ({ date: key, label: shortLabel(key), value });
+  return {
+    salesTrend: keys.map((key) => point(key, bills.get(key) ?? 0)),
+    productionTrend: keys.map((key) => point(key, pairs.get(key) ?? 0)),
+    revenueTrend: keys.map((key) => point(key, Math.round(net.get(key) ?? 0))),
+  };
+}
+
+export async function getDailyTrends(days = 30) {
+  const [pairRows, invoices] = await Promise.all([
+    queryPostgres<{ day: string; pairs: number }>(
+      STORE,
+      `SELECT work.date::text AS day, SUM(work.pairs_count)::integer AS pairs
+         FROM factory_daily_work work
+        WHERE work.status <> 'reversed'
+          AND work.date > ${KATHMANDU_TODAY_SQL} - $1::integer
+          AND work.date <= ${KATHMANDU_TODAY_SQL}
+        GROUP BY work.date`,
+      [days],
+    ),
+    getPosInvoices(),
+  ]);
+  const keys = salesByDay([], days).map((day) => day.key);
+  return trendsFrom(
+    keys,
+    pairRows.map((row) => ({ day: String(row.day), pairs: Number(row.pairs) || 0 })),
+    invoices as SaleLike[],
   );
 }
