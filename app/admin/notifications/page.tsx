@@ -211,19 +211,36 @@ export default async function AdminNotificationsPage() {
 
         {alertCenter.alerts.length === 0 ? (
           <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-green">
-            No operational alert is active right now.
+            <T en="No operational alert is active right now." ne="अहिले कुनै चेतावनी छैन।" />
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Two lines an alert on a phone (owner's sample 7घ, 2026-10-14);
+              six columns made a six-line card each. */}
+          <ul className="grid list-none gap-2 pl-0 md:hidden">
+            {alertCenter.alerts.slice(0, 20).map((alert) => (
+              <li key={`card-${alert.id}`}>
+                <Link href={alert.href} className="grid gap-1 rounded-xl border border-brand-green-line p-3 text-sm">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 break-words font-bold text-brand-green-ink">{alert.title}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${alertClass(alert.severity)}`}>{alert.severity}</span>
+                  </span>
+                  <span className="text-xs text-brand-muted">{alert.detail}</span>
+                  <span className="text-xs font-bold text-brand-green">{alert.action} →</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-brand-muted">
                 <tr>
-                  <th className="py-2 pr-3">Alert</th>
-                  <th className="py-2 pr-3">Category</th>
-                  <th className="py-2 pr-3">Severity</th>
-                  <th className="py-2 pr-3">Detail</th>
-                  <th className="py-2 pr-3">Next action</th>
-                  <th className="py-2 pr-3">Open</th>
+                  <th className="py-2 pr-3"><T en="Alert" ne="चेतावनी" /></th>
+                  <th className="py-2 pr-3"><T en="Category" ne="किसिम" /></th>
+                  <th className="py-2 pr-3"><T en="Severity" ne="कति गम्भीर" /></th>
+                  <th className="py-2 pr-3"><T en="Detail" ne="विवरण" /></th>
+                  <th className="py-2 pr-3"><T en="Next action" ne="अब के गर्ने" /></th>
+                  <th className="py-2 pr-3"><T en="Open" ne="खोल्ने" /></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -245,7 +262,7 @@ export default async function AdminNotificationsPage() {
                         href={alert.href}
                         className="font-bold text-brand-green underline underline-offset-4"
                       >
-                        Open
+                        <T en="Open" ne="खोल्ने" />
                       </Link>
                     </td>
                   </tr>
@@ -253,6 +270,7 @@ export default async function AdminNotificationsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 
@@ -265,7 +283,7 @@ export default async function AdminNotificationsPage() {
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-black">{channel.label}</h2>
               <span className="rounded-full bg-brand-paper/70 px-2.5 py-1 text-xs font-black">
-                {channel.configured ? "Ready" : "Missing"}
+                {channel.configured ? <T en="Ready" ne="तयार" /> : <T en="Missing" ne="छैन" />}
               </span>
             </div>
             <p className="mt-2 text-sm leading-6 opacity-80">{channel.detail}</p>
@@ -276,31 +294,56 @@ export default async function AdminNotificationsPage() {
       <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-brand-green-ink">Recent notifications</h2>
-            <p className="mt-1 text-sm text-brand-muted">Newest order, contact, and account alert events.</p>
+            <h2 className="text-lg font-black text-brand-green-ink"><T en="Recent notifications" ne="भर्खरका सूचना" /></h2>
+            <p className="mt-1 text-sm text-brand-muted"><T en="Newest order, contact, and account alert events." ne="नयाँ अर्डर, सम्पर्क र खाताका सूचना।" /></p>
           </div>
           <Link href="/admin/activity" className="text-sm font-bold text-brand-green underline underline-offset-4">
-            Activity log
+            <T en="Activity log" ne="कसले के गर्‍यो" />
           </Link>
         </div>
 
         {events.length === 0 ? (
           <p className="rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 text-sm font-semibold text-brand-muted">
-            No notification events yet.
+            <T en="No notification events yet." ne="अझै कुनै सूचना छैन।" />
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <ul className="grid list-none gap-2 pl-0 md:hidden">
+            {events.map((event) => (
+              <li key={`card-${event.id}`} className="grid gap-1 rounded-xl border border-brand-green-line p-3 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 break-words font-bold capitalize text-brand-green-ink">{event.type} · {customerLabel(event)}</span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${statusClass(event.deliveryStatus)}`}>{event.deliveryStatus}</span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-brand-muted">
+                  <span className="min-w-0 break-words">
+                    {targetLabel(event)} · <DateDisplayAdmin date={event.createdAt} time={true} />
+                    {event.lastDeliveryError ? <span className="block text-brand-clay">{event.lastDeliveryError}</span> : null}
+                  </span>
+                  {event.deliveryStatus !== "sent" ? (
+                    <form action={retryNotificationAction}>
+                      <input type="hidden" name="id" value={event.id} />
+                      <FormSubmitButton className="inline-flex min-h-11 items-center rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink">
+                        <T en="Retry" ne="फेरि पठाउने" />
+                      </FormSubmitButton>
+                    </form>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="reflow-table min-w-full text-sm">
               <thead className="border-b text-left text-brand-muted">
                 <tr>
-                  <th className="py-2 pr-3">Created</th>
-                  <th className="py-2 pr-3">Type</th>
-                  <th className="py-2 pr-3">Customer</th>
-                  <th className="py-2 pr-3">Target</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Attempts</th>
-                  <th className="py-2 pr-3">Channel</th>
-                  <th className="py-2 pr-3">Last error</th>
+                  <th className="py-2 pr-3"><T en="Created" ne="कहिले" /></th>
+                  <th className="py-2 pr-3"><T en="Type" ne="किसिम" /></th>
+                  <th className="py-2 pr-3"><T en="Customer" ne="ग्राहक" /></th>
+                  <th className="py-2 pr-3"><T en="Target" ne="कहाँ" /></th>
+                  <th className="py-2 pr-3"><T en="Status" ne="अवस्था" /></th>
+                  <th className="py-2 pr-3"><T en="Attempts" ne="पटक" /></th>
+                  <th className="py-2 pr-3"><T en="Channel" ne="माध्यम" /></th>
+                  <th className="py-2 pr-3"><T en="Last error" ne="पछिल्लो गल्ती" /></th>
                   <th className="py-2 pr-3">
                     <span className="sr-only">Actions</span>
                   </th>
@@ -330,7 +373,7 @@ export default async function AdminNotificationsPage() {
                         <form action={retryNotificationAction}>
                           <input type="hidden" name="id" value={event.id} />
                           <FormSubmitButton className="inline-flex h-9 items-center rounded-full border border-brand-green-line px-3 text-xs font-bold text-brand-green-ink transition hover:border-brand-green hover:text-brand-green">
-                            Retry
+                            <T en="Retry" ne="फेरि पठाउने" />
                           </FormSubmitButton>
                         </form>
                       ) : null}
@@ -340,6 +383,7 @@ export default async function AdminNotificationsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
     </section>

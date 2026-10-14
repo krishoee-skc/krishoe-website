@@ -10,6 +10,7 @@ type PlatformLink = {
   label: string;
   href: string;
   note: string;
+  noteNe: string;
 };
 
 type CameraApp = {
@@ -29,16 +30,19 @@ const cameras: CameraApp[] = [
         label: "iPhone / iPad",
         href: "https://apps.apple.com/in/app/hik-connect/id1087803190",
         note: "Open in the Apple App Store",
+        noteNe: "Apple App Store मा खोल्ने",
       },
       {
         label: "Android",
         href: "https://play.google.com/store/apps/details?id=com.connect.enduser",
         note: "Open in Google Play",
+        noteNe: "Google Play मा खोल्ने",
       },
       {
         label: "Windows / Mac",
         href: "https://www.hikvision.com/en/support/download/software/ivms4200-series/",
         note: "Official iVMS-4200 download page",
+        noteNe: "iVMS-4200 को आधिकारिक download पाना",
       },
     ],
   },
@@ -51,16 +55,19 @@ const cameras: CameraApp[] = [
         label: "iPhone / iPad",
         href: "https://apps.apple.com/in/app/v380-pro/id1388988209",
         note: "Open in the Apple App Store",
+        noteNe: "Apple App Store मा खोल्ने",
       },
       {
         label: "Android",
         href: "https://play.google.com/store/apps/details?id=com.macrovideo.v380pro",
         note: "Open in Google Play",
+        noteNe: "Google Play मा खोल्ने",
       },
       {
         label: "Windows PC",
         href: "https://v380.org/v380-for-pc/",
         note: "V380 desktop client page",
+        noteNe: "V380 को computer app पाना",
       },
     ],
   },
@@ -71,14 +78,16 @@ export default function SecurityPage() {
     <section className="p-4 pb-28 sm:p-6 sm:pb-10">
       <div className="max-w-4xl">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-green">
-          Security centre
+          <T en="Security centre" ne="सुरक्षा" />
         </p>
         <h1 className="mt-2 font-display text-2xl font-black text-brand-green-ink sm:text-3xl">
-          CCTV camera apps
+          <T en="CCTV camera apps" ne="CCTV camera का app" />
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
-          Choose the button for the device you are using. This page opens the camera vendor&apos;s
-          app or download page; camera passwords and recordings are not stored in KRISHOE.
+          <T
+            en="Choose the button for the device you are using. This page opens the camera maker's app or download page; camera passwords and recordings are not kept in KRISHOE."
+            ne="आफू चलाउने फोन वा computer को बटन थिच्नुहोस्। यसले camera बनाउने कम्पनीको app वा download पाना खोल्छ; camera को password र recording KRISHOE मा राखिँदैन।"
+          />
         </p>
       </div>
 
@@ -91,7 +100,7 @@ export default function SecurityPage() {
               </span>
               <div>
                 <h2 className="text-xl font-black text-brand-green-ink">{camera.name}</h2>
-                <p className="text-xs font-semibold text-brand-muted">{camera.vendor} · Shop / Factory</p>
+                <p className="text-xs font-semibold text-brand-muted">{camera.vendor} · <T en="Shop / Factory" ne="पसल / कारखाना" /></p>
               </div>
             </div>
 
@@ -106,7 +115,7 @@ export default function SecurityPage() {
                 >
                   <span>
                     <span className="block text-sm font-black text-brand-green-ink">{link.label}</span>
-                    <span className="block text-xs text-brand-muted">{link.note}</span>
+                    <span className="block text-xs text-brand-muted"><T en={link.note} ne={link.noteNe} /></span>
                   </span>
                   <span aria-hidden="true" className="font-black text-brand-green">↗</span>
                 </a>
@@ -117,11 +126,12 @@ export default function SecurityPage() {
       </div>
 
       <div className="mt-5 max-w-5xl rounded-3xl border border-amber-200 bg-amber-50 p-5">
-        <h2 className="text-base font-black text-amber-950">EOQDZI camera</h2>
+        <h2 className="text-base font-black text-amber-950"><T en="EOQDZI camera" ne="EOQDZI camera" /></h2>
         <p className="mt-2 text-sm leading-6 text-amber-900">
-          EOQDZI appears to be the camera/product name, but its required app could not be verified
-          safely. Scan the QR code on the camera label or its manual and confirm the exact app name.
-          Do not install an app only because it has a similar name.
+          <T
+            en="EOQDZI seems to be the camera's name, but its required app could not be verified safely. Scan the QR on the camera's label or manual and check the exact app name. Do not install an app only because its name looks similar."
+            ne="EOQDZI camera को नाम जस्तो देखिन्छ, तर त्यसलाई चाहिने app सुरक्षित रूपमा पक्का गर्न सकिएन। camera को label वा किताबको QR scan गरेर app को ठ्याक्कै नाम हेर्नुहोस्। नाम मिल्दोजुल्दो छ भन्दैमा app नहाल्नुहोस्।"
+          />
         </p>
       </div>
 
@@ -136,15 +146,15 @@ export default function SecurityPage() {
         </div>
 
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-          <h2 className="text-base font-black text-emerald-950">KRISHOE account safety</h2>
+          <h2 className="text-base font-black text-emerald-950"><T en="KRISHOE account safety" ne="KRISHOE खाताको सुरक्षा" /></h2>
           <ul className="mt-3 grid gap-2 text-sm leading-6 text-emerald-900">
             <li><T en="Give each staff member their own login; do not share the password." ne="हरेक staff लाई आफ्नै login दिनुहोस्; password नबाँड्नुहोस्।" /></li>
             <li><T en="Keep the camera password different from the KRISHOE staff password." ne="Camera password KRISHOE staff password भन्दा फरक राख्नुहोस्।" /></li>
             <li>
               <T en="Check " ne="बेलाबेला " />
-              <Link href="/admin/activity" className="font-black underline">Activity log</Link>
+              <Link href="/admin/activity" className="font-black underline"><T en="Activity log" ne="कसले के गर्‍यो" /></Link>
               <T en=" and " ne=" र " />
-              <Link href="/admin/login-devices" className="font-black underline">Login devices</Link>
+              <Link href="/admin/login-devices" className="font-black underline"><T en="Login devices" ne="login भएका फोन" /></Link>
               <T en=" from time to time." ne=" जाँच्नुहोस्।" />
             </li>
           </ul>

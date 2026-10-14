@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatAdminDate } from "@/lib/format-date";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface SMSRecord {
   id: string;
@@ -23,13 +24,40 @@ interface SMSStats {
   by_event: Array<{ event: string; count: number }>;
 }
 
+// The log's own words, said in both languages (owner's sample 7घ,
+// 2026-10-14): this screen was English throughout.
+const STATUS_WORDS: Record<string, { en: string; ne: string }> = {
+  sent: { en: "sent", ne: "पुग्यो" },
+  failed: { en: "failed", ne: "पुगेन" },
+  pending: { en: "waiting", ne: "पठाउँदै" },
+};
+const TYPE_WORDS: Record<"all" | "customer" | "worker" | "admin", { en: string; ne: string }> = {
+  all: { en: "All", ne: "सबै" },
+  customer: { en: "👥 Customers", ne: "👥 ग्राहक" },
+  worker: { en: "👤 Workers", ne: "👤 कामदार" },
+  admin: { en: "🚨 Owner", ne: "🚨 मालिक" },
+};
+const EVENT_WORDS: Record<string, { en: string; ne: string }> = {
+  order_confirmed: { en: "Order confirmed", ne: "अर्डर पक्का" },
+  payment_link_sent: { en: "Payment link", ne: "भुक्तानीको link" },
+  shipped: { en: "Shipped", ne: "पठाइयो" },
+  out_for_delivery: { en: "Out for delivery", ne: "बाटोमा" },
+  delivered: { en: "Delivered", ne: "पुग्यो" },
+  payment_ready: { en: "Payment ready", ne: "भुक्तानी तयार" },
+  payment_confirmed: { en: "Payment confirmed", ne: "भुक्तानी पक्का" },
+  admin_alert: { en: "Alert", ne: "चेतावनी" },
+};
+
 export default function SMSManagementPanel() {
+  const { text } = useLanguage();
   const [messages, setMessages] = useState<SMSRecord[]>([]);
   const [stats, setStats] = useState<SMSStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "customer" | "worker" | "admin">(
     "all"
   );
+  // The period the three figures cover (owner's sample 7घ).
+  const [days, setDays] = useState<7 | 30>(7);
   const [selectedMessage, setSelectedMessage] = useState<SMSRecord | null>(null);
 
   const loadData = useCallback(async () => {
@@ -41,7 +69,7 @@ export default function SMSManagementPanel() {
             filter !== "all" ? `&type=${filter}` : ""
           }`
         ),
-        fetch("/api/admin/sms-logs?stats=true&days=7"),
+        fetch(`/api/admin/sms-logs?stats=true&days=${days}`),
       ]);
 
       if (messagesRes.ok) {
@@ -58,7 +86,7 @@ export default function SMSManagementPanel() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, days]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadData(), 0);
@@ -105,6 +133,9 @@ export default function SMSManagementPanel() {
     return emojis[event] || "📨";
   };
 
+  const say = (words: { en: string; ne: string } | undefined, fallback: string) =>
+    words ? text(words.en, words.ne) : fallback;
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return formatAdminDate(date, { time: true });
@@ -112,128 +143,124 @@ export default function SMSManagementPanel() {
 
   if (loading && !messages.length) {
     return (
-      <div className="p-6 text-center text-brand-muted">Loading SMS data...</div>
+      <div className="p-6 text-center text-brand-muted">{text("Loading SMS data…", "SMS खुल्दैछ…")}</div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
-        <h1 className="font-display text-3xl font-black text-brand-green-ink mb-2">SMS Management</h1>
-        <p className="text-brand-muted">
-          Manage and monitor all SMS notifications sent to customers and workers
+      <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4 sm:p-6">
+        <h1 className="font-display text-2xl font-black text-brand-green-ink sm:text-3xl">SMS</h1>
+        <p className="mt-1 text-sm text-brand-muted">
+          {text(
+            "Every SMS sent to customers, workers and you, and whether it arrived.",
+            "ग्राहक, कामदार र तपाईंलाई पठाएका सबै SMS, र पुग्यो कि पुगेन।",
+          )}
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Three figures and the period they cover */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
-            <div className="text-sm text-brand-green font-medium">Total Sent</div>
-            <div className="text-2xl font-bold text-brand-green">
-              {stats.total_sent}
+        <div className="grid gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-2xl border border-brand-green-line bg-brand-paper px-3 py-2">
+              <div className="font-display text-xl font-black tabular-nums text-brand-green-ink">{stats.total_sent}</div>
+              <div className="text-xs font-bold text-brand-muted">{text("sent", "पठाएका")}</div>
+            </div>
+            <div className="rounded-2xl border border-transparent bg-brand-green-wash px-3 py-2">
+              <div className="font-display text-xl font-black tabular-nums text-brand-green">{stats.success_rate}%</div>
+              <div className="text-xs font-bold text-brand-green">{text("arrived", "पुगेका")}</div>
+            </div>
+            <div className={`rounded-2xl border px-3 py-2 ${stats.total_failed > 0 ? "border-transparent bg-brand-clay-tint text-brand-clay" : "border-brand-green-line bg-brand-paper text-brand-green-ink"}`}>
+              <div className="font-display text-xl font-black tabular-nums">{stats.total_failed}</div>
+              <div className="text-xs font-bold">{text("did not arrive", "नपुगेका")}</div>
             </div>
           </div>
-
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="text-sm text-green-600 font-medium">Success Rate</div>
-            <div className="text-2xl font-bold text-green-900">
-              {stats.success_rate}%
-            </div>
-          </div>
-
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="text-sm text-red-600 font-medium">Failed</div>
-            <div className="text-2xl font-bold text-red-900">
-              {stats.total_failed}
-            </div>
-          </div>
-
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="text-sm text-purple-600 font-medium">Period</div>
-            <div className="text-sm font-bold text-purple-900">Last 7 days</div>
+          <div className="flex gap-1.5">
+            {([7, 30] as const).map((period) => (
+              <button
+                key={period}
+                type="button"
+                aria-pressed={days === period}
+                onClick={() => setDays(period)}
+                className={`min-h-10 rounded-full border px-4 text-sm font-black ${days === period ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink"}`}
+              >
+                {text(`${period} days`, `${period} दिन`)}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-brand-green-line">
+      <div role="tablist" aria-label={text("Whose messages", "कसका सन्देश")} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
         {(["all", "customer", "worker", "admin"] as const).map((type) => (
           <button
             key={type}
+            type="button"
+            role="tab"
+            aria-selected={filter === type}
             onClick={() => setFilter(type)}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            className={`inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-sm font-black ${
               filter === type
-                ? "border-brand-green text-brand-green"
-                : "border-transparent text-brand-muted hover:text-brand-green-ink"
+                ? "border-brand-green bg-brand-green text-white"
+                : "border-brand-green-line bg-brand-paper text-brand-green-ink"
             }`}
           >
-            {type.charAt(0).toUpperCase() + type.slice(1)}
+            {say(TYPE_WORDS[type], type)}
           </button>
         ))}
       </div>
 
-      {/* Messages List */}
-      <div className="space-y-2 max-h-[600px] overflow-y-auto">
+      {/* Messages List: two lines a message */}
+      <div className="max-h-[37.5rem] space-y-2 overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="text-center py-8 text-brand-muted">
-            No SMS messages found
+          <div className="py-8 text-center text-brand-muted">
+            {text("No SMS messages found", "कुनै SMS भेटिएन")}
           </div>
         ) : (
           messages.map((msg) => (
-            <div
+            <button
+              type="button"
               key={msg.id}
               onClick={() => setSelectedMessage(msg)}
-              className="bg-brand-paper border border-brand-green-line rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+              className="grid w-full gap-1 rounded-xl border border-brand-green-line bg-brand-paper p-3 text-left transition hover:shadow-md"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span>{getTypeIcon(msg.message_type)}</span>
-                    <span>{getEventEmoji(msg.event_type)}</span>
-                    <span className="font-semibold text-brand-green-ink">
-                      {msg.phone_number}
-                    </span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                        msg.status
-                      )}`}
-                    >
-                      {msg.status}
-                    </span>
-                  </div>
-
-                  <div className="text-sm text-brand-muted-deep bg-brand-paper-deep p-2 rounded mb-2">
-                    {msg.message_text.substring(0, 150)}
-                    {msg.message_text.length > 150 ? "..." : ""}
-                  </div>
-
-                  <div className="flex gap-3 text-xs text-brand-muted">
-                    <span>📍 {msg.event_type}</span>
-                    {msg.order_id && <span>📦 Order: {msg.order_id}</span>}
-                    {msg.worker_id && <span>👤 Worker: {msg.worker_id}</span>}
-                    <span>{formatDate(msg.created_at)}</span>
-                  </div>
-                </div>
+              <div className="flex items-start justify-between gap-2">
+                <span className="min-w-0 break-words font-semibold text-brand-green-ink">
+                  {getTypeIcon(msg.message_type)} {getEventEmoji(msg.event_type)} {msg.phone_number}
+                </span>
+                <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-bold ${getStatusColor(msg.status)}`}>
+                  {say(STATUS_WORDS[msg.status], msg.status)}
+                </span>
               </div>
-            </div>
+              <div className="flex flex-wrap gap-x-3 text-xs text-brand-muted">
+                <span>{say(EVENT_WORDS[msg.event_type], msg.event_type)}</span>
+                {msg.order_id && <span>📦 {text("Order", "अर्डर")} {msg.order_id}</span>}
+                {msg.worker_id && <span>👤 {text("Worker", "कामदार")} {msg.worker_id}</span>}
+                <span>{formatDate(msg.created_at)}</span>
+              </div>
+              <p className="line-clamp-2 text-sm text-brand-muted-deep">{msg.message_text}</p>
+            </button>
           ))
         )}
       </div>
 
       {/* Detail Modal */}
       {selectedMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-brand-paper rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-brand-paper">
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
+              <div className="mb-4 flex items-start justify-between">
                 <h2 className="text-xl font-bold text-brand-green-ink">
-                  📱 SMS Details
+                  📱 {text("SMS details", "SMS को विवरण")}
                 </h2>
                 <button
+                  type="button"
                   onClick={() => setSelectedMessage(null)}
-                  className="text-brand-muted hover:text-brand-muted-deep text-2xl"
+                  aria-label={text("Close", "बन्द गर्ने")}
+                  className="grid h-11 w-11 place-items-center text-2xl text-brand-muted hover:text-brand-muted-deep"
                 >
                   ×
                 </button>
@@ -242,92 +269,58 @@ export default function SMSManagementPanel() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      To Number
-                    </label>
-                    <div className="text-lg font-mono text-brand-green-ink">
-                      {selectedMessage.phone_number}
+                    <p className="text-sm font-medium text-brand-muted">{text("To number", "कुन नम्बरमा")}</p>
+                    <div className="font-mono text-lg text-brand-green-ink">{selectedMessage.phone_number}</div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-brand-muted">{text("Status", "अवस्था")}</p>
+                    <div className={`inline-block rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(selectedMessage.status)}`}>
+                      {say(STATUS_WORDS[selectedMessage.status], selectedMessage.status)}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Status
-                    </label>
-                    <div
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                        selectedMessage.status
-                      )}`}
-                    >
-                      {selectedMessage.status}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Type
-                    </label>
+                    <p className="text-sm font-medium text-brand-muted">{text("To whom", "कसलाई")}</p>
                     <div className="text-brand-green-ink">
-                      {selectedMessage.message_type}
+                      {say(TYPE_WORDS[selectedMessage.message_type as keyof typeof TYPE_WORDS], selectedMessage.message_type)}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Event
-                    </label>
-                    <div className="text-brand-green-ink">
-                      {selectedMessage.event_type}
-                    </div>
+                    <p className="text-sm font-medium text-brand-muted">{text("What for", "के बारे")}</p>
+                    <div className="text-brand-green-ink">{say(EVENT_WORDS[selectedMessage.event_type], selectedMessage.event_type)}</div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Message ID
-                    </label>
-                    <div className="text-xs font-mono text-brand-muted break-all">
-                      {selectedMessage.id}
-                    </div>
+                    <p className="text-sm font-medium text-brand-muted">{text("Message ID", "सन्देशको ID")}</p>
+                    <div className="break-all font-mono text-xs text-brand-muted">{selectedMessage.id}</div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Sent At
-                    </label>
-                    <div className="text-brand-green-ink">
-                      {formatDate(selectedMessage.created_at)}
-                    </div>
+                    <p className="text-sm font-medium text-brand-muted">{text("Sent at", "पठाएको")}</p>
+                    <div className="text-brand-green-ink">{formatDate(selectedMessage.created_at)}</div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-brand-muted">
-                    Message
-                  </label>
-                  <div className="bg-brand-paper-deep p-4 rounded-lg text-brand-green-ink whitespace-pre-wrap">
+                  <p className="text-sm font-medium text-brand-muted">{text("Message", "सन्देश")}</p>
+                  <div className="whitespace-pre-wrap rounded-lg bg-brand-paper-deep p-4 text-brand-green-ink">
                     {selectedMessage.message_text}
                   </div>
                 </div>
 
                 {selectedMessage.order_id && (
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Associated Order
-                    </label>
-                    <div className="text-brand-green-ink">
-                      {selectedMessage.order_id}
-                    </div>
+                    <p className="text-sm font-medium text-brand-muted">{text("Order", "अर्डर")}</p>
+                    <div className="text-brand-green-ink">{selectedMessage.order_id}</div>
                   </div>
                 )}
 
                 {selectedMessage.worker_id && (
                   <div>
-                    <label className="text-sm font-medium text-brand-muted">
-                      Associated Worker
-                    </label>
-                    <div className="text-brand-green-ink">
-                      {selectedMessage.worker_id}
-                    </div>
+                    <p className="text-sm font-medium text-brand-muted">{text("Worker", "कामदार")}</p>
+                    <div className="text-brand-green-ink">{selectedMessage.worker_id}</div>
                   </div>
                 )}
               </div>

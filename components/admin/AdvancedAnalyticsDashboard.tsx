@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatAdminDate } from "@/lib/format-date";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface TrendDataPoint {
   date: string;
@@ -55,6 +56,7 @@ interface Analytics {
 }
 
 export default function AdvancedAnalyticsDashboard() {
+  const { text } = useLanguage();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [workers, setWorkers] = useState<WorkerMetric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,7 +127,7 @@ export default function AdvancedAnalyticsDashboard() {
   if (loading) {
     return (
       <div className="p-6 text-center text-brand-muted">
-        Loading advanced analytics...
+        {text("Loading the figures…", "अंक खुल्दैछ…")}
       </div>
     );
   }
@@ -135,21 +137,21 @@ export default function AdvancedAnalyticsDashboard() {
       {/* Header */}
       <div className="bg-brand-paper rounded-lg border border-brand-green-line p-6">
         <h1 className="font-display text-3xl font-black text-brand-green-ink mb-2">
-          📊 Advanced Analytics
+          📊 {text("Business figures", "व्यापारका अंक")}
         </h1>
         <p className="text-brand-muted">
-          Comprehensive insights, trends, forecasts, and performance metrics
+          {text("Customers, 30-day trends, goals and workers.", "ग्राहक, ३० दिनको चाल, लक्ष्य र कामदार।")}
         </p>
       </div>
 
       {/* Tab Navigation */}
       <div className="flex gap-2 border-b border-brand-green-line overflow-x-auto">
         {([
-          { key: "overview" as const, label: "📈 Overview", icon: "📊" },
-          { key: "trends" as const, label: "📉 30-Day Trends", icon: "📊" },
+          { key: "overview" as const, label: text("📈 Overview", "📈 सारांश"), icon: "📊" },
+          { key: "trends" as const, label: text("📉 30-day trends", "📉 ३० दिनको चाल"), icon: "📊" },
           { key: "forecast" as const, label: "🔮 Forecast", icon: "🔮" },
-          { key: "goals" as const, label: "🎯 Goals", icon: "🎯" },
-          { key: "workers" as const, label: "👥 Workers", icon: "👥" },
+          { key: "goals" as const, label: text("🎯 Goals", "🎯 लक्ष्य"), icon: "🎯" },
+          { key: "workers" as const, label: text("👥 Workers", "👥 कामदार"), icon: "👥" },
         ]).map((tab) => (
           <button
             key={tab.key}
@@ -182,7 +184,7 @@ export default function AdvancedAnalyticsDashboard() {
                       {metric.current}
                     </p>
                     <p className="text-xs text-brand-muted mt-1">
-                      Last month: {metric.previous}
+                      {text("Last month:", "गत महिना:")} {metric.previous}
                     </p>
                   </div>
                   <div
@@ -217,28 +219,28 @@ export default function AdvancedAnalyticsDashboard() {
           {/* Customer Analytics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">👥 Customer Analytics</h3>
+              <h3 className="font-semibold text-brand-green-ink mb-4">👥 {text("Customers", "ग्राहक")}</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-brand-muted">Total Customers</span>
+                  <span className="text-brand-muted">{text("Total customers", "जम्मा ग्राहक")}</span>
                   <span className="font-bold text-brand-green-ink">
                     {analytics.customerAnalytics.totalCustomers}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-brand-muted">Returning Customers</span>
+                  <span className="text-brand-muted">{text("Came back", "फेरि आएका")}</span>
                   <span className="font-bold text-brand-green-ink">
                     {analytics.customerAnalytics.returningCustomers}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-brand-muted">Avg Order Value</span>
+                  <span className="text-brand-muted">{text("Average order", "औसत अर्डर")}</span>
                   <span className="font-bold text-brand-green-ink">
                     Rs. {analytics.customerAnalytics.avgOrderValue.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-brand-muted">Repeat Order Rate</span>
+                  <span className="text-brand-muted">{text("Ordered again", "फेरि अर्डर गर्ने")}</span>
                   <span className="font-bold text-brand-green-ink">
                     {analytics.customerAnalytics.repeatOrderRate}%
                   </span>
@@ -247,7 +249,7 @@ export default function AdvancedAnalyticsDashboard() {
             </div>
 
             <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">📞 Customer Insights</h3>
+              <h3 className="font-semibold text-brand-green-ink mb-4">📞 {text("What it means", "यसको अर्थ")}</h3>
               <div className="space-y-2 text-sm text-brand-muted">
                 <p>
                   ✨ {analytics.customerAnalytics.repeatOrderRate}% of customers
@@ -272,9 +274,9 @@ export default function AdvancedAnalyticsDashboard() {
       {activeTab === "trends" && analytics && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[
-            { title: "📊 Sales Trend (30 Days)", data: analytics.salesTrend },
-            { title: "📦 Production Trend (30 Days)", data: analytics.productionTrend },
-            { title: "💰 Revenue Trend (30 Days)", data: analytics.revenueTrend },
+            { title: text("📊 Sales (30 days)", "📊 बिक्री (३० दिन)"), data: analytics.salesTrend },
+            { title: text("📦 Production (30 days)", "📦 उत्पादन (३० दिन)"), data: analytics.productionTrend },
+            { title: text("💰 Takings (30 days)", "💰 आम्दानी (३० दिन)"), data: analytics.revenueTrend },
           ].map((trend, idx) => (
             <div key={idx} className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
               <h3 className="font-semibold text-brand-green-ink mb-4">{trend.title}</h3>
@@ -365,7 +367,7 @@ export default function AdvancedAnalyticsDashboard() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Progress</span>
+                  <span>{text("Progress", "प्रगति")}</span>
                   <span className="font-bold">
                     {Math.round(goal.achieved)} / {goal.target}
                   </span>
@@ -381,8 +383,8 @@ export default function AdvancedAnalyticsDashboard() {
                 </div>
 
                 <div className="flex justify-between text-xs text-brand-muted">
-                  <span>{Math.round(goal.progress)}% Complete</span>
-                  <span>Due: {formatAdminDate(goal.deadline)}</span>
+                  <span>{text(`${Math.round(goal.progress)}% done`, `${Math.round(goal.progress)}% पूरा`)}</span>
+                  <span>{text("By:", "म्याद:")} {formatAdminDate(goal.deadline)}</span>
                 </div>
               </div>
             </div>
@@ -394,7 +396,7 @@ export default function AdvancedAnalyticsDashboard() {
       {activeTab === "workers" && (
         <div className="space-y-4">
           {workers.length === 0 ? (
-            <div className="text-center py-8 text-brand-muted">No worker data available</div>
+            <div className="text-center py-8 text-brand-muted">{text("No worker figures yet", "अझै कामदारको अंक छैन")}</div>
           ) : (
             workers.map((worker) => (
               <div
@@ -420,13 +422,13 @@ export default function AdvancedAnalyticsDashboard() {
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-brand-muted">Quality Rate</p>
+                    <p className="text-brand-muted">{text("Quality", "गुणस्तर")}</p>
                     <p className="font-bold text-brand-green-ink">
                       {worker.qualityRate}%
                     </p>
                   </div>
                   <div>
-                    <p className="text-brand-muted">Attendance</p>
+                    <p className="text-brand-muted">{text("Attendance", "हाजिरी")}</p>
                     <p className="font-bold text-brand-green-ink">
                       {worker.attendanceRate}%
                     </p>
