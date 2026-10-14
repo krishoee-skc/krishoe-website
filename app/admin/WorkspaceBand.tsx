@@ -9,6 +9,7 @@ import { factoryLinks } from "@/app/admin/factory/_components/factory-nav";
 import { wagesLinks } from "@/app/admin/operations/production-accounts/_components/wages-nav";
 import { adminWorkspaces, workspaceForPath } from "@/app/admin/nav-links";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useShownWorkspace } from "@/app/admin/useAdminWorkspace";
 
 /**
  * Which half of the business this screen belongs to, and where in it you are —
@@ -17,7 +18,8 @@ import { useLanguage } from "@/components/LanguageProvider";
  * It was a 48px green or maroon band of its own under the search row; on a
  * phone the bar, the search and the band took 164px before a page began. The
  * colour is now a 3px line along the top of the bar — green for the factory
- * floor, maroon for the shop counter, gold for a screen of both — and the
+ * floor, maroon for the shop counter; a screen of both takes the side the menu
+ * shows — and the
  * words are the page's name, large, with the side above it small.
  *
  * It is also the trail on these screens: a sub-page the factory or wages
@@ -42,7 +44,7 @@ function subPageFor(pathname: string): Named | undefined {
   return best;
 }
 
-const lineColour = { factory: "bg-brand-green", shop: "bg-brand-maroon", both: "bg-brand-gold" } as const;
+const lineColour = { factory: "bg-brand-green", shop: "bg-brand-maroon" } as const;
 
 export default function WorkspaceBand() {
   const pathname = usePathname() ?? "";
@@ -54,7 +56,11 @@ export default function WorkspaceBand() {
     rememberVisit(pathname);
   }, [pathname]);
 
-  const side = workspaceForPath(pathname);
+  // A screen of both sides (Stock, Settings, the Dashboard) is named under the
+  // side the menu shows, as the sample draws Stock under 🏭 कारखाना.
+  const shown = useShownWorkspace();
+  const pathSide = workspaceForPath(pathname);
+  const side = pathSide === "both" ? shown : pathSide;
   const workspace = adminWorkspaces.find((option) => option.id === side);
   const section = shortcutForPath(pathname);
   const sub = subPageFor(pathname);

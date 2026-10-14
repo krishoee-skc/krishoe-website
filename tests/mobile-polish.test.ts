@@ -175,7 +175,10 @@ describe("the admin on a phone", () => {
 
   it("gives the search box room beside a narrower language switch", async () => {
     const layout = await readFile("app/admin/layout.tsx", "utf8");
-    expect(layout).toContain('<LanguageSwitch compact className="[&>button]:px-2.5 sm:[&>button]:px-3.5" />');
+    // Narrower still since the menu sample (owner, 2026-10-14): one button
+    // naming the language, beside a search that takes the rest of the bar.
+    expect(layout).toContain("<LanguageSwitch single />");
+    expect(layout).toContain('<div className="md:min-w-0 md:max-w-xl md:flex-1">');
   });
 });
 

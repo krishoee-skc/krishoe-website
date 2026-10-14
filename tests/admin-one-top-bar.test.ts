@@ -22,7 +22,7 @@ describe("one top bar", () => {
   it("carries the page's name, the search, the bell, and the look", async () => {
     const layout = await read("app/admin/layout.tsx");
     const header = layout.slice(layout.indexOf("<header"), layout.indexOf("</header>"));
-    for (const piece of ["<WorkspaceBand />", "<AdminCommandBar />", "<AdminBell items={bell} />", "<AdminTextSize />", "<LanguageSwitch compact", "<ThemeToggle />", "<AdminProfileButton identity={identity} />"]) {
+    for (const piece of ["<WorkspaceBand />", "<AdminCommandBar />", "<AdminBell items={bell} />", "<AdminTextSize single />", "<LanguageSwitch single />", "<ThemeToggle className=", "<AdminProfileButton identity={identity} />"]) {
       expect(header, piece).toContain(piece);
     }
     expect(layout).toContain("<AdminTextSizeApplier />");
@@ -32,7 +32,9 @@ describe("one top bar", () => {
   it("draws the side as a 3px line and the page's name large, with a ☆ to pin it", async () => {
     const band = await read("app/admin/WorkspaceBand.tsx");
     expect(band).toContain("absolute inset-x-0 top-0 h-[3px]");
-    expect(band).toContain('{ factory: "bg-brand-green", shop: "bg-brand-maroon", both: "bg-brand-gold" }');
+    expect(band).toContain('{ factory: "bg-brand-green", shop: "bg-brand-maroon" }');
+    // A screen of both sides is named under the side the menu shows (Stock under 🏭 कारखाना).
+    expect(band).toContain('const side = pathSide === "both" ? shown : pathSide;');
     expect(band).toContain("text-[1.1875rem] font-black");
     expect(band).toContain("lg:text-2xl");
     expect(band).toContain("togglePin(section.href)");
@@ -44,6 +46,8 @@ describe("one top bar", () => {
     expect(bar).toContain("h-11 w-11 shrink-0");
     expect(bar).toContain("md:w-full");
     expect(bar).toContain('className="hidden flex-1 truncate text-sm font-semibold md:inline"');
+    expect(bar).toContain('text("Search or ask…", "खोज्नुहोस् वा सोध्नुहोस्…")');
+    expect(bar).toContain(">Ctrl K</span>");
   });
 });
 
@@ -84,6 +88,7 @@ describe("★ favourites and the pages opened lately", () => {
     const nav = await read("app/admin/AdminNav.tsx");
     expect(nav).toContain("pinnedLinks.map");
     expect(nav).toContain("canAccessAdminPath(adminRole, href)");
+    expect(nav).toContain("border-dashed border-brand-gold/50 bg-brand-gold-wash");
   });
 });
 
@@ -95,6 +100,9 @@ describe("the phone menu", () => {
     expect(sheet).toContain("usePins()");
     expect(sheet).toContain("useRecent()");
     expect(sheet).toContain("grid grid-cols-3 gap-1.5");
+    expect(sheet).toContain("mt-4 grid grid-cols-4 gap-1.5");
+    expect(sheet).toContain('text("☆ Add", "☆ थप्ने")');
+    expect(sheet).not.toContain("XIcon");
     expect(sheet.indexOf("usePins()")).toBeLessThan(sheet.indexOf("<WorkspaceSwitch"));
   });
 

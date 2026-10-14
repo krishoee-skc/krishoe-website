@@ -82,10 +82,39 @@ export function AdminTextSizeApplier() {
   return null;
 }
 
-export default function AdminTextSize() {
+const SINGLE = "grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand-green-line bg-brand-paper font-black text-brand-green-ink transition hover:border-brand-green";
+
+export default function AdminTextSize({
+  single = false,
+  className = SINGLE,
+  children,
+}: {
+  single?: boolean;
+  /** The single button's look, and what it says (the letter, unless given). */
+  className?: string;
+  children?: React.ReactNode;
+}) {
   const { text } = useLanguage();
   const step = useSyncExternalStore(subscribe, currentStep, () => 0);
   const label = (index: number) => text(NAMES[index].en, NAMES[index].ne);
+
+  // One "अ" in the top bar, as the menu sample draws it (owner, 2026-10-14):
+  // each press takes the next size, and the letter grows with it.
+  if (single) {
+    const next = (step + 1) % SIZES.length;
+    return (
+      <button
+        type="button"
+        onClick={() => choose(next)}
+        aria-label={`${label(step)} · ${text("press for", "थिच्दा")} ${label(next)}`}
+        title={`${label(step)} · ${text("press for", "थिच्दा")} ${label(next)}`}
+        className={className}
+        style={{ fontSize: `${1 + step * 0.15}rem` }}
+      >
+        {children ?? "अ"}
+      </button>
+    );
+  }
 
   return (
     <div className="flex shrink-0 overflow-hidden rounded-xl border border-brand-green-line" role="group" aria-label={text("Text size", "अक्षरको साइज")}>

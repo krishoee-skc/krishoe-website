@@ -27,14 +27,32 @@ import { useLanguage } from "@/components/LanguageProvider";
 export default function LanguageSwitch({
   tone = "light",
   compact = false,
+  single = false,
   className = "",
 }: {
   tone?: "light" | "dark";
   /** Narrow bars shorten the English; the Nepali stays whole either way. */
   compact?: boolean;
+  /** One button naming the language that is running, as the admin's top bar
+   *  draws it (owner, 2026-10-14, the menu sample); a press changes it. */
+  single?: boolean;
   className?: string;
 }) {
   const { language, setLanguage, text } = useLanguage();
+
+  if (single) {
+    return (
+      <button
+        type="button"
+        onClick={() => setLanguage(language === "ne" ? "en" : "ne")}
+        aria-label={text("Language: English. Press for Nepali", "भाषा: नेपाली। अंग्रेजीका लागि थिच्नुहोस्")}
+        title={text("Press for Nepali", "अंग्रेजीका लागि थिच्नुहोस्")}
+        className={`inline-flex h-11 shrink-0 items-center rounded-xl border border-brand-green-line bg-brand-paper px-3.5 text-sm font-black text-brand-green-ink transition hover:border-brand-green ${className}`}
+      >
+        {text("English", "नेपाली")}
+      </button>
+    );
+  }
 
   const base =
     "inline-flex items-center gap-1.5 px-3 text-[13px] font-black leading-none transition duration-200 sm:px-3.5";

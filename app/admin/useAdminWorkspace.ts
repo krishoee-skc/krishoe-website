@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import {
   adminNavGroups,
@@ -11,6 +11,21 @@ import {
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 
 const STORAGE_KEY = "krishoe-admin-workspace";
+const SHOWN_CHANGED = "krishoe:admin-workspace";
+
+function subscribeShown(listener: () => void) {
+  window.addEventListener(SHOWN_CHANGED, listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    window.removeEventListener(SHOWN_CHANGED, listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+/** The side the menu shows — for naming a screen that belongs to both. */
+export function useShownWorkspace(): "factory" | "shop" {
+  return useSyncExternalStore(subscribeShown, () => (storedWorkspace() === "shop" ? "shop" : "factory"), () => "factory");
+}
 const lastPageKey = (side: "factory" | "shop") => `krishoe-admin-last-page-${side}`;
 
 function storedWorkspace(): AdminWorkspace | null {
@@ -67,6 +82,19 @@ export function useAdminWorkspace(adminRole: AdminRole, pathname: string) {
       setChosen(pathWorkspace);
     }
   }
+
+  // The side on show, for the top bar (owner, 2026-10-14): a screen of both
+  // sides — Stock, Settings — is named under the side the menu is showing,
+  // as the menu sample draws Stock under 🏭 कारखाना.
+  useEffect(() => {
+    if (chosen === "both") return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, chosen);
+    } catch {
+      // Remembering is a convenience; failing to remember is not an error.
+    }
+    window.dispatchEvent(new Event(SHOWN_CHANGED));
+  }, [chosen]);
 
   // The screen last used on each side, so coming back to a side returns to
   // the work that was left there rather than to its front door.

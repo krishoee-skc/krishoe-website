@@ -51,7 +51,10 @@ function MoonIcon({ className }: { className?: string }) {
   );
 }
 
-export default function ThemeToggle() {
+/** The look of the button; the admin's top bar draws it square, 44px (owner, 2026-10-14). */
+const ROUND = "grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist";
+
+export default function ThemeToggle({ className = ROUND }: { className?: string }) {
   const theme = useSyncExternalStore(subscribeToTheme, currentTheme, themeOnServer);
 
   const toggle = () => {
@@ -75,7 +78,7 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       title={isDark ? "Light mode" : "Dark mode"}
-      className="grid h-10 w-10 place-items-center rounded-full border border-black/10 text-brand-green transition hover:border-brand-green hover:bg-brand-mist"
+      className={className}
     >
       {/* Before the effect runs, theme is null and neither icon is shown, so the
           button renders as an empty circle of the right size rather than

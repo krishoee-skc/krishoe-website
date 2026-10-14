@@ -142,13 +142,18 @@ export default function AdminNav({
 
         {/* ★ Favourites (owner, 2026-10-14): the screens this person pinned with
             the ☆ beside a page's name, above the groups, on whichever side. */}
-        {pinnedLinks.length > 0 ? (
-          <div className={`border-b border-admin-border py-2 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
+        {pinnedLinks.length > 0 || !isCollapsed ? (
+          <div className={`mx-2 mt-2 rounded-xl border border-dashed border-brand-gold/50 bg-brand-gold-wash py-1.5 ${isCollapsed ? "px-1" : "px-1.5"}`}>
             {!isCollapsed && (
-              <p className="px-3 pb-0.5 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep dark:text-[#E8C467]">
+              <p className="px-2 pb-0.5 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep dark:text-[#E8C467]">
                 ★ {text("Favourites", "मनपर्ने")}
               </p>
             )}
+            {pinnedLinks.length === 0 && !isCollapsed ? (
+              <p className="px-2 pb-1 text-sm font-semibold leading-snug text-brand-muted dark:text-white/60">
+                {text("Press ☆ beside a page's name to keep it here.", "पानाको नामछेउको ☆ थिच्दा यहाँ आउँछ।")}
+              </p>
+            ) : null}
             <div className="grid gap-0.5">
               {pinnedLinks.map(({ link, tone }) => {
                 const isActive = pathname === link.href;
@@ -318,7 +323,7 @@ export default function AdminNav({
                   {adminRole}{adminRole === "Owner" ? " 👑" : ""}
                 </span>
                 <span className="truncate text-xs font-semibold text-brand-muted dark:text-white/60">
-                  {seesAllBranches ? text("All branches", "सबै शाखा") : branchName || branchId || ""}
+                  {[branchName || branchId || "", seesAllBranches ? text("all branches", "सबै शाखा") : ""].filter(Boolean).join(" · ")}
                 </span>
               </span>
             )}

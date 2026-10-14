@@ -133,10 +133,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <AdminCommandBar />
               </div>
               <AdminBell items={bell} />
+              {/* अ, the language and 🌙 as one button each, as the sample draws them. */}
               <div className="hidden items-center gap-2 md:flex lg:gap-3">
-                <AdminTextSize />
-                <LanguageSwitch compact className="[&>button]:px-2.5 sm:[&>button]:px-3.5" />
-                <ThemeToggle />
+                <AdminTextSize single />
+                <LanguageSwitch single />
+                <ThemeToggle className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand-green-line bg-brand-paper text-brand-green-ink transition hover:border-brand-green" />
               </div>
               <div className="md:hidden">
                 <AdminProfileButton identity={identity} />

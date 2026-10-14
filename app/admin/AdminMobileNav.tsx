@@ -10,7 +10,7 @@ import { shortcutForPath, shortcutLink, togglePin, usePins, useRecent } from "@/
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import AdminTextSize from "@/components/admin/AdminTextSize";
-import { SearchIcon, XIcon } from "@/components/Icons";
+import { SearchIcon } from "@/components/Icons";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -82,6 +82,7 @@ export default function AdminMobileNav({
     return link ? (language === "ne" ? link.nepali : link.label) : href;
   };
   const chip = "inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 text-sm font-black";
+  const footButton = "grid h-11 w-full place-items-center rounded-xl border border-brand-green-line bg-brand-paper px-1 text-sm font-black text-brand-green-ink";
 
   return (
     <div data-admin-chrome className="fixed inset-0 z-50 md:hidden print:hidden">
@@ -108,9 +109,6 @@ export default function AdminMobileNav({
             <SearchIcon className="h-5 w-5 shrink-0 text-brand-green" />
             <span className="truncate text-sm font-semibold">{text("Find a page, shoe or customer…", "पाना, जुत्ता, ग्राहक खोज्नुहोस्…")}</span>
           </button>
-          <button type="button" onClick={() => setOpen(false)} aria-label={text("Close", "बन्द")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-brand-muted">
-            <XIcon className="h-5 w-5" />
-          </button>
         </div>
 
         {/* ★ Favourites, and a ☆ for the screen that is open. */}
@@ -123,9 +121,7 @@ export default function AdminMobileNav({
           ))}
           {here ? (
             <button type="button" onClick={() => togglePin(here.href)} className={`${chip} border-dashed border-brand-green-line text-brand-muted`}>
-              {pins.includes(here.href)
-                ? text(`Remove ${here.label}`, `${here.nepali} हटाउने`)
-                : text(`☆ Add ${here.label}`, `☆ ${here.nepali} थप्ने`)}
+              {pins.includes(here.href) ? text("★ Remove", "★ हटाउने") : text("☆ Add", "☆ थप्ने")}
             </button>
           ) : null}
         </div>
@@ -147,54 +143,52 @@ export default function AdminMobileNav({
           <WorkspaceSwitch workspace={workspace} onChoose={chooseWorkspace} />
         </div>
 
-        {groups.map((group) => (
-          <div key={group.id} className="mt-3">
-            <p className="px-1 pb-1.5 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft">
-              {text(group.titleEn, group.titleNe)}
-            </p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {group.links.map(({ href, label, nepali, icon: Icon }) => {
-                const active = pathname === href;
-                const waiting = counts?.[href] ?? 0;
-                return (
-                  <Link
-                    key={`${group.id}-${href}`}
-                    href={href}
-                    aria-current={active ? "page" : undefined}
-                    className={`relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-2 text-center text-sm font-black leading-tight transition ${
-                      active
-                        ? "border-brand-green bg-brand-green-wash text-brand-green"
-                        : "border-transparent bg-brand-mist text-brand-green-ink"
-                    }`}
-                  >
-                    <span
-                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                        adminNavToneClasses[adminNavTone(group.id)][active ? "active" : "tile"]
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span>{language === "ne" ? nepali : label}</span>
-                    {waiting > 0 ? (
-                      <span className="absolute right-1.5 top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-clay px-1 text-xs font-black text-white">
-                        {waiting > 99 ? "99+" : waiting}
-                      </span>
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        {/* Every page of the side on show, in one grid of tiles, as the sample
+            draws it; the colour of each icon still says which part it is. */}
+        <div className="mt-3 grid grid-cols-3 gap-1.5">
+          {groups.map((group) =>
+          group.links.map(({ href, label, nepali, icon: Icon }) => {
+            const active = pathname === href;
+            const waiting = counts?.[href] ?? 0;
+            return (
+              <Link
+                key={`${group.id}-${href}`}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-2 text-center text-sm font-black leading-tight transition ${
+                  active
+                    ? "border-brand-green bg-brand-green-wash text-brand-green"
+                    : "border-transparent bg-brand-mist text-brand-green-ink"
+                }`}
+              >
+                <span
+                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                    adminNavToneClasses[adminNavTone(group.id)][active ? "active" : "tile"]
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span>{language === "ne" ? nepali : label}</span>
+                {waiting > 0 ? (
+                  <span className="absolute right-1.5 top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-clay px-1 text-xs font-black text-white">
+                    {waiting > 99 ? "99+" : waiting}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          }),
+          )}
+        </div>
 
         {/* The look and Sign out, at the foot where the thumb already is. */}
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-brand-green-line pt-3">
-          <AdminTextSize />
-          <LanguageSwitch compact />
-          <ThemeToggle />
-          <form action={logoutAdminAction} className="ml-auto">
-            <button type="submit" className="min-h-11 rounded-xl border border-brand-clay/40 px-4 text-sm font-black text-brand-clay">
-              {text("Sign out", "बाहिर निस्कने")}
+        {/* Four equal buttons, as the sample draws them: अ अक्षर · नेपाली · 🌙 · बाहिर. */}
+        <div className="mt-4 grid grid-cols-4 gap-1.5 border-t border-brand-green-line pt-3">
+          <AdminTextSize single className={footButton}>{text("Aa size", "अ अक्षर")}</AdminTextSize>
+          <LanguageSwitch single className="w-full justify-center px-1" />
+          <ThemeToggle className={footButton} />
+          <form action={logoutAdminAction}>
+            <button type="submit" className={`${footButton} w-full text-brand-clay`}>
+              {text("Sign out", "बाहिर")}
             </button>
           </form>
         </div>

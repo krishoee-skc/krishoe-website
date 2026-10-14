@@ -14,14 +14,15 @@ function filesUnder(dir: string): string[] {
 
 /** Owner, 2026-10-13: "7, 8 and 11" from the second sample. */
 describe("the admin's text size (7)", () => {
-  it("has a normal / large / larger switch beside the language, remembered on the phone", async () => {
+  it("has a normal / large / larger switch beside the language, remembered on the device", async () => {
     const control = await read("components/admin/AdminTextSize.tsx");
     expect(control).toContain('const SIZES = ["100%", "112.5%", "125%"] as const;');
     expect(control).toContain('const KEY = "krishoe-admin-text";');
     expect(control).toContain('body.style.fontSize = "1rem";');
     const layout = await read("app/admin/layout.tsx");
-    expect(layout.indexOf("<AdminTextSize />")).toBeGreaterThan(-1);
-    expect(layout.indexOf("<AdminTextSize />")).toBeLessThan(layout.indexOf("<LanguageSwitch compact"));
+    // One "अ" beside the language in the top bar (owner, 2026-10-14, the menu sample).
+    expect(layout.indexOf("<AdminTextSize single />")).toBeGreaterThan(-1);
+    expect(layout.indexOf("<AdminTextSize single />")).toBeLessThan(layout.indexOf("<LanguageSwitch single />"));
   });
 
   it("has no admin text fixed in px, and none below 12px", () => {

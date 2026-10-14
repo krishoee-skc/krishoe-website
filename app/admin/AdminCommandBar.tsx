@@ -145,10 +145,11 @@ export default function AdminCommandBar() {
       >
         <SearchIcon className="h-5 w-5 shrink-0 text-brand-green" />
         <span className="hidden flex-1 truncate text-sm font-semibold md:inline">
-          {text("Search or ask about the shop…", "खोज्नुहोस् वा शपबारे सोध्नुहोस्…")}
+          {text("Search or ask…", "खोज्नुहोस् वा सोध्नुहोस्…")}
         </span>
-        {/* The Ctrl+K hint used to sit here; it read as clutter on the bar, and
-            the shortcut still works. Kept out for a cleaner, calmer field. */}
+        {/* "Ctrl K" back on a computer's bar, as the menu sample the owner
+            approved draws it (2026-10-14); he had once taken it off as clutter. */}
+        <span className="hidden shrink-0 rounded-md border border-brand-green-line px-1.5 text-xs font-bold text-brand-muted-soft lg:inline">Ctrl K</span>
       </button>
 
       {open ? (
