@@ -2,28 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { adminTrail } from "@/app/admin/AdminTrail";
+import { rememberVisit, shortcutForPath, togglePin, usePins } from "@/app/admin/admin-shortcuts";
 import { factoryLinks } from "@/app/admin/factory/_components/factory-nav";
 import { wagesLinks } from "@/app/admin/operations/production-accounts/_components/wages-nav";
-import { adminWorkspaces, navLinkForPath, workspaceForPath } from "@/app/admin/nav-links";
+import { adminWorkspaces, workspaceForPath } from "@/app/admin/nav-links";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
- * Which half of the business this screen belongs to, in colour, above the page
- * — and where in it you are.
+ * Which half of the business this screen belongs to, and where in it you are —
+ * now the left of the one top bar (owner, 2026-10-14, the menu sample).
  *
- * The switch in the menu says which side the menu shows; this says which side
- * the page is. Green for the factory floor, maroon for the shop counter, so the
- * answer is readable from across the room before a word is.
+ * It was a 48px green or maroon band of its own under the search row; on a
+ * phone the bar, the search and the band took 164px before a page began. The
+ * colour is now a 3px line along the top of the bar — green for the factory
+ * floor, maroon for the shop counter, gold for a screen of both — and the
+ * words are the page's name, large, with the side above it small.
  *
- * It is also the trail on these screens. Drawn under a separate "Admin ›
- * Factory › Add work" line, the two said the same thing twice, and on a phone
- * the add-work screen named itself five times before its first box. A sub-page
- * the factory or wages menus name (काम टिप्ने, कामदार, भुक्तानी) is named by
- * that name; anything deeper keeps the section as a link back.
- *
- * Screens that belong to both — the Dashboard, Stock, Settings — get no band:
- * there is no side to name, and AdminTrail draws their path as before.
+ * It is also the trail on these screens: a sub-page the factory or wages
+ * menus name (काम टिप्ने, कामदार, भुक्तानी) is named by that name, anything
+ * deeper by its last step, and the section stays a link back. ☆ beside the
+ * name puts the screen in the menu's ★ favourites.
  */
 
 type Named = { href: string; en: string; ne: string };
@@ -42,74 +42,79 @@ function subPageFor(pathname: string): Named | undefined {
   return best;
 }
 
+const lineColour = { factory: "bg-brand-green", shop: "bg-brand-maroon", both: "bg-brand-gold" } as const;
+
 export default function WorkspaceBand() {
   const pathname = usePathname() ?? "";
   const { text } = useLanguage();
-  const side = workspaceForPath(pathname);
-  if (side === "both") return null;
+  const pins = usePins();
 
+  // The pages opened last, for the phone menu's "opened lately".
+  useEffect(() => {
+    rememberVisit(pathname);
+  }, [pathname]);
+
+  const side = workspaceForPath(pathname);
   const workspace = adminWorkspaces.find((option) => option.id === side);
-  if (!workspace) return null;
-  const section = navLinkForPath(pathname);
+  const section = shortcutForPath(pathname);
   const sub = subPageFor(pathname);
   // A named sub-page deeper than its menu section: say its name, not both.
   const named = sub && section && sub.href.length > section.href.length ? sub : undefined;
   const deeper = section && !named
     ? adminTrail(pathname).filter((step) => step.href.length > section.href.length)
     : [];
-
-  // On a phone the factory screens already say where you are: their row of
-  // section chips marks the open one in green. The band above it said it
-  // again, in 45px of a screen where the top bar, search and chips already
-  // took 230px before the form began.
-  const chipsSayIt = pathname === "/admin/factory" || pathname.startsWith("/admin/factory/");
+  const sectionName = section ? text(section.label, section.nepali) : "";
+  const title = named ? text(named.en, named.ne) : deeper.at(-1)?.label ?? (sectionName || "KRISHOE");
+  const titleIsSection = !named && deeper.length === 0;
+  const pinned = section ? pins.includes(section.href) : false;
 
   return (
-    <nav
-      data-admin-chrome
-      aria-label={text("Where you are", "तपाईं कहाँ हुनुहुन्छ")}
-      className={`px-4 pt-3 sm:px-6 print:hidden ${chipsSayIt ? "max-sm:hidden" : ""}`}
-    >
-      <p
-        data-workspace={side}
-        className={`mb-0 flex min-h-9 flex-wrap items-center gap-x-2 rounded-lg px-3.5 py-1.5 text-sm font-black leading-6 text-white ${
-          side === "factory" ? "bg-brand-green" : "bg-brand-maroon"
-        }`}
+    <>
+      <span aria-hidden="true" data-workspace={side} className={`absolute inset-x-0 top-0 h-[3px] ${lineColour[side]}`} />
+      <nav
+        data-admin-chrome
+        aria-label={text("Where you are", "तपाईं कहाँ हुनुहुन्छ")}
+        className="flex min-w-0 flex-1 items-center gap-1 md:flex-none md:max-w-[45%] print:hidden"
       >
-        <span>
-          <span aria-hidden="true">{workspace.emoji} </span>
-          {text(workspace.labelEn, workspace.labelNe)}
-        </span>
-        {named ? (
-          <span className="font-semibold text-white/90">
-            <span aria-hidden="true">› </span>
-            {text(named.en, named.ne)}
-          </span>
-        ) : section ? (
-          <>
-            <span className="font-semibold text-white/90">
-              <span aria-hidden="true">› </span>
-              {deeper.length > 0 ? (
-                <Link href={section.href} className="underline-offset-2 hover:underline">
-                  {text(section.label, section.nepali)}
-                </Link>
-              ) : (
-                text(section.label, section.nepali)
-              )}
-            </span>
-            {deeper.map((step, index) => (
-              <span key={step.href} className="font-semibold text-white/90">
+        <span className="grid min-w-0 leading-tight">
+          <span className="flex min-w-0 items-center gap-1 truncate text-xs font-black text-brand-green dark:text-[#6FD3A8] lg:text-[0.8125rem]">
+            {workspace ? (
+              <span className="shrink-0"><span aria-hidden="true">{workspace.emoji} </span>{text(workspace.labelEn, workspace.labelNe)}</span>
+            ) : (
+              <span className="shrink-0 text-brand-gold-deep">KRISHOE</span>
+            )}
+            {!titleIsSection && section ? (
+              <span className="truncate font-bold text-brand-muted">
                 <span aria-hidden="true">› </span>
-                {index === deeper.length - 1 ? (
-                  <span aria-current="page">{step.label}</span>
-                ) : (
-                  <Link href={step.href} className="underline-offset-2 hover:underline">{step.label}</Link>
-                )}
+                <Link href={section.href} className="underline-offset-2 hover:underline">{sectionName}</Link>
               </span>
-            ))}
-          </>
+            ) : workspace && section ? (
+              <span aria-hidden="true" className="text-brand-muted">›</span>
+            ) : null}
+            {deeper.length > 1 ? deeper.slice(0, -1).map((step) => (
+              <span key={step.href} className="hidden truncate font-bold text-brand-muted lg:inline">
+                <span aria-hidden="true">› </span>
+                <Link href={step.href} className="underline-offset-2 hover:underline">{step.label}</Link>
+              </span>
+            )) : null}
+          </span>
+          <span aria-current="page" className="truncate text-[1.1875rem] font-black text-brand-green-ink dark:text-white lg:text-2xl">
+            {title}
+          </span>
+        </span>
+        {section ? (
+          <button
+            type="button"
+            onClick={() => togglePin(section.href)}
+            aria-pressed={pinned}
+            aria-label={pinned ? text(`Remove ${section.label} from favourites`, `${section.nepali} मनपर्नेबाट हटाउने`) : text(`Add ${section.label} to favourites`, `${section.nepali} मनपर्नेमा राख्ने`)}
+            title={pinned ? text("In your ★ favourites", "★ मनपर्नेमा छ") : text("Add to ★ favourites", "★ मनपर्नेमा राख्ने")}
+            className={`hidden h-11 w-11 shrink-0 place-items-center rounded-xl text-xl md:grid ${pinned ? "text-brand-gold-deep" : "text-brand-muted-soft hover:text-brand-gold-deep"}`}
+          >
+            {pinned ? "★" : "☆"}
+          </button>
         ) : null}
-      </p>
-    </nav>
+      </nav>
+    </>
   );
 }

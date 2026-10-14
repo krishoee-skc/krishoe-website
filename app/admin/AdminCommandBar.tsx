@@ -131,7 +131,9 @@ export default function AdminCommandBar() {
 
   return (
     <>
-      {/* The bar itself — a quiet pill the owner taps to open the palette. */}
+      {/* The bar itself — a quiet pill the owner taps to open the palette. On a
+          phone it is a 🔍 in the one top bar (owner, 2026-10-14): the search
+          row of its own and the dock's Search were the same box twice. */}
       <button
         type="button"
         onClick={() => {
@@ -139,10 +141,10 @@ export default function AdminCommandBar() {
           setOpen(true);
         }}
         aria-label={text("Search everything", "सबै खोज्नुहोस्")}
-        className="flex h-11 w-full items-center gap-2.5 rounded-xl border border-brand-green-line bg-brand-paper px-3.5 text-left text-brand-muted transition hover:border-brand-green/50 hover:bg-brand-mist"
+        className="flex h-11 w-11 shrink-0 items-center justify-center gap-2.5 rounded-xl border border-brand-green-line bg-brand-paper text-left text-brand-muted transition hover:border-brand-green/50 hover:bg-brand-mist md:w-full md:justify-start md:px-3.5"
       >
         <SearchIcon className="h-5 w-5 shrink-0 text-brand-green" />
-        <span className="flex-1 truncate text-sm font-semibold">
+        <span className="hidden flex-1 truncate text-sm font-semibold md:inline">
           {text("Search or ask about the shop…", "खोज्नुहोस् वा शपबारे सोध्नुहोस्…")}
         </span>
         {/* The Ctrl+K hint used to sit here; it read as clutter on the bar, and

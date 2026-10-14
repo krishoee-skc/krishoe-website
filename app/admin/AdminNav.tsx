@@ -6,14 +6,16 @@ import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import { ChevronLeftIcon, ChevronRightIcon, LogOutIcon } from "@/components/Icons";
 import { useSidebar } from "@/components/admin/SidebarProvider";
-import AdminIdentityCard from "@/components/admin/AdminIdentityCard";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
 import { TABLET_QUERY, useMediaQuery } from "@/lib/use-media-query";
-import { type AdminRole } from "@/lib/admin-role-permissions";
+import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 import type { AttentionLevel } from "@/app/admin/nav-attention";
-import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
+import { adminNavGroups, adminNavTone, adminNavToneClasses, type AdminNavLink, type AdminNavTone } from "@/app/admin/nav-links";
+import { shortcutLink, usePins } from "@/app/admin/admin-shortcuts";
+import { AdminAccountPanel, AdminAvatar, type AdminIdentity } from "@/app/admin/AdminAccount";
+import { useEffect, useRef, useState } from "react";
 
 export default function AdminNav({
   attention,
@@ -52,6 +54,36 @@ export default function AdminNav({
   const isCollapsed = chosenCollapsed || onTablet;
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
   const { language, text } = useLanguage();
+  const pins = usePins();
+  const pinnedLinks = pins.flatMap((href): Array<{ link: AdminNavLink; tone: AdminNavTone }> => {
+    const link = shortcutLink(href);
+    if (!link || !canAccessAdminPath(adminRole, href)) return [];
+    const group = adminNavGroups.find((candidate) => candidate.links.some((entry) => entry.href === href));
+    return [{ link, tone: adminNavTone(group?.id ?? "everywhere") }];
+  });
+  const identity: AdminIdentity = { adminRole, adminName, adminEmail, branchId, branchName, branchType, seesAllBranches, branchCount, branchSwitch };
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [lastPath, setLastPath] = useState(pathname);
+  const accountBox = useRef<HTMLDivElement>(null);
+  if (lastPath !== pathname) {
+    setLastPath(pathname);
+    setAccountOpen(false);
+  }
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAccountOpen(false);
+    };
+    const onDown = (event: PointerEvent) => {
+      if (accountBox.current && !accountBox.current.contains(event.target as Node)) setAccountOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [accountOpen]);
 
   return (
     <div data-admin-chrome className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:sticky md:top-0 md:h-dvh md:self-start md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
@@ -95,22 +127,9 @@ export default function AdminNav({
           </button>
         </div>
 
-        {/* Admin Info Card */}
-        {!isCollapsed && (
-          <div className="border-b border-admin-border px-3 py-2.5 dark:border-admin-border-dark">
-            <AdminIdentityCard
-              adminRole={adminRole}
-              adminName={adminName}
-              adminEmail={adminEmail}
-              branchId={branchId}
-              branchName={branchName}
-              branchType={branchType}
-              seesAllBranches={seesAllBranches}
-              branchCount={branchCount}
-              branchSwitch={branchSwitch}
-            />
-          </div>
-        )}
+        {/* The identity card that sat here (role, branch, chooser) moved to
+            the round initials at the foot (owner, 2026-10-14): it took a menu
+            row's room all day for something read once. */}
 
         {/* Which half of the business this menu is showing. */}
         <div className={`border-b border-admin-border pb-2.5 pt-2.5 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
@@ -120,6 +139,41 @@ export default function AdminNav({
             compact={isCollapsed}
           />
         </div>
+
+        {/* ★ Favourites (owner, 2026-10-14): the screens this person pinned with
+            the ☆ beside a page's name, above the groups, on whichever side. */}
+        {pinnedLinks.length > 0 ? (
+          <div className={`border-b border-admin-border py-2 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
+            {!isCollapsed && (
+              <p className="px-3 pb-0.5 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep dark:text-[#E8C467]">
+                ★ {text("Favourites", "मनपर्ने")}
+              </p>
+            )}
+            <div className="grid gap-0.5">
+              {pinnedLinks.map(({ link, tone }) => {
+                const isActive = pathname === link.href;
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={`pin-${link.href}`}
+                    href={link.href}
+                    title={isCollapsed ? text(link.label, `${link.nepali} · ${link.label}`) : undefined}
+                    className={`flex min-h-10 items-center gap-3 rounded-md px-2 py-0.5 font-bold transition-all duration-200 ${
+                      isActive
+                        ? "bg-admin-primary/10 text-admin-primary dark:bg-admin-primary/20 dark:text-admin-primary-light"
+                        : "text-brand-green-ink hover:bg-admin-hover dark:text-white/85 dark:hover:bg-admin-hover-dark"
+                    } ${isCollapsed ? "justify-center" : ""}`}
+                  >
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] ${adminNavToneClasses[tone][isActive ? "active" : "tile"]}`}>
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    {!isCollapsed && <span className="truncate text-[1.0625rem]">{language === "ne" ? link.nepali : link.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {/* Navigation Links */}
         {/* Bigger, darker, closer rows (owner, 2026-09-29): 19px names in the
@@ -218,32 +272,58 @@ export default function AdminNav({
           <div aria-hidden="true" className="pointer-events-none sticky -bottom-2.5 -mt-6 h-6 bg-gradient-to-t from-admin-sidebar to-transparent dark:from-admin-sidebar-dark" />
         </div>
 
-        {/* The language toggle now lives in the top row beside the search, so
-            the shop's two words sit up top and the menu foot stays open. */}
-
-        {/* Sign out.
-            A quiet row rather than a button. It used to be a full-width
-            bordered slab with padding above and below, costing about sixty
-            pixels — a whole menu row — to the one action on this screen nobody
-            comes here to perform. It keeps its place at the foot, where people
-            look for it and where flex-1 above already pins it, but reads at the
-            weight of a caption and only turns red when pointed at.
-
-            min-h-11 so losing the slab does not make it harder to hit on a
-            phone: 44px is the tap target the rest of the admin holds to. */}
-        <div className="border-t border-admin-border px-3 py-1.5 dark:border-admin-border-dark">
-          <form action={logoutAdminAction} className="w-full">
-            <button
-              type="submit"
-              title={isCollapsed ? "Sign out" : undefined}
-              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-sm font-bold text-brand-muted transition hover:bg-red-50 hover:text-red-600 dark:text-white/50 dark:hover:bg-red-950/20 dark:hover:text-red-400 ${
-                isCollapsed ? "justify-center" : ""
-              }`}
+        {/* You, at the foot (owner, 2026-10-14, the menu sample): the round
+            initials, the role and the branch on one quiet row. Pressed, it
+            opens who is signed in, the branch chooser, the text size, the
+            language, light or dark, a full or narrow menu — and Sign out.
+            Fixed to the screen rather than the rail, so a narrow menu does
+            not clip it. */}
+        <div ref={accountBox} className="border-t border-admin-border px-2 py-1.5 dark:border-admin-border-dark">
+          {accountOpen ? (
+            <div
+              role="dialog"
+              aria-label={text("Your account and settings", "तपाईंको खाता र सेटिङ")}
+              className={`fixed bottom-3 z-50 max-h-[85vh] w-80 overflow-y-auto rounded-2xl border border-brand-green-line bg-brand-paper p-3 shadow-2xl dark:bg-admin-sidebar-dark ${isCollapsed ? "left-[5.5rem]" : "left-[15.5rem]"}`}
             >
-              <LogOutIcon className="h-4 w-4 shrink-0" />
-              {!isCollapsed && <span>Sign out</span>}
-            </button>
-          </form>
+              <AdminAccountPanel identity={identity} showMenuStyle={!onTablet}>
+                {/* Sign out.
+                    A quiet row rather than a button: it used to be a bordered
+                    slab costing a whole menu row to the one action nobody comes
+                    here to perform. It reads at the weight of a caption and only
+                    turns red when pointed at; min-h-11 keeps it 44px to hit. */}
+                <form action={logoutAdminAction} className="w-full">
+                  <button
+                    type="submit"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-sm font-bold text-brand-muted transition hover:bg-red-50 hover:text-red-600 dark:text-white/60 dark:hover:bg-red-950/20 dark:hover:text-red-400"
+                  >
+                    <LogOutIcon className="h-4 w-4 shrink-0" />
+                    <span>{text("Sign out", "बाहिर निस्कने")}</span>
+                  </button>
+                </form>
+              </AdminAccountPanel>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setAccountOpen((value) => !value)}
+            aria-expanded={accountOpen}
+            aria-label={text("Your account and settings", "तपाईंको खाता र सेटिङ")}
+            title={isCollapsed ? text("Your account and settings", "तपाईंको खाता र सेटिङ") : undefined}
+            className={`flex min-h-12 w-full items-center gap-2.5 rounded-md px-1.5 text-left transition hover:bg-admin-hover dark:hover:bg-admin-hover-dark ${isCollapsed ? "justify-center" : ""}`}
+          >
+            <AdminAvatar identity={identity} className="h-9 w-9 text-xs" />
+            {!isCollapsed && (
+              <span className="grid min-w-0 flex-1 leading-tight">
+                <span className="truncate text-sm font-black text-brand-green-ink dark:text-white">
+                  {adminRole}{adminRole === "Owner" ? " 👑" : ""}
+                </span>
+                <span className="truncate text-xs font-semibold text-brand-muted dark:text-white/60">
+                  {seesAllBranches ? text("All branches", "सबै शाखा") : branchName || branchId || ""}
+                </span>
+              </span>
+            )}
+            {!isCollapsed && <span aria-hidden="true" className="text-lg font-black text-brand-muted-soft">⋯</span>}
+          </button>
         </div>
       </div>
     </div>

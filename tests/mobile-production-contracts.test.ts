@@ -16,10 +16,14 @@ describe("mobile production contracts", () => {
     // Booking a worker's pairs and checking stock happen every day and were not
     // on this bar at all, while Purchasing and HR — which this shop has never
     // recorded a single row in — took two of its five slots.
-    for (const href of ["/admin/factory/add-work", "/admin/pos", "/admin/stock", "/admin/search"]) {
+    // Search left the dock (owner, 2026-10-14): it is the 🔍 in the one top
+    // bar, and on a phone the dock and a search row were the same box twice.
+    for (const href of ["/admin/factory/add-work", "/admin/pos", "/admin/stock"]) {
       expect(dock, href).toContain(href);
     }
     expect(dock).not.toContain("/admin/purchasing");
+    expect(dock).not.toContain("/admin/search");
+    expect(source("app/admin/AdminCommandBar.tsx")).toContain("md:w-full");
   });
 
   it("draws the POS bill phone-first and renders staff access as phone-first cards", () => {

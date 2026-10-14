@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
@@ -9,85 +9,100 @@ import { useLanguage } from "@/components/LanguageProvider";
  * piece (text, boxes, buttons) grows together; the body's own 16px is set to
  * 1rem while it is on, so plain text grows too. The phone remembers the choice.
  *
- * A computer shows the three steps; a phone, where the top row is the search
- * and the language, shows one button that steps through them.
+ * Three steps side by side: in the top bar on a tablet or computer, and in
+ * the account panel behind the round initials on a phone (owner, 2026-10-14).
+ * Both read one stored step, and one applier (in the layout) sets the size,
+ * so a switch opened and closed in a panel cannot put an old size back.
  */
 const SIZES = ["100%", "112.5%", "125%"] as const;
 const KEY = "krishoe-admin-text";
+const CHANGED = "krishoe:admin-text-size";
 const NAMES = [
   { en: "Normal text", ne: "साधारण अक्षर" },
   { en: "Large text", ne: "ठूलो अक्षर" },
   { en: "Larger text", ne: "धेरै ठूलो अक्षर" },
 ] as const;
 
+function storedStep() {
+  try {
+    return Math.min(SIZES.length - 1, Math.max(0, Number(window.localStorage.getItem(KEY)) || 0));
+  } catch {
+    return 0;
+  }
+}
+
+// What was chosen this visit, for a private window where storage refuses it.
+let chosenThisVisit: number | null = null;
+const currentStep = () => chosenThisVisit ?? storedStep();
+
+function subscribe(listener: () => void) {
+  window.addEventListener(CHANGED, listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    window.removeEventListener(CHANGED, listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+function apply(step: number) {
+  const root = document.documentElement;
+  const body = document.body;
+  if (step > 0) {
+    root.style.fontSize = SIZES[step];
+    body.style.fontSize = "1rem";
+  } else {
+    root.style.fontSize = "";
+    body.style.fontSize = "";
+  }
+}
+
+function choose(next: number) {
+  chosenThisVisit = next;
+  try {
+    window.localStorage.setItem(KEY, String(next));
+  } catch {
+    // A private window keeps no setting; the size still changes for now.
+  }
+  window.dispatchEvent(new Event(CHANGED));
+}
+
+/** Sets the chosen size on the page while the admin is open, and takes it off after. */
+export function AdminTextSizeApplier() {
+  useEffect(() => {
+    // After the first paint, so the server's page and the phone's agree first.
+    const id = window.setTimeout(() => apply(currentStep()), 0);
+    const onChange = () => apply(currentStep());
+    const stop = subscribe(onChange);
+    return () => {
+      window.clearTimeout(id);
+      stop();
+      apply(0);
+    };
+  }, []);
+  return null;
+}
+
 export default function AdminTextSize() {
   const { text } = useLanguage();
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    let saved = 0;
-    try {
-      saved = Math.min(SIZES.length - 1, Math.max(0, Number(window.localStorage.getItem(KEY)) || 0));
-    } catch {
-      saved = 0;
-    }
-    // After the first paint, so the server's page and the phone's agree first.
-    const id = window.setTimeout(() => setStep(saved), 0);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const body = document.body;
-    const before = { root: root.style.fontSize, body: body.style.fontSize };
-    if (step > 0) {
-      root.style.fontSize = SIZES[step];
-      body.style.fontSize = "1rem";
-    }
-    return () => {
-      root.style.fontSize = before.root;
-      body.style.fontSize = before.body;
-    };
-  }, [step]);
-
-  function choose(next: number) {
-    setStep(next);
-    try {
-      window.localStorage.setItem(KEY, String(next));
-    } catch {
-      // A private window keeps no setting; the size still changes for now.
-    }
-  }
-
+  const step = useSyncExternalStore(subscribe, currentStep, () => 0);
   const label = (index: number) => text(NAMES[index].en, NAMES[index].ne);
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => choose((step + 1) % SIZES.length)}
-        aria-label={`${text("Text size", "अक्षरको साइज")}: ${label(step)}`}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-brand-green-line bg-brand-paper font-black text-brand-green-ink sm:hidden"
-        style={{ fontSize: `${1 + step * 0.18}rem` }}
-      >
-        अ
-      </button>
-      <div className="hidden shrink-0 overflow-hidden rounded-xl border border-brand-green-line sm:flex" role="group" aria-label={text("Text size", "अक्षरको साइज")}>
-        {SIZES.map((_, index) => (
-          <button
-            key={index}
-            type="button"
-            aria-pressed={step === index}
-            aria-label={label(index)}
-            title={label(index)}
-            onClick={() => choose(index)}
-            className={`grid h-11 min-w-10 place-items-center px-2 font-black ${step === index ? "bg-brand-green text-white" : "bg-brand-paper text-brand-green-ink"}`}
-            style={{ fontSize: `${0.85 + index * 0.18}rem` }}
-          >
-            अ
-          </button>
-        ))}
-      </div>
-    </>
+    <div className="flex shrink-0 overflow-hidden rounded-xl border border-brand-green-line" role="group" aria-label={text("Text size", "अक्षरको साइज")}>
+      {SIZES.map((_, index) => (
+        <button
+          key={index}
+          type="button"
+          aria-pressed={step === index}
+          aria-label={label(index)}
+          title={label(index)}
+          onClick={() => choose(index)}
+          className={`grid h-11 min-w-11 place-items-center px-2 font-black ${step === index ? "bg-brand-green text-white" : "bg-brand-paper text-brand-green-ink"}`}
+          style={{ fontSize: `${0.85 + index * 0.18}rem` }}
+        >
+          अ
+        </button>
+      ))}
+    </div>
   );
 }

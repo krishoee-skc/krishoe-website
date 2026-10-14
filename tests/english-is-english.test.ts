@@ -159,7 +159,7 @@ const BILINGUAL_ON_PURPOSE: Record<string, { lines: number; why: string }> = {
     why: "The word नेपाली on the button that switches to Nepali. A reader looking for it must find it whichever side they are on — that is the button's whole job.",
   },
   "components/admin/AdminTextSize.tsx": {
-    lines: 2,
+    lines: 1,
     why: "The letter अ drawn small, larger and largest on the admin's text-size buttons (owner, 2026-10-13) — a picture of the size, like the worker app's; each button's name is a text(en, ne) pair.",
   },
   "components/admin/NepaliDateField.tsx": {

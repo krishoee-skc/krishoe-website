@@ -6,7 +6,6 @@ import {
   CreditCardIcon,
   HomeIcon,
   PackageIcon,
-  SearchIcon,
   UserIcon,
 } from "@/components/Icons";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
@@ -29,7 +28,8 @@ const links = [
   { href: "/admin/factory/add-work", labelEn: "Add work", labelNe: "काम टिप्ने", Icon: UserIcon },
   { href: "/admin/pos", labelEn: "Bill", labelNe: "बिल", Icon: CreditCardIcon },
   { href: "/admin/stock", labelEn: "Stock", labelNe: "स्टक", Icon: PackageIcon },
-  { href: "/admin/search", labelEn: "Search", labelNe: "खोज्ने", Icon: SearchIcon },
+  // Search left the dock (owner, 2026-10-14): it is the 🔍 in the one top
+  // bar, and was the same box twice on a phone.
 ];
 
 /**

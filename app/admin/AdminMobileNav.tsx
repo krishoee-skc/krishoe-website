@@ -1,54 +1,43 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { OPEN_ADMIN_MENU } from "@/app/admin/AdminQuickDock";
+import { OPEN_SEARCH_EVENT } from "@/app/admin/AdminCommandBar";
 import { logoutAdminAction } from "@/app/admin/login/actions";
+import { shortcutForPath, shortcutLink, togglePin, usePins, useRecent } from "@/app/admin/admin-shortcuts";
 import ThemeToggle from "@/components/ThemeToggle";
-import { MenuIcon, XIcon } from "@/components/Icons";
+import LanguageSwitch from "@/components/LanguageSwitch";
+import AdminTextSize from "@/components/admin/AdminTextSize";
+import { SearchIcon, XIcon } from "@/components/Icons";
 import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
-import AdminIdentityCard from "@/components/admin/AdminIdentityCard";
 import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
 import { useLanguage } from "@/components/LanguageProvider";
-import { type AdminRole } from "@/lib/admin-role-permissions";
+import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
 
-// Phone navigation for the admin. The desktop sidebar is `hidden lg:block`, so
-// below 1024px there was no way to move between pages or get home — a real
-// problem because the owner runs the shop from a phone. This sticky top bar
-// gives a permanent home link and a full menu one tap away, and hides on wider
-// screens (lg:) where the 240px sidebar sits beside the page — narrow enough
-// that a laptop at 125% scaling (~1093px) still shows the menu and the
-// dashboard side by side rather than dropping to this bar. Hidden on paper too.
+/**
+ * The phone's whole menu, from the bottom (owner, 2026-10-14, the menu sample).
+ *
+ * The dock's "More" sits under the thumb, and the menu used to drop from the
+ * top of the screen, under a bar of its own — the thumb pressed at the bottom
+ * and then reached for the top. It now rises from where it was pressed: search
+ * first, the ★ favourites and the screens opened lately, then the two sides'
+ * pages as tiles, and the look and Sign out at the foot. The phone's top bar
+ * itself is the shared one in the layout.
+ */
 export default function AdminMobileNav({
   counts,
   adminRole,
-  adminName,
-  adminEmail,
-  branchId,
-  branchName,
-  branchType,
-  seesAllBranches,
-  branchCount,
-  branchSwitch,
 }: {
   /** How many things wait behind a link (workers' photos), as a number. */
   counts?: Record<string, number>;
   adminRole: AdminRole;
-  adminName?: string;
-  adminEmail?: string;
-  branchId?: string;
-  branchName?: string;
-  branchType?: string;
-  seesAllBranches?: boolean;
-  branchCount?: number;
-  branchSwitch?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  // The thumb bar's "More" opens this same menu.
+  // The thumb bar's "More" opens this menu.
   useEffect(() => {
     const openMenu = () => setOpen(true);
     window.addEventListener(OPEN_ADMIN_MENU, openMenu);
@@ -57,6 +46,9 @@ export default function AdminMobileNav({
   const [lastPath, setLastPath] = useState(pathname);
   const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
   const { language, text } = useLanguage();
+  const pins = usePins().filter((href) => canAccessAdminPath(adminRole, href));
+  const recent = useRecent().filter((href) => canAccessAdminPath(adminRole, href));
+  const here = shortcutForPath(pathname);
 
   // Close the menu whenever the route changes, so tapping a link doesn't leave
   // the sheet hanging open over the new page. Done as a render-time state
@@ -83,124 +75,130 @@ export default function AdminMobileNav({
     };
   }, [open]);
 
+  if (!open) return null;
+
+  const name = (href: string) => {
+    const link = shortcutLink(href);
+    return link ? (language === "ne" ? link.nepali : link.label) : href;
+  };
+  const chip = "inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 text-sm font-black";
+
   return (
-    <div data-admin-chrome className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:hidden print:hidden">
-      <div className="flex h-14 items-center justify-between gap-2 px-4">
-        <Link href="/admin" className="flex items-center gap-2 font-black text-brand-green-ink">
-          {/* A generic house icon stood where the shop's own mark belongs,
-              on the bar that is on screen all day. */}
-          {/* On a tablet the sidebar rail carries the mark; here it would be
-              the same crest twice across the top of one screen. */}
-          <Image src="/images/logo-mark.png" alt="" width={72} height={72} className="h-9 w-9 md:hidden" />
-          KRISHOE Admin
-        </Link>
-        <div className="flex items-center gap-1.5">
-          {/* Language now lives in the search row just below on every screen, so
-              it is not repeated up here on the phone bar. */}
-          <ThemeToggle />
+    <div data-admin-chrome className="fixed inset-0 z-50 md:hidden print:hidden">
+      <button
+        type="button"
+        aria-label={text("Close the menu", "मेनु बन्द गर्ने")}
+        className="absolute inset-0 bg-brand-green-ink/45 backdrop-blur-sm"
+        onClick={() => setOpen(false)}
+      />
+      <nav
+        aria-label="Admin"
+        className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-3xl border-t border-brand-green-line bg-brand-paper px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 shadow-2xl"
+      >
+        <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-brand-green-line" aria-hidden="true" />
+        <div className="mb-2 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setOpen((value) => !value)}
-            aria-expanded={open}
-            aria-label={open ? "Close menu" : "Open menu"}
-            className="relative grid h-11 w-11 place-items-center rounded-lg border border-brand-green-line text-brand-green-ink transition hover:border-brand-green"
+            onClick={() => {
+              setOpen(false);
+              window.dispatchEvent(new CustomEvent(OPEN_SEARCH_EVENT, { detail: { q: "" } }));
+            }}
+            className="flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-brand-green-line bg-brand-paper px-3.5 text-left text-brand-muted"
           >
-            {open ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-            {/* Something waits inside the menu: say so on the button. */}
-            {!open && Object.values(counts ?? {}).some((n) => n > 0) ? (
-              <span aria-hidden="true" className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-brand-clay ring-2 ring-brand-paper" />
-            ) : null}
+            <SearchIcon className="h-5 w-5 shrink-0 text-brand-green" />
+            <span className="truncate text-sm font-semibold">{text("Find a page, shoe or customer…", "पाना, जुत्ता, ग्राहक खोज्नुहोस्…")}</span>
+          </button>
+          <button type="button" onClick={() => setOpen(false)} aria-label={text("Close", "बन्द")} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-brand-muted">
+            <XIcon className="h-5 w-5" />
           </button>
         </div>
-      </div>
 
-      {open ? (
-        <div className="fixed inset-x-0 bottom-0 top-[calc(3.5rem+env(safe-area-inset-top))] z-50 bg-brand-green-ink/45 backdrop-blur-sm">
-          <button
-            type="button"
-            aria-label="Close admin menu overlay"
-            className="absolute inset-0"
-            onClick={() => setOpen(false)}
-          />
-          <nav
-            aria-label="Admin"
-            className="absolute inset-x-0 top-0 max-h-[min(82vh,720px)] overflow-y-auto rounded-b-2xl border-t border-brand-green-line bg-brand-paper px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
-          >
-          {/* Same signed-in identity the desktop sidebar shows, so the phone
-              menu opens on who you are before the workspace switch. */}
-          <div className="mb-3">
-            <AdminIdentityCard
-              adminRole={adminRole}
-              adminName={adminName}
-              adminEmail={adminEmail}
-              branchId={branchId}
-              branchName={branchName}
-              branchType={branchType}
-              seesAllBranches={seesAllBranches}
-              branchCount={branchCount}
-              branchSwitch={branchSwitch}
-            />
-          </div>
+        {/* ★ Favourites, and a ☆ for the screen that is open. */}
+        <p className="px-1 pb-1.5 pt-1 text-xs font-black uppercase tracking-[0.14em] text-brand-gold-deep">★ {text("Favourites", "मनपर्ने")}</p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {pins.map((href) => (
+            <Link key={`pin-${href}`} href={href} className={`${chip} border-brand-gold/40 bg-brand-gold-wash text-brand-green-ink dark:text-white`}>
+              ★ {name(href)}
+            </Link>
+          ))}
+          {here ? (
+            <button type="button" onClick={() => togglePin(here.href)} className={`${chip} border-dashed border-brand-green-line text-brand-muted`}>
+              {pins.includes(here.href)
+                ? text(`Remove ${here.label}`, `${here.nepali} हटाउने`)
+                : text(`☆ Add ${here.label}`, `☆ ${here.nepali} थप्ने`)}
+            </button>
+          ) : null}
+        </div>
 
+        {recent.length > 0 ? (
+          <>
+            <p className="px-1 pb-1.5 pt-2 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft">{text("Opened lately", "हालै खोलेका")}</p>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+              {recent.map((href) => (
+                <Link key={`recent-${href}`} href={href} className={`${chip} border-brand-green-line bg-brand-paper text-brand-green-ink`}>
+                  {name(href)}
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : null}
+
+        <div className="mt-3">
           <WorkspaceSwitch workspace={workspace} onChoose={chooseWorkspace} />
+        </div>
 
-          {groups.map((group) => (
-            <div key={group.id} className="mt-4">
-              <p className="px-1 pb-2 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft">
-                {text(group.titleEn, group.titleNe)}
-              </p>
-              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                {group.links.map(({ href, label, nepali, icon: Icon }) => {
-                  const active = pathname === href;
-                  const waiting = counts?.[href] ?? 0;
-                  return (
-                    <Link
-                      key={`${group.id}-${href}`}
-                      href={href}
-                      className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-[1.0625rem] font-bold transition ${
-                        active
-                          ? "border-brand-green bg-brand-green-wash text-brand-green"
-                          : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
+        {groups.map((group) => (
+          <div key={group.id} className="mt-3">
+            <p className="px-1 pb-1.5 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft">
+              {text(group.titleEn, group.titleNe)}
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {group.links.map(({ href, label, nepali, icon: Icon }) => {
+                const active = pathname === href;
+                const waiting = counts?.[href] ?? 0;
+                return (
+                  <Link
+                    key={`${group.id}-${href}`}
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    className={`relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-2 text-center text-sm font-black leading-tight transition ${
+                      active
+                        ? "border-brand-green bg-brand-green-wash text-brand-green"
+                        : "border-transparent bg-brand-mist text-brand-green-ink"
+                    }`}
+                  >
+                    <span
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                        adminNavToneClasses[adminNavTone(group.id)][active ? "active" : "tile"]
                       }`}
                     >
-                      <span
-                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] ${
-                          adminNavToneClasses[adminNavTone(group.id)][active ? "active" : "tile"]
-                        }`}
-                      >
-                        <Icon className="h-5 w-5" />
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span>{language === "ne" ? nepali : label}</span>
+                    {waiting > 0 ? (
+                      <span className="absolute right-1.5 top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-clay px-1 text-xs font-black text-white">
+                        {waiting > 99 ? "99+" : waiting}
                       </span>
-                      <span className="grid leading-tight">
-                        <span>{language === "ne" ? nepali : label}</span>
-                        {language === "ne" ? (
-                          <span className="text-xs font-semibold text-brand-muted-soft">
-                            {label}
-                          </span>
-                        ) : null}
-                      </span>
-                      {waiting > 0 ? (
-                        <span className="ml-auto rounded-full bg-brand-clay px-2 py-0.5 text-sm font-black leading-5 text-white">
-                          {waiting > 99 ? "99+" : waiting}
-                        </span>
-                      ) : null}
-                    </Link>
-                  );
-                })}
-              </div>
+                    ) : null}
+                  </Link>
+                );
+              })}
             </div>
-          ))}
+          </div>
+        ))}
 
-          <form action={logoutAdminAction} className="mt-3">
-            <button
-              type="submit"
-              className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-green-line px-3 text-sm font-bold text-brand-clay transition hover:border-brand-clay hover:bg-red-50"
-            >
-              Sign out
+        {/* The look and Sign out, at the foot where the thumb already is. */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-brand-green-line pt-3">
+          <AdminTextSize />
+          <LanguageSwitch compact />
+          <ThemeToggle />
+          <form action={logoutAdminAction} className="ml-auto">
+            <button type="submit" className="min-h-11 rounded-xl border border-brand-clay/40 px-4 text-sm font-black text-brand-clay">
+              {text("Sign out", "बाहिर निस्कने")}
             </button>
           </form>
-          </nav>
         </div>
-      ) : null}
+      </nav>
     </div>
   );
 }
