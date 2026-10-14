@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import ShopCatalogControls from "@/app/shop/ShopCatalogControls";
 import T from "@/components/T";
 import { type Category, type Product } from "@/lib/products";
+import { loadShelfCounts } from "@/lib/shop-shelves";
 
 type ShopCatalogProps = {
   products: Product[];
@@ -22,7 +23,8 @@ type ShopCatalogProps = {
  * waiting on the page where customers choose a pair, to restate a word they had
  * just typed and can still see in the search box below it.
  */
-export default function ShopCatalog({ products, activeCategory }: ShopCatalogProps) {
+export default async function ShopCatalog({ products, activeCategory }: ShopCatalogProps) {
+  const shelfCounts = await loadShelfCounts();
   const heading = activeCategory ? (
     `${activeCategory.title} collection`
   ) : (
@@ -79,7 +81,7 @@ export default function ShopCatalog({ products, activeCategory }: ShopCatalogPro
             had arrived and hydrated. One shopper waited 5.5 seconds to see a
             shoe. The controls read the URL after mounting now, so the whole
             grid prerenders and the photographs are in the page itself. */}
-        <ShopCatalogControls products={products} activeCategory={activeCategory} />
+        <ShopCatalogControls products={products} activeCategory={activeCategory} shelfCounts={shelfCounts} />
       </section>
       <Footer />
     </main>

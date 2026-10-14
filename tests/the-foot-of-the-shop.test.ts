@@ -149,7 +149,12 @@ describe("shorter, without losing anything", () => {
 
     // Both lists must actually be drawn — keeping the data but not drawing
     // it would pass the counts above and still lose the links.
-    expect(footer).toContain("<FooterGroups groups={footerGroups} />");
+    // Since 2026-10-14 (owner's sample 9 ख) the groups drawn are the shelves
+    // with shoes; every link is still in the list, and all of it is drawn
+    // whenever the shoes cannot be counted.
+    expect(footer).toContain("<FooterGroups groups={groups} />");
+    expect(footer).toContain("const groups = groupsWithShoes(counts);");
+    expect(footer).toContain("if (!counts) return footerGroups;");
     expect(footer).toContain("helpLinks.map((link) =>");
   });
 
@@ -169,7 +174,9 @@ describe("shorter, without losing anything", () => {
     // They were two stacked blocks: a 2xl heading with a paragraph, then the
     // whole brand column below it. ~104px for six words.
     expect(strip).toContain("KRISHOE");
-    expect(strip).toContain("5% off your first order");
+    // The offer that did not exist is gone (owner's sample 9 क, 2026-10-14).
+    expect(strip).toContain('<T en="Pay when the pair reaches you" ne="जुत्ता हातमा आएपछि मात्र पैसा" />');
+    expect(strip).not.toContain('<T en="5% off your first order"');
     expect(strip).toContain("flex flex-wrap items-center");
   });
 
@@ -208,5 +215,26 @@ describe("what the footer still has to carry", () => {
 
     expect(footer).toContain("businessSocialProfiles()");
     expect(footer).toContain("<SocialGlyph");
+  });
+});
+
+describe("the foot of the shop tells the truth (owner's sample 9, 2026-10-14)", () => {
+  it("shows Bank only once there is an account, and only the shelves with shoes", async () => {
+    const footer = await readFile(FOOTER, "utf8");
+    expect(footer).toContain('const payments = bank ? ["COD", "eSewa", "Khalti", "Bank"] : ["COD", "eSewa", "Khalti"];');
+    expect(footer).toContain("{payments.map((method) => (");
+    const { shelfCounts, shelfSlugOf } = await import("@/lib/shop-shelves");
+    expect(shelfSlugOf("/shop/ladies-sandals")).toBe("ladies-sandals");
+    expect(shelfSlugOf("/wholesale")).toBe("");
+    const counts = shelfCounts([{ categorySlug: "ladies-sandals", category: "Ladies Sandals" } as never]);
+    expect(counts["ladies-sandals"]).toBe(1);
+    expect(counts["mens-slippers"]).toBe(0);
+  });
+
+  it("puts the shoes with a photograph first", async () => {
+    const { photoFirst } = await import("@/lib/products");
+    expect(photoFirst([{ id: "a", image: "" }, { id: "b", image: "https://x/b.webp" }]).map((item) => item.id)).toEqual(["b", "a"]);
+    const chips = await readFile("app/shop/ShopCatalogControls.tsx", "utf8");
+    expect(chips).toContain("(shelfCounts[item.slug] ?? 0) > 0 || item.slug === activeCategory?.slug");
   });
 });

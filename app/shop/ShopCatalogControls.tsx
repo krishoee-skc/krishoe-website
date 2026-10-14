@@ -33,6 +33,8 @@ type SortMode = "featured" | "new" | "price-asc" | "price-desc" | "rating-desc";
 type ShopCatalogControlsProps = {
   products: Product[];
   activeCategory?: Category;
+  /** Shoes on each shelf; null shows every shelf, as before (owner's sample 9 ख). */
+  shelfCounts?: Record<string, number> | null;
 };
 
 function searchText(product: Product) {
@@ -97,7 +99,15 @@ function availabilityLabel(filter: AvailabilityFilter, products: Product[]) {
 export default function ShopCatalogControls({
   products,
   activeCategory,
+  shelfCounts = null,
 }: ShopCatalogControlsProps) {
+  // Only the shelves with shoes, with how many (owner's sample 9 ख,
+  // 2026-10-14): twelve of thirteen chips led to "Coming soon". The shelf being
+  // looked at stays, even empty, so a shopper from an old link sees where they are.
+  const shelves = shelfCounts
+    ? categories.filter((item) => (shelfCounts[item.slug] ?? 0) > 0 || item.slug === activeCategory?.slug)
+    : categories;
+  const allShoes = shelfCounts ? Object.values(shelfCounts).reduce((sum, count) => sum + count, 0) : null;
   const { text } = useLanguage();
   const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
@@ -146,8 +156,9 @@ export default function ShopCatalogControls({
             }`}
           >
             All
+            {allShoes !== null ? <span className="ml-1.5 opacity-75">{allShoes}</span> : null}
           </Link>
-          {categories.map((item) => (
+          {shelves.map((item) => (
             <Link
               key={item.slug}
               href={`/shop/${item.slug}`}
@@ -158,6 +169,7 @@ export default function ShopCatalogControls({
               }`}
             >
               {item.title}
+              {shelfCounts ? <span className="ml-1.5 opacity-75">{shelfCounts[item.slug] ?? 0}</span> : null}
             </Link>
           ))}
         </div>

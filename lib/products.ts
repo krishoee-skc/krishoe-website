@@ -379,11 +379,23 @@ export function getProductById(id: string) {
   return getProductByIdFromList(products, id);
 }
 
+/**
+ * Shoes with a real photograph first, the rest after, each group in its own
+ * order (owner's sample 9 ग, 2026-10-14). A shoe still on its stand-in picture
+ * sat among the first four on the home page and in "You might also like" with
+ * "Photo coming soon"; it stays in the shop, after the shoes one can see.
+ */
+export function photoFirst<T extends { image?: string | null }>(items: T[]): T[] {
+  const noPhoto = (item: T) => !item.image || isStandInPhoto(item.image);
+  return items.filter((item) => !noPhoto(item)).concat(items.filter(noPhoto));
+}
+
 export function getRelatedProductsFromList(items: Product[], product: Product) {
-  return items
-    .filter((item) => item.id !== product.id && item.categorySlug === product.categorySlug)
-    .concat(items.filter((item) => item.id !== product.id && item.categorySlug !== product.categorySlug))
-    .slice(0, 4);
+  return photoFirst(
+    items
+      .filter((item) => item.id !== product.id && item.categorySlug === product.categorySlug)
+      .concat(items.filter((item) => item.id !== product.id && item.categorySlug !== product.categorySlug)),
+  ).slice(0, 4);
 }
 
 export function getRelatedProducts(product: Product) {

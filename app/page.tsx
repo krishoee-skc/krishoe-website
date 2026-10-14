@@ -17,7 +17,7 @@ import { unstable_cache } from "next/cache";
 import { getProducts } from "@/lib/product-store";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { businessContact, getProductsByCategory } from "@/lib/seo";
-import { categories } from "@/lib/products";
+import { categories, photoFirst } from "@/lib/products";
 import { reportError } from "@/lib/report-error";
 import type { Product } from "@/lib/products";
 import type { Metadata } from "next";
@@ -87,7 +87,9 @@ const loadPromo = unstable_cache(
 const HOME_ROW = 8;
 
 export default async function Home() {
-  const [products, settings, shopReviews] = await Promise.all([loadHomeProducts(), loadPromo(), loadShopReviews()]);
+  const [allProducts, settings, shopReviews] = await Promise.all([loadHomeProducts(), loadPromo(), loadShopReviews()]);
+  // Shoes with a photograph first (owner's sample 9 ग, 2026-10-14).
+  const products = photoFirst(allProducts);
   // The delivery promise is made once, in the header's strip, from Settings.
   // On a phone the first screen said it three times — the strip, the promo
   // line and the first trust badge — which read as filler, and pushed the

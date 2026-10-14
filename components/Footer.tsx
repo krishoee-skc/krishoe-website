@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { businessContact, businessSocialProfiles } from "@/lib/seo";
 import T from "@/components/T";
 import FooterGroups, { type FooterGroup, type FooterLink } from "@/components/FooterGroups";
 import { ReturnIcon, StarIcon, StoreIcon, TruckIcon } from "@/components/Icons";
+import { getAdminSettings } from "@/lib/admin-settings";
+import { loadShelfCounts, shelfSlugOf } from "@/lib/shop-shelves";
+import { reportError } from "@/lib/report-error";
 
 /**
  * The foot of the shop, in gold, framed.
@@ -194,8 +198,48 @@ const mailSvg = (
   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
 );
 
-export default function Footer() {
+/**
+ * Only the shelves with shoes, and the shoes they hold (owner's sample 9 ख,
+ * 2026-10-14). Twelve of thirteen shelves were empty and every one was listed;
+ * "Women 5" counted links, not shoes. Other links (Wholesale, Guides, FAQ)
+ * always stay. If the shoes cannot be read, every shelf shows, as before.
+ */
+function groupsWithShoes(counts: Record<string, number> | null): FooterGroup[] {
+  if (!counts) return footerGroups;
+  return footerGroups
+    .map((group) => {
+      const links = group.links.filter((link) => {
+        const slug = shelfSlugOf(link.href);
+        return !slug || (counts[slug] ?? 0) > 0;
+      });
+      const shelves = links.map((link) => shelfSlugOf(link.href)).filter(Boolean);
+      const shoes = shelves.reduce((sum, slug) => sum + (counts[slug] ?? 0), 0);
+      return { ...group, links, count: shelves.length === links.length && shoes > 0 ? shoes : undefined };
+    })
+    .filter((group) => group.links.length > 0);
+}
+
+/** Whether the shop has a bank account to pay into; the checkout offers bank transfer only then. Kept ten minutes. */
+const hasBankAccount = unstable_cache(
+  async () => {
+    try {
+      return (await getAdminSettings()).company.bankAccountNumber.trim() !== "";
+    } catch (error) {
+      reportError("read the bank account for the footer", error);
+      return false;
+    }
+  },
+  ["footer-bank-account"],
+  { revalidate: 600 },
+);
+
+export default async function Footer() {
   const socials = businessSocialProfiles();
+  const [counts, bank] = await Promise.all([loadShelfCounts(), hasBankAccount()]);
+  const groups = groupsWithShoes(counts);
+  // The ways to pay that are really offered (owner's sample 9 क): "Bank" only
+  // once there is an account in Settings, as the checkout already does.
+  const payments = bank ? ["COD", "eSewa", "Khalti", "Bank"] : ["COD", "eSewa", "Khalti"];
 
   return (
     <footer
@@ -217,7 +261,9 @@ export default function Footer() {
             <span aria-hidden="true" className="hidden h-9 w-px bg-brand-green-ink/25 sm:block" />
             <div>
               <p className="font-display text-[13px] font-black text-brand-green-ink sm:text-[17px]">
-                <T en="5% off your first order" ne="पहिलो अर्डरमा ५% छुट" />
+                {/* "5% off your first order" was here, and no such discount exists
+                    (owner's sample 9 क, 2026-10-14). What is true instead: */}
+                <T en="Pay when the pair reaches you" ne="जुत्ता हातमा आएपछि मात्र पैसा" />
               </p>
               <p className="mt-0.5 hidden text-[12.5px] text-brand-green-ink sm:block">
                 <T en="Explore the collection made in Nepal." ne="नेपालमै बनेको संग्रह हेर्नुहोस्।" />
@@ -260,7 +306,7 @@ export default function Footer() {
           </a>
         </div>
 
-        <FooterGroups groups={footerGroups} />
+        <FooterGroups groups={groups} />
 
         {/* On a computer: contact as four tiles, two by two. */}
         <div className="hidden lg:block">
@@ -359,7 +405,7 @@ export default function Footer() {
             </Link>
           </p>
           <div className="flex items-center gap-2">
-            {["COD", "eSewa", "Khalti", "Bank"].map((method) => (
+            {payments.map((method) => (
               <span key={method} className="rounded border border-white/15 bg-white/10 px-2.5 py-1 font-semibold text-white/80">{method}</span>
             ))}
             {/* "#top" takes the reader to the top of the page, with no script. */}

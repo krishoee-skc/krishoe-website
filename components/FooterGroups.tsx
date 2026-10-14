@@ -5,7 +5,8 @@ import { useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export type FooterLink = { href: string; en: string; ne: string; all?: boolean };
-export type FooterGroup = { key: string; en: string; ne: string; links: FooterLink[] };
+/** count: the shoes on the group's shelves, shown beside its name on a phone (owner's sample 9, 2026-10-14); left out, no number shows. */
+export type FooterGroup = { key: string; en: string; ne: string; links: FooterLink[]; count?: number };
 
 /**
  * The footer's shelves, in groups (owner, 2026-10-02): Women, Men, Kids, Shop.
@@ -34,7 +35,9 @@ export default function FooterGroups({ groups }: { groups: FooterGroup[] }) {
               <span className="flex items-center gap-2">
                 <span aria-hidden="true" className="hidden h-0.5 w-3.5 rounded bg-brand-green lg:block" />
                 {text(group.en, group.ne)}
-                <span className="text-[11px] font-bold normal-case tracking-normal lg:hidden">{group.links.length}</span>
+                {group.count !== undefined ? (
+                  <span className="text-[11px] font-bold normal-case tracking-normal lg:hidden">{group.count}</span>
+                ) : null}
               </span>
               <span
                 aria-hidden="true"
