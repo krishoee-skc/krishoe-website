@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { formatAdminDate } from "@/lib/format-date";
 import { useLanguage } from "@/components/LanguageProvider";
+import { Amount, AmountsToggle } from "@/components/admin/PageKit";
+import { roundedMoney } from "@/lib/format-money";
+import type { RecentAverages } from "@/lib/recent-averages";
 
 interface TrendDataPoint {
   date: string;
@@ -55,10 +58,13 @@ interface Analytics {
   };
 }
 
+const formatNumber = (value: number) => value.toLocaleString("en-IN");
+
 export default function AdvancedAnalyticsDashboard() {
   const { text } = useLanguage();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [workers, setWorkers] = useState<WorkerMetric[]>([]);
+  const [recent, setRecent] = useState<RecentAverages | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "trends" | "forecast" | "goals" | "workers">(
     "overview"
@@ -67,10 +73,16 @@ export default function AdvancedAnalyticsDashboard() {
   const loadAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const [analyticsRes, workersRes] = await Promise.all([
+      const [analyticsRes, workersRes, recentRes] = await Promise.all([
         fetch("/api/admin/analytics"),
         fetch("/api/admin/analytics?section=workers"),
+        fetch("/api/admin/analytics?section=recent"),
       ]);
+
+      if (recentRes.ok) {
+        const data = await recentRes.json();
+        setRecent(data.data ?? null);
+      }
 
       if (analyticsRes.ok) {
         const data = await analyticsRes.json();
@@ -149,7 +161,7 @@ export default function AdvancedAnalyticsDashboard() {
         {([
           { key: "overview" as const, label: text("📈 Overview", "📈 सारांश"), icon: "📊" },
           { key: "trends" as const, label: text("📉 30-day trends", "📉 ३० दिनको चाल"), icon: "📊" },
-          { key: "forecast" as const, label: "🔮 Forecast", icon: "🔮" },
+          { key: "forecast" as const, label: text("🔮 Last 30 days", "🔮 पछिल्लो ३० दिन"), icon: "🔮" },
           { key: "goals" as const, label: text("🎯 Goals", "🎯 लक्ष्य"), icon: "🎯" },
           { key: "workers" as const, label: text("👥 Workers", "👥 कामदार"), icon: "👥" },
         ]).map((tab) => (
@@ -308,45 +320,78 @@ export default function AdvancedAnalyticsDashboard() {
         </div>
       )}
 
-      {/* Forecast Tab */}
+      {/* The last 30 days, really (owner, 2026-10-14: "2 garau"). This tab
+          showed "180 pairs/day, 85%" and "Rs. 35,000/day, 80%" written into
+          the code since 2026-08-06; it now shows the shop's own records. */}
       {activeTab === "forecast" && (
-        <div className="space-y-6">
-          <div className="bg-brand-green-wash border border-brand-green-line rounded-lg p-4">
-            <h3 className="font-semibold text-brand-green mb-2">🔮 AI-Powered Forecast</h3>
-            <p className="text-sm text-brand-green">
-              Based on recent trends, the system predicts next 30 days production and revenue
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-brand-green-line bg-brand-green-wash p-4">
+            <p className="max-w-2xl text-sm leading-6 text-brand-green-ink">
+              {text(
+                "The real average of the last 30 days, from the shop's own records. Not a guess: the coming days may differ.",
+                "पसलकै हिसाबबाट पछिल्लो ३० दिनको साँचो औसत। अनुमान होइन: आउने दिन फरक हुन सक्छन्।",
+              )}
             </p>
+            <AmountsToggle />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">📦 Production Forecast</h3>
-              <div className="space-y-2 text-sm">
-                <p className="text-brand-muted mb-3">Expected daily production:</p>
-                <div className="bg-green-50 p-3 rounded">
-                  <p className="font-bold text-green-900">Average: 180 pairs/day</p>
-                  <p className="text-xs text-green-600">Confidence: 85%</p>
-                </div>
-                <p className="text-brand-muted text-xs mt-2">
-                  Forecast is most accurate for next 7-10 days
-                </p>
+          {recent === null ? (
+            <p className="rounded-lg border border-dashed border-brand-green-line p-4 text-sm text-brand-muted">
+              {text("These figures could not be read just now. Open the page again.", "अहिले यी अंक पढ्न सकिएन। page फेरि खोल्नुहोस्।")}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+                <h3 className="font-semibold text-brand-green-ink">{text("📦 Pairs made", "📦 बनेका जोडी")}</h3>
+                {recent.pairsTotal === 0 ? (
+                  <p className="mt-3 text-sm text-brand-muted">{text("No work was entered in the last 30 days.", "पछिल्लो ३० दिनमा कुनै काम टिपिएको छैन।")}</p>
+                ) : (
+                  <div className="mt-3 grid gap-2 text-sm">
+                    <p className="text-2xl font-black tabular-nums text-brand-green-ink">
+                      {text(
+                        `${formatNumber(Math.round(recent.pairsTotal / recent.pairsDays))} pairs on a working day`,
+                        `काम भएको दिन ${formatNumber(Math.round(recent.pairsTotal / recent.pairsDays))} जोडी`,
+                      )}
+                    </p>
+                    <p className="text-brand-muted">
+                      {text(
+                        `${formatNumber(recent.pairsTotal)} pairs in 30 days · work on ${recent.pairsDays} days · ${formatNumber(Math.round(recent.pairsTotal / recent.days))} a day across all 30`,
+                        `३० दिनमा ${formatNumber(recent.pairsTotal)} जोडी · ${recent.pairsDays} दिन काम · ३० दिनमा बाँड्दा दिनको ${formatNumber(Math.round(recent.pairsTotal / recent.days))}`,
+                      )}
+                    </p>
+                    <p className="text-brand-muted">
+                      {text("Last work entered: ", "पछिल्लो काम टिपिएको: ")}
+                      <span className="font-bold text-brand-green-ink">{formatAdminDate(recent.lastPairsDay)}</span>
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
 
-            <div className="bg-brand-paper rounded-lg border border-brand-green-line p-4">
-              <h3 className="font-semibold text-brand-green-ink mb-4">💰 Revenue Forecast</h3>
-              <div className="space-y-2 text-sm">
-                <p className="text-brand-muted mb-3">Expected daily revenue:</p>
-                <div className="bg-purple-50 p-3 rounded">
-                  <p className="font-bold text-purple-900">Average: Rs. 35,000/day</p>
-                  <p className="text-xs text-purple-600">Confidence: 80%</p>
-                </div>
-                <p className="text-brand-muted text-xs mt-2">
-                  Based on last 7 days performance
-                </p>
+              <div className="rounded-lg border border-brand-green-line bg-brand-paper p-4">
+                <h3 className="font-semibold text-brand-green-ink">{text("💰 Shop sales (bills less returns)", "💰 पसलको बिक्री (बिल, फिर्ता घटाएर)")}</h3>
+                {recent.salesDays === 0 ? (
+                  <p className="mt-3 text-sm text-brand-muted">{text("No bill was cut in the last 30 days.", "पछिल्लो ३० दिनमा कुनै बिल काटिएको छैन।")}</p>
+                ) : (
+                  <div className="mt-3 grid gap-2 text-sm">
+                    <p className="text-2xl font-black tabular-nums text-brand-green-ink">
+                      <Amount>{roundedMoney(recent.salesTotal / recent.salesDays)}</Amount>{" "}
+                      <span className="text-base font-bold">{text("on a day with sales", "बिक्री भएको दिन")}</span>
+                    </p>
+                    <p className="text-brand-muted">
+                      {text("In 30 days: ", "३० दिनमा: ")}
+                      <span className="font-bold text-brand-green-ink"><Amount>{roundedMoney(recent.salesTotal)}</Amount></span>
+                      {text(` · sales on ${recent.salesDays} days · a day across all 30: `, ` · ${recent.salesDays} दिन बिक्री · ३० दिनमा बाँड्दा दिनको `)}
+                      <span className="font-bold text-brand-green-ink"><Amount>{roundedMoney(recent.salesTotal / recent.days)}</Amount></span>
+                    </p>
+                    <p className="text-brand-muted">
+                      {text("Last bill cut: ", "पछिल्लो बिल काटिएको: ")}
+                      <span className="font-bold text-brand-green-ink">{formatAdminDate(recent.lastSalesDay)}</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

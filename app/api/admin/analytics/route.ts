@@ -12,6 +12,7 @@ import {
   getCustomerAnalytics,
 } from "@/lib/analytics-engine";
 import { requireAdminPermission } from "@/lib/admin-permissions";
+import { getRecentAverages } from "@/lib/recent-averages";
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,6 +76,10 @@ export async function GET(request: NextRequest) {
         break;
       case "revenue_forecast":
         data = await getRevenueForecast();
+        break;
+      // The real last 30 days, for the Forecast tab (owner, 2026-10-14).
+      case "recent":
+        data = await getRecentAverages(30);
         break;
       case "goals":
         data = await getGoalTrackers();
