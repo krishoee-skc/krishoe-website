@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/admin/actions";
+import { PosNeedsAnswer, POS_ANSWER_FIELD } from "@/lib/pos-questions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
@@ -141,7 +142,7 @@ export async function createPosInvoiceAction(
 }
 
 async function saveBill(_previousState: ActionState | null, formData: FormData): Promise<ActionState> {
-  await requireAdminPermission("pos:write");
+  const { role } = await requireAdminPermission("pos:write");
 
   if (textValue(formData, "kind") === "Exchange") {
     return saveExchange(formData);
@@ -218,8 +219,15 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       items: invoiceItems(formData),
       paymentParts,
       collectDue: dueFrom(formData),
+      answerFromFactory: textValue(formData, POS_ANSWER_FIELD.fromFactory) === "yes",
+      answerBelowMinimum: textValue(formData, POS_ANSWER_FIELD.belowMinimum) === "yes",
+      billedByOwner: role === "Owner",
     });
   } catch (error) {
+    // A question for the counter, or the minimum said again — not a failure.
+    if (error instanceof PosNeedsAnswer) {
+      return { ok: false, message: error.message, ...(error.question ? { ask: error.question } : {}) };
+    }
     reportError("save POS bill", error);
     return { ok: false, message: saveFailureMessage(error, "Could not save this bill.") };
   }

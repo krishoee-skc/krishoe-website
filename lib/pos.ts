@@ -36,6 +36,8 @@ import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/pro
 import { stockRowForSize } from "@/lib/stock-by-size";
 import { BILL_PREFIX, isBillNumberTaken, nextBillNumber, noteNamesBill } from "@/lib/bill-number";
 import { reportingErrors } from "@/lib/report-error";
+import { PosNeedsAnswer } from "@/lib/pos-questions";
+import { pairsAtPlaces } from "@/lib/pos-place-check";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
 export type PosInvoiceKind = "Sale" | "Return";
@@ -188,6 +190,12 @@ export type CreatePosInvoiceInput = {
    * Only the parts toward this bill; the first part names the bill's method.
    */
   paymentParts?: PosPaymentPart[];
+  /** The counter said yes: a shoe short on the shop's shelf goes from the factory (audit 6). */
+  answerFromFactory?: boolean;
+  /** The Owner said yes to a wholesale bill under the shoe's minimum (audit 12). */
+  answerBelowMinimum?: boolean;
+  /** Whether the person billing is the Owner, who alone may go under a minimum. */
+  billedByOwner?: boolean;
   /** The customer's older credit, cleared on the same bill. */
   collectDue?: {
     ledgerId: string;
@@ -720,6 +728,32 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
   if (input.kind === "Sale") {
     preflightSaleStock(operations, items);
 
+    // The counter and the website sell from the shop's shelf. When the shelf
+    // has fewer pairs than the bill, the rest came off the factory's count
+    // without a word — a bill for a pair that was not in the shop (owner,
+    // 2026-10-20, audit 6). Now the counter is asked once, and says yes.
+    if ((input.channel === "Retail" || input.channel === "Online") && !input.answerFromFactory) {
+      const groups = groupInvoiceItemsByDesign(items);
+      const places = await pairsAtPlaces(groups.map((group) => group.design));
+      const short = places
+        ? groups.filter((group) => (places.get(group.design.trim().toLowerCase())?.shop ?? 0) < group.pairs)
+        : [];
+      if (short.length > 0) {
+        const where = (group: (typeof short)[number]) => places?.get(group.design.trim().toLowerCase()) ?? { shop: 0, factory: 0 };
+        const said = short.map((group) => ({
+          en: `${group.design}: ${where(group).shop} at the shop, ${where(group).factory} at the factory`,
+          ne: `${group.design}: पसलमा ${where(group).shop}, कारखानामा ${where(group).factory}`,
+        }));
+        throw new PosNeedsAnswer(
+          {
+            en: `Not enough at the shop — ${said.map((line) => line.en).join("; ")}. Give them from the factory?`,
+            ne: `पसलमा पुग्दैन — ${said.map((line) => line.ne).join("; ")}। कारखानाबाट दिने हो?`,
+          },
+          "fromFactory",
+        );
+      }
+    }
+
     // Wholesale minimum order quantity (MOQ) enforcement.
     if (input.channel === "Wholesale") {
       const catalog = await getProducts({ includeDrafts: true });
@@ -734,9 +768,26 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
             sameDesign(candidate.name, group.design),
         );
 
-        if (product && product.minWholesaleQty > 1 && group.pairs < product.minWholesaleQty) {
-          throw new Error(
-            `${group.design} wholesale minimum order is ${product.minWholesaleQty} pairs. Cannot bill ${group.pairs} pairs.`,
+        // Under the minimum: the Owner may say yes (owner, 2026-10-20,
+        // audit 12 — five pairs of Bantu Hill were refused on 4 October and
+        // logged as a failure); anyone else is told the minimum.
+        if (
+          product &&
+          product.minWholesaleQty > 1 &&
+          group.pairs < product.minWholesaleQty &&
+          !(input.billedByOwner && input.answerBelowMinimum)
+        ) {
+          throw new PosNeedsAnswer(
+            input.billedByOwner
+              ? {
+                  en: `${group.design} wholesale minimum is ${product.minWholesaleQty} pairs; this bill has ${group.pairs}. Bill it anyway?`,
+                  ne: `${group.design} को थोक न्यूनतम ${product.minWholesaleQty} जोडी हो, यो बिलमा ${group.pairs} जोडी। यसपटक कम दिने हो?`,
+                }
+              : {
+                  en: `${group.design} wholesale minimum order is ${product.minWholesaleQty} pairs. Cannot bill ${group.pairs} pairs.`,
+                  ne: `${group.design} को थोक न्यूनतम ${product.minWholesaleQty} जोडी हो, यो बिलमा ${group.pairs} जोडी। कम दिन Owner ले मात्र मिल्छ।`,
+                },
+            input.billedByOwner ? "belowMinimum" : null,
           );
         }
       }

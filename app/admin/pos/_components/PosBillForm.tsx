@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { useRouter } from "next/navigation";
+import { flushSync } from "react-dom";
+import { POS_ANSWER_FIELD, type PosQuestion } from "@/lib/pos-questions";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
@@ -274,6 +276,10 @@ export default function PosBillForm({
   const [readingPhoto, setReadingPhoto] = useState(false);
 
   const [state, setState] = useState<ActionState | null>(null);
+  // The counter's yes to a question the bill asked (audit 6 and 12, owner,
+  // 2026-10-20) — kept only for the bill it was given to: change a line or
+  // the channel and the question is asked again.
+  const [answers, setAnswers] = useState<{ key: string; list: PosQuestion[] }>({ key: "", list: [] });
   const [saveLocked, setSaveLocked] = useState(false);
   const [isSaving, startSaving] = useTransition();
   const submitStarted = useRef(false);
@@ -659,6 +665,14 @@ export default function PosBillForm({
     });
   }
 
+  const answerKey = JSON.stringify([channel, kind, cart]);
+  const givenAnswers = answers.key === answerKey ? answers.list : [];
+
+  function answerYes(question: PosQuestion) {
+    flushSync(() => setAnswers({ key: answerKey, list: [...givenAnswers.filter((item) => item !== question), question] }));
+    (document.getElementById(BILL_FORM_ID) as HTMLFormElement | null)?.requestSubmit();
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitStarted.current) return;
@@ -886,6 +900,9 @@ export default function PosBillForm({
             <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
             <input type="hidden" name="kind" value={kind} />
             <input type="hidden" name="channel" value={channel} />
+            {givenAnswers.map((question) => (
+              <input key={question} type="hidden" name={POS_ANSWER_FIELD[question]} value="yes" />
+            ))}
             {/* A bill with nothing paid is a credit bill, whichever button was pressed
                 first — "Cash" with no cash would sit under Cash in the day close. */}
             <input
@@ -1658,6 +1675,17 @@ export default function PosBillForm({
             ) : null}
 
             <ActionMessage state={state} linkLabel={text("Open receipt", "रसिद खोल्ने")} />
+            {state?.ask && !givenAnswers.includes(state.ask) ? (
+              <button
+                type="button"
+                onClick={() => state.ask && answerYes(state.ask)}
+                className="min-h-12 rounded-lg border-2 border-brand-gold-deep bg-brand-cream-soft px-4 text-base font-black text-brand-gold-deep"
+              >
+                {state.ask === "fromFactory"
+                  ? text("Yes, give them from the factory and save", "हो, कारखानाबाट दिएर बिल राख्ने")
+                  : text("Yes, bill under the minimum this time", "हो, यसपटक कम दिएर बिल राख्ने")}
+              </button>
+            ) : null}
 
             <div className="sticky bottom-0 z-10 -mx-4 grid gap-2 border-t border-brand-green-line bg-brand-paper px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 md:pb-4">
               {shortDesigns.length > 0 ? (

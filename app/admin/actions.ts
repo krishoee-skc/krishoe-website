@@ -46,12 +46,15 @@ import {
   startOrderReturn,
 } from "@/lib/order-dispatch";
 import { cancelReasonToSave } from "@/lib/order-cancel-reasons";
+import type { PosQuestion } from "@/lib/pos-questions";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
 
 export type ActionState = {
   ok: boolean;
   message: string;
   href?: string;
+  /** The bill waits for one answer from the counter (lib/pos-questions.ts). */
+  ask?: PosQuestion;
 };
 
 const orderStatusSchema = z.object({
@@ -458,6 +461,9 @@ export async function createPosInvoiceFromOrderAction(
     const invoice = await createPosInvoice({
       ...invoiceInput,
       sourceSubmissionKey: `online-order-pos:${order.id}`,
+      // A website order is sent from wherever the pairs are — the counter's
+      // "from the factory?" question (audit 6) is for the shop's own shelf.
+      answerFromFactory: true,
     });
     const paymentStatus: PaymentStatus =
       paidAmount >= invoice.total ? "Paid" : paidAmount > 0 ? "Pending" : "Unpaid";

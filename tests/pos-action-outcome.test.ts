@@ -7,7 +7,8 @@ vi.mock("@/lib/pos", () => ({
   createPosInvoice: (...args: unknown[]) => createPosInvoice(...args),
   repairPosInvoicePosting: vi.fn(),
 }));
-vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: vi.fn() }));
+// The bill reads who is billing: the Owner alone may go under a wholesale minimum.
+vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: vi.fn(async () => ({ role: "Owner", session: { name: "Owner" } })) }));
 vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
