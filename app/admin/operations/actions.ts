@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { savedMessage } from "@/lib/saved-message";
-import { recordAdminAuditEvent } from "@/lib/admin-audit";
+import { appendAdminAuditEvent, recordAdminAuditEvent } from "@/lib/admin-audit";
+import { customerLedgerLineCount, operationRecordSnapshot, PROOF_KINDS, REASON_MIN } from "@/lib/operation-record-proof";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { ledgerReversalStatus } from "@/lib/ledger-reversal-database";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
@@ -680,12 +681,62 @@ export async function deleteOperationRecordAction(formData: FormData) {
     );
   }
 
+  // An account with any line on it stays (owner, 2026-10-20, audit 5): its
+  // lines are the proof of what was sold on credit and paid, and they went with
+  // it. A line is taken back on the account instead; an empty account made by
+  // mistake can still go.
+  if (kind === "customerLedger") {
+    const lines = await customerLedgerLineCount(id);
+    if (lines > 0) {
+      refreshOperationsPage(
+        pairedMessage({
+          en: `⚠ Not deleted: this account has ${lines} line${lines === 1 ? "" : "s"}. Take a wrong line back on the account; the account stays.`,
+          ne: `⚠ मेटिएन: यो खातामा ${lines} वटा लाइन छन्। गलत लाइन खातामै फिर्ता गर्नुहोस्; खाता रहन्छ।`,
+        }),
+        operationsReturnPath(formData),
+      );
+    }
+  }
+
+  // A stock movement or a production batch: the Owner only, with a reason, and
+  // a full copy kept in the audit log before anything is removed — if that
+  // copy cannot be written, nothing is removed.
+  if (PROOF_KINDS.includes(kind)) {
+    const { role } = await requireAdminPermission("operations:write");
+    const reason = textValue(formData, "reason").trim();
+    if (role !== "Owner") {
+      refreshOperationsPage(
+        pairedMessage({
+          en: "⚠ Not deleted: only the Owner removes a stock movement or a batch.",
+          ne: "⚠ मेटिएन: स्टकको movement वा batch Owner ले मात्र हटाउन सक्नुहुन्छ।",
+        }),
+        operationsReturnPath(formData),
+      );
+    }
+    if (reason.length < REASON_MIN) {
+      refreshOperationsPage(
+        pairedMessage({
+          en: `⚠ Not deleted: write why (at least ${REASON_MIN} letters).`,
+          ne: `⚠ मेटिएन: किन हटाउने, लेख्नुहोस् (कम्तीमा ${REASON_MIN} अक्षर)।`,
+        }),
+        operationsReturnPath(formData),
+      );
+    }
+    const snapshot = await operationRecordSnapshot(kind, id);
+    await appendAdminAuditEvent(
+      "operations_delete_record",
+      `${kind} ${id} removed. Reason: ${reason}. Record: ${JSON.stringify(snapshot)}`,
+    );
+  }
+
   await deleteOperationRecord(kind, id);
 
   if (STOCK_BEARING_RECORD_KINDS.includes(kind)) {
     await syncCatalogStock(`${kind} ${id} deleted`);
   }
 
-  await auditOperationsAction("operations_delete_record", `${kind} ${id} deleted.`);
+  if (!PROOF_KINDS.includes(kind)) {
+    await auditOperationsAction("operations_delete_record", `${kind} ${id} deleted.`);
+  }
   refreshOperationsPage(savedMessage("Row deleted ✅", "हरफ मेटियो ✅"), operationsReturnPath(formData));
 }

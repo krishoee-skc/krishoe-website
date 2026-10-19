@@ -3,6 +3,8 @@ import ConfirmDeleteButton from "@/app/admin/operations/ConfirmDeleteButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { money } from "@/lib/format-money";
 import type { OperationRecordKind } from "@/lib/operations";
+import { PROOF_KINDS, REASON_MIN } from "@/lib/operation-record-rules";
+import T from "@/components/T";
 
 export const inputClass =
   "h-10 rounded-md border border-brand-green-line px-3 text-base outline-none focus:border-brand-green";
@@ -84,10 +86,18 @@ export function DeleteRecordForm({
   returnTo?: string;
 }) {
   return (
-    <form action={deleteOperationRecordAction}>
+    <form action={deleteOperationRecordAction} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="id" value={id} />
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+      {/* A stock movement or batch goes only with a reason, kept with a full
+          copy in the audit log (owner, 2026-10-20, audit 5). */}
+      {PROOF_KINDS.includes(kind) ? (
+        <label className="grid gap-1 text-sm font-semibold text-brand-muted">
+          <T en="Why (Owner only)" ne="किन हटाउने (Owner मात्र)" />
+          <input name="reason" required minLength={REASON_MIN} className={compactInputClass} />
+        </label>
+      ) : null}
       <ConfirmDeleteButton label={label} />
     </form>
   );
