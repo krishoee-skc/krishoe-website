@@ -354,21 +354,11 @@ async function appendAdminAuditEventToPostgres(event: AdminAuditEvent) {
     ],
   );
 
-  await queryPostgres<{ id: string }>(
-    "admin audit events",
-    `
-      DELETE FROM admin_audit_events
-      WHERE id NOT IN (
-        SELECT id
-        FROM admin_audit_events
-        ORDER BY created_at DESC
-        LIMIT $1
-      )
-      RETURNING id
-    `,
-    [maxAuditEvents],
-  );
-
+  // Every record is kept (owner, 2026-10-20, audit 3). Only the last 500 were:
+  // the table was full by mid-October and its oldest line was 30 September, so
+  // who cancelled a bill or took back a wage line was gone within weeks. A line
+  // is a few hundred bytes — years of them fit in a megabyte or two. The local
+  // JSON file used in development keeps its cap.
   return eventFromRow(rows[0]);
 }
 

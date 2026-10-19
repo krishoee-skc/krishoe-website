@@ -2,6 +2,7 @@ import { getAdminAuditEvents } from "@/lib/admin-audit";
 import { getAdminSettingsForBackup } from "@/lib/admin-settings";
 import {
   backupExtensionTableSpecs,
+  backupKeyColumns,
   emptyBackupExtensionGroups,
 } from "@/lib/backup-table-manifest.mjs";
 import { getCostingSettings } from "@/lib/costing-settings";
@@ -29,6 +30,7 @@ type RawBackupGroups = {
   productionAccounting: Record<string, RawBackupRow[]>;
   factory: Record<string, RawBackupRow[]>;
   assets: Record<string, RawBackupRow[]>;
+  shop: Record<string, RawBackupRow[]>;
 };
 
 async function getBackupExtensionRows(): Promise<RawBackupGroups> {
@@ -48,7 +50,8 @@ async function getBackupExtensionRows(): Promise<RawBackupGroups> {
     await db.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
 
     const snapshotRows: Array<readonly [string, string, RawBackupRow[]]> = [];
-    for (const { group, table, columns } of backupExtensionTableSpecs) {
+    for (const spec of backupExtensionTableSpecs) {
+      const { group, table, columns } = spec;
       const selectedColumns = columns.map((column) =>
         table === "uploaded_images" && column === "bytes"
           ? `replace(replace(encode("bytes", 'base64'), E'\\n', ''), E'\\r', '') AS "bytes"`
@@ -57,7 +60,7 @@ async function getBackupExtensionRows(): Promise<RawBackupGroups> {
       const rows = await db.query<RawBackupRow>(
         `SELECT ${selectedColumns.join(", ")}
          FROM "${table}"
-         ORDER BY "id"`,
+         ORDER BY ${backupKeyColumns(spec).map((key: string) => `"${key}"`).join(", ")}`,
       );
       snapshotRows.push([group, table, rows] as const);
     }
@@ -85,10 +88,13 @@ function backupExtensionIntegrity(groups: RawBackupGroups) {
     Object.entries(groups).map(([group, tables]) => [
       group,
       Object.fromEntries(
-        Object.entries(tables).map(([table, rows]) => [
-          table,
-          { duplicateIds: findDuplicateIds(rows as IdRecord[]) },
-        ]),
+        Object.entries(tables).map(([table, rows]) => {
+          // Coupons are known by their code, a month's goal by its month.
+          const spec = backupExtensionTableSpecs.find((item) => item.table === table);
+          const keys = spec ? backupKeyColumns(spec) : ["id"];
+          const idOf = (row: RawBackupRow) => keys.map((key: string) => String(row[key] ?? "")).join(" · ");
+          return [table, { duplicateIds: findDuplicateIds(rows.map((row) => ({ id: idOf(row) }))) }];
+        }),
       ),
     ]),
   );
@@ -278,7 +284,8 @@ export async function buildAdminBackup() {
     getPurchasingData(),
     getCostingSettings(),
     getAdminSettingsForBackup(),
-    getAdminAuditEvents(500),
+    // Every "who did what" line, now that none are thrown away (owner, 2026-10-20).
+    getAdminAuditEvents(1_000_000),
     getNotificationEvents(300),
     getBackupExtensionRows(),
   ]);
@@ -315,6 +322,7 @@ export async function buildAdminBackup() {
       productionAccounting: extensionCounts.productionAccounting,
       factory: extensionCounts.factory,
       assets: extensionCounts.assets,
+      shop: extensionCounts.shop,
     },
     integrity: {
       products: {
@@ -549,6 +557,7 @@ export async function buildAdminBackup() {
       productionAccounting: backupExtensions.productionAccounting,
       factory: backupExtensions.factory,
       assets: backupExtensions.assets,
+      shop: backupExtensions.shop,
     },
   };
 }

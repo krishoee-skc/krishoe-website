@@ -1834,6 +1834,14 @@ CREATE TABLE IF NOT EXISTS customer_voice (
 
 CREATE INDEX IF NOT EXISTS customer_voice_status_idx
   ON customer_voice (status, created_at DESC);
+
+-- From scripts/migrations/20260823_review_invites.sql (already live): which order a
+-- review came from, one review per pair per order, and when the invite went out.
+ALTER TABLE customer_voice ADD COLUMN IF NOT EXISTS order_id text NOT NULL DEFAULT '';
+CREATE UNIQUE INDEX IF NOT EXISTS customer_voice_one_review_per_order_idx
+  ON customer_voice (order_id, product_id)
+  WHERE kind = 'review' AND order_id <> '';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS review_invite_sent_at timestamptz;
 CREATE INDEX IF NOT EXISTS customer_voice_kind_idx
   ON customer_voice (kind, created_at DESC);
 CREATE INDEX IF NOT EXISTS customer_voice_product_idx

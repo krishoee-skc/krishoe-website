@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { saveCustomerVoice } from "@/lib/customer-voice";
-import { queryPostgres } from "@/lib/postgres/client";
 import { getProductById } from "@/lib/product-store";
 import { readReviewToken } from "@/lib/review-invite";
 import { getOrderById } from "@/lib/submissions";
@@ -141,16 +140,6 @@ export async function submitInvitedReview(
   };
 }
 
-/**
- * Marks the order as invited.
- *
- * Kept beside the action it belongs with rather than in the mailer, so a resend
- * and a first send stamp the same column the same way.
- */
-export async function markReviewInviteSent(orderId: string) {
-  await queryPostgres(
-    "customer voice",
-    `UPDATE orders SET review_invite_sent_at = now() WHERE id = $1`,
-    [orderId],
-  );
-}
+// markReviewInviteSent lived here: a server action anyone could call, changing
+// an order with no sign-in, and called from nowhere — the mailer stamps the
+// order itself (lib/review-requests.ts). Removed (owner, 2026-10-20, audit 11).

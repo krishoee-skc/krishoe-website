@@ -4,9 +4,11 @@ import { describe, expect, it } from "vitest";
 import {
   backupExtensionTableSpecs,
   assetBackupTables,
+  backupKeyColumns,
   emptyBackupExtensionGroups,
   factoryBackupTables,
   productionAccountingBackupTables,
+  shopBackupTables,
   validateBackupExtensionData,
 } from "@/lib/backup-table-manifest.mjs";
 
@@ -35,12 +37,34 @@ const factoryTables = [
   "factory_monthly_summary",
 ];
 const assetTables = ["uploaded_images"];
+// Added 2026-10-20 (owner, audit 2): the shop's newer books.
+const shopTables = [
+  "stock_transfers",
+  "stock_transfer_items",
+  "stock_locations",
+  "counter_items",
+  "counter_sold_first",
+  "branch_product_stock",
+  "cheques",
+  "pos_cheques",
+  "coupons",
+  "business_goals",
+  "customer_voice",
+  "wholesale_enquiries",
+  "referral_codes",
+  "referral_claims",
+  "customer_email_preferences",
+  "factory_worker_photos",
+  "factory_worker_requests",
+  "factory_worker_leave",
+];
 
 function completeV15Backup() {
   const extensionData = emptyBackupExtensionGroups() as {
     productionAccounting: Record<string, Array<Record<string, unknown>>>;
     factory: Record<string, Array<Record<string, unknown>>>;
     assets: Record<string, Array<Record<string, unknown>>>;
+    shop: Record<string, Array<Record<string, unknown>>>;
   };
   return {
     schemaVersion: 15,
@@ -82,6 +106,7 @@ function completeV15Backup() {
       productionAccounting: Object.fromEntries(productionTables.map((table) => [table, 0])),
       factory: Object.fromEntries(factoryTables.map((table) => [table, 0])),
       assets: Object.fromEntries(assetTables.map((table) => [table, 0])),
+      shop: Object.fromEntries(shopTables.map((table) => [table, 0])),
     },
     data: {
       ...extensionData,
@@ -126,14 +151,16 @@ describe("admin backup schema v15 coverage", () => {
     expect(productionAccountingBackupTables.map(({ table }) => table)).toEqual(productionTables);
     expect(factoryBackupTables.map(({ table }) => table)).toEqual(factoryTables);
     expect(assetBackupTables.map(({ table }) => table)).toEqual(assetTables);
+    expect(shopBackupTables.map(({ table }) => table)).toEqual(shopTables);
     expect(backupExtensionTableSpecs.map(({ table }) => table)).toEqual([
       ...productionTables,
       ...factoryTables,
       ...assetTables,
+      ...shopTables,
     ]);
 
     for (const spec of backupExtensionTableSpecs) {
-      expect(spec.columns[0]).toBe("id");
+      expect(spec.columns[0]).toBe(backupKeyColumns(spec)[0]);
       expect(new Set(spec.columns).size).toBe(spec.columns.length);
       expect(schema).toContain(`CREATE TABLE IF NOT EXISTS ${spec.table}`);
       const tableBlock = schema.match(
@@ -219,6 +246,23 @@ describe("admin backup schema v15 coverage", () => {
     });
     multilineImage.counts.assets.uploaded_images = 1;
     expect(() => validateBackupExtensionData(multilineImage)).not.toThrow();
+  });
+
+  it("still restores a backup made before the shop's tables were in it, and checks their keys", () => {
+    const older = completeV15Backup();
+    delete (older.data as { shop?: unknown }).shop;
+    delete (older.counts as { shop?: unknown }).shop;
+    expect(() => validateBackupExtensionData(older)).not.toThrow();
+
+    const coupon = completeV15Backup();
+    const couponSpec = shopBackupTables.find(({ table }) => table === "coupons")!;
+    coupon.data.shop.coupons.push(Object.fromEntries(couponSpec.columns.map((column) => [column, column === "code" ? "" : null])));
+    coupon.counts.shop.coupons = 1;
+    expect(() => validateBackupExtensionData(coupon)).toThrow(/invalid code/);
+
+    const importSource = readFileSync(path.join(process.cwd(), "scripts", "import-backup-to-postgres.mjs"), "utf8");
+    expect(importSource).toContain('ON CONFLICT (${keys.map((key) => `"${key}"`).join(", ")}) DO UPDATE SET');
+    expect(importSource).toContain("if (data.shop !== undefined) {");
   });
 
   it("uses v15 and the shared whitelist in export, import, and smoke scripts", () => {

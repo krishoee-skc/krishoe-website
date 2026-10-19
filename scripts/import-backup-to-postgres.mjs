@@ -9,8 +9,10 @@ import pg from "pg";
 import {
   assetBackupTables,
   backupExtensionTableSpecs,
+  backupKeyColumns,
   factoryBackupTables,
   productionAccountingBackupTables,
+  shopBackupTables,
   validateBackupExtensionData,
 } from "../lib/backup-table-manifest.mjs";
 import { postgresConnectionOptions } from "./postgres-connection-options.mjs";
@@ -22,7 +24,8 @@ const supportedBackupSchemaVersions = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1
 const hashedResetTokenPrefix = "sha256:";
 const productionStations = ["Cutting", "Stitching", "Sole Press", "Finishing", "Packing", "QC"];
 const appTables = [
-  ...[...backupExtensionTableSpecs].reverse().map(({ table }) => table),
+  // The shop's tables are replaced only by a backup that holds them (below).
+  ...[...backupExtensionTableSpecs].filter(({ group }) => group !== "shop").reverse().map(({ table }) => table),
   "rate_limit_attempts",
   "payment_transactions",
   "pos_invoices",
@@ -351,15 +354,21 @@ async function upsertRawBackupTable(client, spec, rows) {
     return 0;
   }
 
+  // Coupons are known by their code and a month's goal by its month; jsonb
+  // columns go back as JSON text, or an array would be read as a Postgres array.
+  const keys = backupKeyColumns(spec);
+  const json = new Set(spec.json ?? []);
   const quotedColumns = spec.columns.map((column) => `"${column}"`);
-  const placeholders = spec.columns.map((_, index) => `$${index + 1}`);
+  const placeholders = spec.columns.map((column, index) =>
+    json.has(column) ? `$${index + 1}::jsonb` : `$${index + 1}`,
+  );
   const updateAssignments = spec.columns
-    .filter((column) => column !== "id")
+    .filter((column) => !keys.includes(column))
     .map((column) => `"${column}" = EXCLUDED."${column}"`);
   const sql = `
     INSERT INTO "${spec.table}" (${quotedColumns.join(", ")})
     VALUES (${placeholders.join(", ")})
-    ON CONFLICT (id) DO UPDATE SET
+    ON CONFLICT (${keys.map((key) => `"${key}"`).join(", ")}) DO UPDATE SET
       ${updateAssignments.join(",\n      ")}
   `;
 
@@ -369,7 +378,9 @@ async function upsertRawBackupTable(client, spec, rows) {
       spec.columns.map((column) =>
         spec.table === "uploaded_images" && column === "bytes"
           ? Buffer.from(requiredString(row[column]).replace(/\s/g, ""), "base64")
-          : row[column],
+          : json.has(column) && row[column] !== null && row[column] !== undefined
+            ? JSON.stringify(row[column])
+            : row[column],
       ),
     );
   }
@@ -1576,6 +1587,7 @@ async function importBackup(client, backup, replace) {
     ),
     factory: Object.fromEntries(factoryBackupTables.map(({ table }) => [table, 0])),
     assets: Object.fromEntries(assetBackupTables.map(({ table }) => [table, 0])),
+    shop: Object.fromEntries(shopBackupTables.map(({ table }) => [table, 0])),
   };
 
   await client.query("BEGIN");
@@ -1583,6 +1595,9 @@ async function importBackup(client, backup, replace) {
   try {
     if (replace) {
       await client.query(`TRUNCATE TABLE ${appTables.join(", ")} RESTART IDENTITY CASCADE`);
+      if (data.shop !== undefined) {
+        await client.query(`TRUNCATE TABLE ${shopBackupTables.map(({ table }) => table).join(", ")}`);
+      }
     }
 
     for (const product of data.products ?? []) {
@@ -1730,6 +1745,11 @@ async function importBackup(client, backup, replace) {
     for (const event of data.notifications ?? []) {
       await upsertNotificationEvent(client, event);
       imported.notifications += 1;
+    }
+
+    // Last: a POS cheque points at its bill, a counter item at its purchase.
+    if (data.shop !== undefined) {
+      await importRawBackupTables(client, data, shopBackupTables, imported.shop);
     }
 
     await client.query("COMMIT");
