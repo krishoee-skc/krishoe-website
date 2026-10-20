@@ -12,6 +12,10 @@ import ImageUploadField from "@/components/admin/ImageUploadField";
 import AiDraftButton from "./AiDraftButton";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { codeProblem, codeTakenBy, nextShoeCode } from "@/lib/shoe-code";
+import { colourList, colourSwap, coloursNotOnShoe, swapColourWords } from "@/lib/colour-words";
+
+/** The four boxes that describe the shoe, where its colour is said again. */
+const DESCRIPTION_FIELDS = ["description", "descriptionNe", "longDescription", "longDescriptionNe"] as const;
 
 type ProductFormProps = {
   product?: Product | null;
@@ -46,6 +50,64 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
   // Held so the AI drafter can read what is typed and fill what is not, without
   // this form having to mirror every field into React state first.
   const formRef = useRef<HTMLFormElement>(null);
+
+  // The colour said again in the descriptions (owner, 2026-10-20): change the
+  // colour and the descriptions follow, on the form, before Save. A
+  // description that names another colour is pointed out, with one press.
+  const savedColours = product?.colors ?? [];
+  const coloursBefore = useRef<string[]>(savedColours);
+  const [colourNote, setColourNote] = useState("");
+  const [wrongColours, setWrongColours] = useState<string[]>(() =>
+    coloursNotOnShoe(
+      [product?.description ?? "", product?.descriptionNe ?? "", product?.longDescription ?? "", product?.longDescriptionNe ?? ""],
+      savedColours,
+    ),
+  );
+  const [typedColours, setTypedColours] = useState<string[]>(savedColours);
+
+  const descriptionBox = (name: (typeof DESCRIPTION_FIELDS)[number]) =>
+    formRef.current?.elements.namedItem(name) as HTMLTextAreaElement | null;
+
+  const checkDescriptions = (colours = typedColours) => {
+    const texts = DESCRIPTION_FIELDS.map((name) => descriptionBox(name)?.value ?? "");
+    setWrongColours(coloursNotOnShoe(texts, colours));
+  };
+
+  /** Every description box with `from` said as `to`; true when any changed. */
+  const sayColourAs = (from: string, to: string) => {
+    let changed = false;
+    for (const name of DESCRIPTION_FIELDS) {
+      const box = descriptionBox(name);
+      if (!box) continue;
+      const next = swapColourWords(box.value, from, to);
+      if (next !== box.value) {
+        box.value = next;
+        changed = true;
+      }
+    }
+    return changed;
+  };
+
+  const coloursChanged = (typed: string) => {
+    const colours = colourList(typed);
+    const swap = colourSwap(coloursBefore.current, colours);
+    coloursBefore.current = colours;
+    setTypedColours(colours);
+    if (swap && sayColourAs(swap.from, swap.to)) {
+      setColourNote(text(`The descriptions now say ${swap.to} (they said ${swap.from}).`, `विवरणमा पनि ${swap.from} → ${swap.to} बदलियो।`));
+    } else {
+      setColourNote("");
+    }
+    checkDescriptions(colours);
+  };
+
+  const putRightColour = () => {
+    const colour = typedColours[0];
+    if (!colour) return;
+    for (const wrong of wrongColours) sayColourAs(wrong, colour);
+    setColourNote(text(`The descriptions now say ${colour} (they said ${wrongColours.join(", ")}).`, `विवरणमा पनि ${wrongColours.join(", ")} → ${colour} बदलियो।`));
+    checkDescriptions();
+  };
 
   // Submitted here rather than through `action={...}` so a failure comes back as
   // a message beside the button. The form is never re-rendered from scratch, so
@@ -273,7 +335,7 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
 
       <label className="grid gap-1.5">
         <span className="text-sm font-medium">{text("Short description", "छोटो विवरण")}</span>
-        <textarea name="description" defaultValue={product?.description} rows={2} className="form-input" />
+        <textarea name="description" defaultValue={product?.description} rows={2} onInput={() => checkDescriptions()} className="form-input" />
       </label>
 
       <label className="grid gap-1.5">
@@ -281,6 +343,7 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
         <textarea
           name="descriptionNe"
           defaultValue={product?.descriptionNe ?? ""}
+          onInput={() => checkDescriptions()}
           rows={2}
           placeholder={text(
             "e.g. Comfortable all day. Rain does not spoil them.",
@@ -292,7 +355,7 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
 
       <label className="grid gap-1.5">
         <span className="text-sm font-medium">{text("Long description", "लामो विवरण")}</span>
-        <textarea name="longDescription" defaultValue={product?.longDescription} rows={4} className="form-input" />
+        <textarea name="longDescription" defaultValue={product?.longDescription} rows={4} onInput={() => checkDescriptions()} className="form-input" />
       </label>
 
       {/*
@@ -308,6 +371,7 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
         <textarea
           name="longDescriptionNe"
           defaultValue={product?.longDescriptionNe ?? ""}
+          onInput={() => checkDescriptions()}
           rows={4}
           className="form-input"
         />
@@ -336,8 +400,34 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
             name="colors"
             defaultValue={product?.colors.join(", ")}
             placeholder={text("As in the photo — e.g. Maroon, Cream", "फोटोमा जस्तो — जस्तै Maroon, Cream")}
+            onBlur={(event) => coloursChanged(event.currentTarget.value)}
             className="form-input"
           />
+          {colourNote ? (
+            <span role="status" className="text-sm font-semibold text-brand-green">
+              ✓ {colourNote}
+            </span>
+          ) : null}
+          {wrongColours.length > 0 && typedColours.length > 0 ? (
+            <span className="grid gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <span>
+                ⚠{" "}
+                {text(
+                  `The descriptions say ${wrongColours.join(", ")}, but the colour is ${typedColours.join(", ")}.`,
+                  `विवरणमा ${wrongColours.join(", ")} लेखिएको छ, तर रङ ${typedColours.join(", ")} छ।`,
+                )}
+              </span>
+              {typedColours.length === 1 ? (
+                <button
+                  type="button"
+                  onClick={putRightColour}
+                  className="min-h-11 w-fit rounded-full bg-brand-green px-4 text-sm font-bold text-white"
+                >
+                  {text(`Say ${typedColours[0]} in the descriptions too`, `विवरणमा पनि ${typedColours[0]} बनाउने`)}
+                </button>
+              ) : null}
+            </span>
+          ) : null}
         </label>
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">{text("Sizes (comma-separated)", "साइज — कमाले छुट्याउने")}</span>
