@@ -5,6 +5,7 @@ import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { useRouter } from "next/navigation";
 import { flushSync } from "react-dom";
 import { POS_ANSWER_FIELD, type PosQuestion } from "@/lib/pos-questions";
+import { POS_RESTORE_KEY, enqueue, isNetworkFailure, removeQueued, useOnline } from "@/lib/offline-queue";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
@@ -169,6 +170,11 @@ function samePhone(left: string | undefined, right: string) {
 // F9 reaches the form by its id: EnterWalkForm keeps its own ref.
 const BILL_FORM_ID = "pos-bill-form";
 
+/** Each bill's own key, kept once by the shop: a second send of it is the same bill. */
+function newSubmissionKey() {
+  return `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 const inputClass =
   "h-11 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink outline-none focus:border-brand-green";
 
@@ -220,7 +226,7 @@ export default function PosBillForm({
 }: PosBillFormProps) {
   const { text } = useLanguage();
   const router = useRouter();
-  const [submissionKey] = useState(() => `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
+  const [submissionKey, setSubmissionKey] = useState(newSubmissionKey);
 
   const [cart, setCart] = useState<CartLine[]>([]);
   // Goods just added at the counter, sold before the page's own list refreshes.
@@ -292,6 +298,36 @@ export default function PosBillForm({
       answerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     }
   }, [state]);
+
+  const online = useOnline();
+  // A bill this phone kept while offline that the shop would not take, opened
+  // again here from the pill's "Open on the bill" (rule 4). Only sales wait.
+  useEffect(() => {
+    let raw: string | null = null;
+    try {
+      raw = window.localStorage.getItem(POS_RESTORE_KEY);
+      window.localStorage.removeItem(POS_RESTORE_KEY);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    try {
+      const kept = JSON.parse(raw) as { id?: string; cart?: CartLine[]; channel?: string };
+      if (!Array.isArray(kept.cart) || kept.cart.length === 0) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the kept bill is read from the browser after hydration, intentional
+      setKind("Sale");
+      setChannel(kept.channel || "Retail");
+      setCart(kept.cart);
+      setStartedAt(Date.now());
+      setCartOpen(true);
+      if (kept.id) removeQueued(kept.id);
+      setNote(text("The kept bill is open again — check it and press Save.", "राखिएको बिल फेरि खुल्यो — हेरेर Save थिच्नुहोस्।"));
+    } catch {
+      // A broken note is simply not opened.
+    }
+    // Once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!undo) return;
@@ -737,10 +773,57 @@ export default function PosBillForm({
     }
 
     const formData = new FormData(event.currentTarget);
+    // What may wait on this phone without the internet (rule 4): a new sale
+    // paid now. A return, an exchange or credit needs the shop's records.
+    const mayWait = kind === "Sale" && creditAmount === 0 && !collectDue && !needsAccount;
+    const snapshot = { cart, channel, kind };
+    const label = {
+      en: `${totals.pairs} ${totals.pairs === 1 ? "pair" : "pairs"} · ${money(amountDue)}`,
+      ne: `${totals.pairs} जोडी · ${money(amountDue)}`,
+    };
     submitStarted.current = true;
     setSaveLocked(true);
     startSaving(async () => {
-      const result = await createPosInvoiceAction(state, formData);
+      let result: ActionState;
+      try {
+        result = await createPosInvoiceAction(state, formData);
+      } catch (error) {
+        submitStarted.current = false;
+        setSaveLocked(false);
+        if (isNetworkFailure(error) && mayWait) {
+          const kept = enqueue({
+            kind: "bill",
+            label,
+            entries: [...formData.entries()].map(([name, value]) => [name, typeof value === "string" ? value : ""]),
+            snapshot,
+          });
+          if (kept) {
+            resetBill();
+            // The next bill is a new one; the kept bill keeps its own key.
+            setSubmissionKey(newSubmissionKey());
+            setState(null);
+            setCartOpen(false);
+            setNote(
+              text(
+                "📴 No internet — the bill is kept on this phone and goes to the shop when the internet is back.",
+                "📴 Internet छैन — बिल फोनमा राखियो, internet आएपछि आफैँ पठाइन्छ।",
+              ),
+            );
+            return;
+          }
+        }
+        setState({
+          ok: false,
+          message: mayWait
+            ? text("The bill did not reach the shop — check the internet and press Save again.", "बिल पसलसम्म पुगेन — internet हेरेर फेरि Save थिच्नुहोस्।")
+            : text(
+                "No internet — a return, an exchange or credit is made when the internet is back.",
+                "Internet छैन — फिर्ता, साटफेर र उधारो internet आएपछि मात्र मिल्छ।",
+              ),
+        });
+        setCartOpen(true);
+        return;
+      }
       setState(result);
       if (result.ok && result.href) {
         router.push(result.href);
@@ -809,6 +892,14 @@ export default function PosBillForm({
     // min-w-0 all the way down: the size row scrolls sideways, and without it
     // that row would stretch the whole column past a phone screen.
     <div className="grid min-w-0 gap-3">
+      {!online ? (
+        <p role="status" className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-900">
+          {text(
+            "📴 No internet — a new cash or QR sale is kept on this phone and sent when the internet is back. Returns, exchanges and credit wait for the internet.",
+            "📴 Internet छैन — नयाँ बिक्री (नगद, QR) फोनमै राखिन्छ, internet आएपछि आफैँ जान्छ। फिर्ता, साटफेर र उधारो internet आएपछि।",
+          )}
+        </p>
+      ) : null}
       {today ? (
         <div className="flex gap-x-5 gap-y-1 overflow-x-auto whitespace-nowrap rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2 text-sm tabular-nums [scrollbar-width:none]">
           <span className="font-bold text-brand-muted">{text("Today", "आज")}</span>

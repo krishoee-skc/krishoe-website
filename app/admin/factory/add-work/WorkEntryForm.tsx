@@ -28,6 +28,7 @@ import { colourSwatch, compactSizes } from "@/lib/shoe-colour";
 import { stageNeedingUpperFirst } from "@/lib/stage-order";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { useToast } from "@/components/admin/ToastProvider";
+import { enqueue, isNetworkFailure, useOnline } from "@/lib/offline-queue";
 import NepaliDateField from "@/components/admin/NepaliDateField";
 
 import {
@@ -92,6 +93,7 @@ export default function WorkEntryForm({
 }) {
   const { text, language } = useLanguage();
   const toast = useToast();
+  const online = useOnline();
   const [workers] = useState<Worker[]>(initialWorkers);
 
   // Enter moves the cursor along every box and on to Save, so it has to be able
@@ -177,6 +179,8 @@ export default function WorkEntryForm({
   /** What was just saved, shown in full until the next entry is begun (2026-10-04). */
   const [savedCard, setSavedCard] = useState<{
     workerId: string; workerName: string; itemName: string; color: string; size: string; pairs: string; amount: number; pending: boolean;
+    /** Kept on this phone for want of the internet (rule 4). */
+    kept?: boolean;
   } | null>(null);
   // The question Save asks before writing: always after Enter, and after a
   // click when the same work is already on the day's list.
@@ -674,14 +678,49 @@ export default function WorkEntryForm({
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/factory/work", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": key,
-        },
-        body: JSON.stringify(payload),
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/factory/work", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": key,
+          },
+          body: JSON.stringify(payload),
+        });
+      } catch (networkError) {
+        // The internet is away (owner, 2026-10-20, rule 4): the entry waits on
+        // this phone with its own key, and goes when the internet is back —
+        // the key keeps a second send from being a second entry.
+        if (!isNetworkFailure(networkError)) throw networkError;
+        const who = workers.find((one) => one.id === entry.worker_id)?.name ?? "";
+        const kept = enqueue({
+          kind: "work",
+          label: {
+            en: `${who} · ${entry.pairs_count} pairs · ${entry.date}`,
+            ne: `${who} · ${entry.pairs_count} जोडी · ${entry.date}`,
+          },
+          body: JSON.stringify(payload),
+          idempotencyKey: key,
+        });
+        if (!kept) throw networkError;
+        setSavedCard((card) => (card ? { ...card, pending: false, kept: true } : card));
+        setLastEntry({
+          worker_id: entry.worker_id,
+          stage: entry.stage,
+          item_id: entry.item_id,
+          color: entry.color,
+          size: entry.size,
+        });
+        toast.show(
+          text(
+            "📴 No internet — kept on this phone, sent when the internet is back.",
+            "📴 Internet छैन — फोनमा राखियो, internet आएपछि आफैँ पठाइन्छ।",
+          ),
+          "success",
+        );
+        return;
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -771,6 +810,14 @@ export default function WorkEntryForm({
 
   return (
     <div className="mx-auto w-full max-w-[1600px] p-4 sm:p-6">
+      {!online ? (
+        <p role="status" className="mb-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-black text-amber-900">
+          {text(
+            "📴 No internet — new work is kept on this phone and sent when the internet is back.",
+            "📴 Internet छैन — नयाँ काम फोनमै राखिन्छ, internet आएपछि आफैँ जान्छ।",
+          )}
+        </p>
+      ) : null}
       {/* No title block here, deliberately: the breadcrumb and the highlighted
           tab already say "Add work", and on a phone a heading here was a tenth
           of the screen spent repeating them. */}
@@ -825,7 +872,11 @@ export default function WorkEntryForm({
             <div role="status" className="grid gap-2 rounded-2xl border-2 border-brand-green bg-brand-green-wash p-4">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-lg font-black text-brand-green">
-                  {savedCard.pending ? text("⏳ Saving…", "⏳ टिप्दै…") : text("✓ Saved", "✓ टिपियो")}
+                  {savedCard.pending
+                    ? text("⏳ Saving…", "⏳ टिप्दै…")
+                    : savedCard.kept
+                      ? text("📴 Kept on this phone", "📴 फोनमा राखियो")
+                      : text("✓ Saved", "✓ टिपियो")}
                 </p>
                 <p className="text-xs font-bold text-brand-muted">{text("just now", "भर्खर")}</p>
               </div>

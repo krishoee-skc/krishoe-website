@@ -101,7 +101,10 @@ describe("entering the next row without waiting", () => {
 describe("after a save", () => {
   it("shows what was saved until the next entry is begun", async () => {
     const source = await readFile(FORM, "utf8");
-    expect(source).toContain('savedCard.pending ? text("⏳ Saving…", "⏳ टिप्दै…") : text("✓ Saved", "✓ टिपियो")');
+    expect(source).toContain('text("⏳ Saving…", "⏳ टिप्दै…")');
+    expect(source).toContain('text("✓ Saved", "✓ टिपियो")');
+    // Or, with no internet, kept on the phone (owner, 2026-10-20, rule 4).
+    expect(source).toContain('text("📴 Kept on this phone", "📴 फोनमा राखियो")');
     expect(source).toContain('text("Next entry · same worker", "अर्को entry · उही कामदार")');
     expect(source).toContain('text("Another worker", "अर्को कामदार")');
     // a failed save takes the card away and puts the form back as typed

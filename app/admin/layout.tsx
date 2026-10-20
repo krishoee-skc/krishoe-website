@@ -1,6 +1,7 @@
 import AdminNav from "./AdminNav";
 import AdminCommandBar from "./AdminCommandBar";
 import PasskeyInvite from "@/components/admin/PasskeyInvite";
+import OfflineSync from "@/components/admin/OfflineSync";
 import AdminMobileNav from "./AdminMobileNav";
 import WorkspaceBand from "./WorkspaceBand";
 import AdminTrail from "./AdminTrail";
@@ -157,6 +158,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             hides itself when this account already has a passkey, and once
             declined it does not come back. */}
         <PasskeyInvite />
+        {/* Bills and work kept on this phone while the internet was away,
+            sent from whichever screen is open when it is back (rule 4). */}
+        <OfflineSync />
       </main>
     </SidebarProvider>
     </ToastProvider>

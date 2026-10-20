@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
@@ -11,11 +12,21 @@ import { useLanguage } from "@/components/LanguageProvider";
  * This says what is actually happening and what to do: keep the page open, and
  * press Save again when the signal is back.
  *
- * Deliberately not an automatic resend. A queued wage payment or bill that
- * goes out on its own when the signal returns can go out twice — once from the
- * queue and once from the person pressing Save again — and money entered twice
- * is worse than an entry that waits for a tap.
+ * Not an automatic resend here. A queued wage payment or bill that goes out on
+ * its own when the signal returns can go out twice — once from the queue and
+ * once from the person pressing Save again — and money entered twice is worse
+ * than an entry that waits for a tap.
+ *
+ * Two screens are the exception (owner, 2026-10-20, rule 4): a new sale on the
+ * counter and a new work entry wait on the phone with the key they would have
+ * been sent with, the bill or the boxes are cleared so there is nothing to
+ * press Save on again, and the key makes a second send the same entry
+ * (lib/offline-queue). Those screens say so themselves, so this notice stands
+ * aside there rather than telling the counter to press Save again.
  */
+
+/** The screens that keep a new entry on the phone and say so themselves. */
+const KEEPS_ON_THE_PHONE = ["/admin/pos", "/admin/factory/add-work"];
 
 function subscribe(onChange: () => void) {
   window.addEventListener("online", onChange);
@@ -28,8 +39,10 @@ function subscribe(onChange: () => void) {
 
 export default function OfflineNotice() {
   const { text } = useLanguage();
+  const pathname = usePathname() ?? "";
   const offline = useSyncExternalStore(subscribe, () => !navigator.onLine, () => false);
   if (!offline) return null;
+  if (KEEPS_ON_THE_PHONE.some((path) => pathname === path)) return null;
 
   return (
     <div
