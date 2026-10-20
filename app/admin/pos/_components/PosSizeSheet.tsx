@@ -19,6 +19,11 @@ type PosSizeSheetProps = {
   returning?: boolean;
   onPick: (size: string, color: string) => void;
   onPickSet: (sizes: string[], color: string) => void;
+  /**
+   * Given only for the first pair of a retail sale: a size is chosen, and one
+   * press saves the bill in cash (owner, 2026-10-20, rule 1).
+   */
+  onQuickCash?: (size: string, color: string) => void;
   onClose: () => void;
 };
 
@@ -38,6 +43,7 @@ export default function PosSizeSheet({
   returning = false,
   onPick,
   onPickSet,
+  onQuickCash,
   onClose,
 }: PosSizeSheetProps) {
   const { text } = useLanguage();
@@ -73,6 +79,9 @@ export default function PosSizeSheet({
   }, [choices, color, onClose, onPick]);
 
   const firstSellable = choices.findIndex((choice) => choice.sellable);
+  // The size the ⚡ button bills: the first one with pairs, until another is pressed.
+  const [chosen, setChosen] = useState(choices[firstSellable]?.size ?? "");
+  const quick = Boolean(onQuickCash) && firstSellable >= 0;
 
   return (
     <div
@@ -136,8 +145,12 @@ export default function PosSizeSheet({
                 ref={index === firstSellable ? firstRef : undefined}
                 type="button"
                 disabled={!choice.sellable}
-                onClick={() => onPick(choice.size, color)}
-                className="relative flex h-16 flex-col items-center justify-center rounded-2xl border-2 border-brand-green-line bg-brand-paper-deep transition hover:border-brand-green focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through"
+                aria-pressed={quick ? chosen === choice.size : undefined}
+                // With ⚡ on offer a press chooses the size; otherwise it adds the pair.
+                onClick={() => (quick ? setChosen(choice.size) : onPick(choice.size, color))}
+                className={`relative flex h-16 flex-col items-center justify-center rounded-2xl border-2 transition hover:border-brand-green focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold disabled:cursor-not-allowed disabled:opacity-40 disabled:line-through ${
+                  quick && chosen === choice.size ? "border-brand-green bg-brand-green-tint" : "border-brand-green-line bg-brand-paper-deep"
+                }`}
               >
                 {index < 9 ? (
                   <span className="absolute left-1.5 top-1 hidden font-mono text-xs text-brand-muted md:block" aria-hidden="true">
@@ -158,6 +171,28 @@ export default function PosSizeSheet({
             );
           })}
         </div>
+
+        {quick && chosen ? (
+          <div className="mt-4 grid gap-2">
+            <button
+              type="button"
+              onClick={() => onQuickCash?.(chosen, color)}
+              className="min-h-14 w-full rounded-2xl bg-brand-green px-4 text-base font-black text-white shadow-[0_14px_30px_-12px_rgba(16,35,29,0.6)]"
+            >
+              {text(
+                `⚡ ${chosen} · Save the bill in cash · ${money(rateForChannel(channel, item))}`,
+                `⚡ ${chosen} · नगदमा बिल राख्ने · ${money(rateForChannel(channel, item))}`,
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => onPick(chosen, color)}
+              className="min-h-12 w-full rounded-2xl border-2 border-brand-green bg-brand-paper px-4 text-sm font-black text-brand-green"
+            >
+              {text("Add to bill (more pairs, credit, a name)", "बिलमा थप्ने (धेरै जोडी, उधारो, नाम)")}
+            </button>
+          </div>
+        ) : null}
 
         {!returning && choices.some((choice) => choice.sellable && choice.left === null) ? (
           <p className="mt-3 text-xs text-brand-muted">

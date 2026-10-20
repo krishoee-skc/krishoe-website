@@ -25,11 +25,12 @@ type ShopCatalogProps = {
  */
 export default async function ShopCatalog({ products, activeCategory }: ShopCatalogProps) {
   const shelfCounts = await loadShelfCounts();
-  const heading = activeCategory ? (
-    `${activeCategory.title} collection`
-  ) : (
-    <T en="Premium pairs, ready to browse." ne="राम्रा जोडीहरू — हेर्न तयार।" />
-  );
+  // One line, so the shoes are on the first screen of a phone (owner,
+  // 2026-10-20, rule 2): a shopper from an advert who sees no shoe in three
+  // seconds goes back. The long title, the paragraph and the three chips stood
+  // above every pair.
+  const heading = activeCategory ? activeCategory.title : <T en="Shop" ne="पसल" />;
+  const shoes = products.length;
 
   const description = activeCategory ? (
     activeCategory.description
@@ -43,32 +44,23 @@ export default async function ShopCatalog({ products, activeCategory }: ShopCata
   return (
     <main className="bg-brand-mist">
       <Navbar />
-      <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-16">
-        <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            KRISHOE shop
-          </p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-6xl">
-            {heading}
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-brand-muted">
-            {description}
-          </p>
-          {/* Three promises, and the reason a first-time shopper here decides to
-              trust an unfamiliar shop. "COD" stays as it is: it is the term
-              customers use on the phone, and "प्रसव पछि भुक्तानी" would be a
-              translation nobody asks for. */}
-          <div className="mt-5 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.14em]">
-            <span className="rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-brand-green">
-              <T en="Stock checked" ne="स्टक जाँचिएको" />
-            </span>
-            <span className="rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-brand-green">
-              <T en="COD available" ne="सामान पाएपछि पैसा" />
-            </span>
-            <span className="rounded-full border border-brand-green/20 bg-brand-paper px-3 py-1 text-brand-green">
-              <T en="Nepal delivery" ne="नेपालभरि डेलिभरी" />
-            </span>
+      <section className="mx-auto max-w-7xl px-5 py-4 md:px-8 md:py-12">
+        <div className="mb-3 md:mb-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h1 className="text-2xl font-black tracking-tight text-brand-green-ink md:text-5xl">
+              {heading}
+              <span className="ml-2 text-base font-bold text-brand-muted md:text-2xl">
+                · <T en={`${shoes} ${shoes === 1 ? "shoe" : "shoes"}`} ne={`${shoes} जुत्ता`} />
+              </span>
+            </h1>
+            {/* The two promises a first-time shopper decides on, kept on one
+                line. "COD" stays as it is: it is the word customers use. */}
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-brand-green">
+              <T en="COD · Nepal delivery" ne="सामान पाएपछि पैसा · नेपालभरि" />
+            </p>
           </div>
+          {/* The words about the shelf, from a tablet up; a phone goes straight to the shoes. */}
+          <p className="mt-3 hidden max-w-2xl text-sm leading-7 text-brand-muted md:block">{description}</p>
         </div>
 
         {/* No Suspense boundary any more, and that is the point.

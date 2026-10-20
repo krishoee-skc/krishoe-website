@@ -508,3 +508,35 @@ export function planPayment(input: {
   }
   return { ...none, paid: cashIn, short: rest, parts: cashPart };
 }
+
+/**
+ * More than this share of the list price given away is asked about before the
+ * bill is saved (owner, 2026-10-20, rule 3): a Rs 900 discount typed on a
+ * Rs 950 pair, or a rate of 95 for 950, used to save in silence.
+ */
+export const BIG_DISCOUNT_SHARE = 0.2;
+
+/** What the bill gives away — lowered rates plus its discount — when that is a big share. */
+export function bigDiscount(totals: BillTotals): { off: number; percent: number } | null {
+  const list = totals.subtotal + totals.bargained;
+  if (!(list > 0)) return null;
+  const off = totals.bargained + totals.discount;
+  return off / list > BIG_DISCOUNT_SHARE ? { off, percent: Math.round((off / list) * 100) } : null;
+}
+
+/** Fewer pairs than this left of a size, once the bill is out, is said on its line. */
+export const LOW_SIZE_LEFT = 5;
+
+/**
+ * The sizes on a line that will be nearly gone after this bill: counted sizes
+ * only — a pile whose sizes are unknown says nothing (owner, 2026-10-20, rule 3).
+ */
+export function lowSizesAfterBill(item: SellableItem, cart: CartLine[], sizes: string[]) {
+  const counted = item.sizeStock ?? {};
+  return [...new Set(sizes)].flatMap((size) => {
+    const own = counted[size];
+    if (own === undefined) return [];
+    const left = own - pairsOnBill(cart, item.design, size);
+    return left >= 0 && left < LOW_SIZE_LEFT ? [{ size, left }] : [];
+  });
+}

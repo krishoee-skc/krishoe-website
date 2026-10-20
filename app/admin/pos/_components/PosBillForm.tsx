@@ -37,7 +37,7 @@ import {
   type RepeatBill,
   type SellableItem,
 } from "@/app/admin/pos/_components/pos-bill-rules";
-import { rateForChannel } from "@/app/admin/pos/_components/pos-bill-rules";
+import { bigDiscount, lowSizesAfterBill, rateForChannel } from "@/app/admin/pos/_components/pos-bill-rules";
 import { groupBillLines, sortSizes } from "@/lib/bill-lines";
 import ChequeFields, { type ChequeDetails } from "@/components/admin/ChequeFields";
 import { customerForPhone, customerSuggestions, phoneProblem, type KnownCustomer } from "@/lib/customer-contact-rules";
@@ -284,6 +284,14 @@ export default function PosBillForm({
   const [isSaving, startSaving] = useTransition();
   const submitStarted = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  // A refusal or a question is read where it is shown: on a phone that was
+  // below the screen, at the foot of a long bill, and Save seemed to do nothing.
+  const answerRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (state && !state.ok && state.message) {
+      answerRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }, [state]);
 
   useEffect(() => {
     if (!undo) return;
@@ -668,6 +676,39 @@ export default function PosBillForm({
   const answerKey = JSON.stringify([channel, kind, cart]);
   const givenAnswers = answers.key === answerKey ? answers.list : [];
 
+  // A big discount is asked about once per bill as it stands (rule 3): the yes
+  // belongs to these lines and this discount, and is asked again if either moves.
+  const bigOff = kind === "Return" ? null : bigDiscount(totals);
+  const discountKey = JSON.stringify([answerKey, totals.discount]);
+  const [discountYes, setDiscountYes] = useState("");
+  const [discountAsked, setDiscountAsked] = useState("");
+  const askingDiscount = Boolean(bigOff) && discountAsked === discountKey && discountYes !== discountKey;
+  function discountIsMeant() {
+    flushSync(() => setDiscountYes(discountKey));
+    (document.getElementById(BILL_FORM_ID) as HTMLFormElement | null)?.requestSubmit();
+  }
+
+  // ⚡ The first pair of a retail sale, saved in cash in one press from the
+  // size sheet (owner, 2026-10-20, rule 1: a bill in three presses). The same
+  // save as the button — the bill's own questions are still asked.
+  const offersQuickCash = kind === "Sale" && channel === "Retail" && cart.length === 0;
+  function quickCash(item: SellableItem, size: string, color: string) {
+    if (!canAddPair(item, size, [])) {
+      setNote(text(`${item.design} size ${size} is not in stock.`, `${item.design} साइज ${size} stock मा छैन।`));
+      return;
+    }
+    flushSync(() => {
+      setCart(addPair([], item, channel, size, color));
+      setStartedAt((value) => value ?? Date.now());
+      setPayment("Cash");
+      setReceived("");
+      setRestMethod("");
+      setPicking(null);
+      setState(null);
+    });
+    (document.getElementById(BILL_FORM_ID) as HTMLFormElement | null)?.requestSubmit();
+  }
+
   function answerYes(question: PosQuestion) {
     flushSync(() => setAnswers({ key: answerKey, list: [...givenAnswers.filter((item) => item !== question), question] }));
     (document.getElementById(BILL_FORM_ID) as HTMLFormElement | null)?.requestSubmit();
@@ -678,6 +719,20 @@ export default function PosBillForm({
     if (submitStarted.current) return;
     if (blocked) {
       setState({ ok: false, message: blocked });
+      // On a phone the bill may be shut (⚡, F9): open it so the reason shows.
+      setCartOpen(true);
+      return;
+    }
+    if (bigOff && discountYes !== discountKey) {
+      setDiscountAsked(discountKey);
+      setState({
+        ok: false,
+        message: text(
+          `The discount is ${bigOff.percent}% (${money(bigOff.off)}). Is that meant?`,
+          `छुट ${bigOff.percent}% (${money(bigOff.off)}) भयो। पक्का हो?`,
+        ),
+      });
+      setCartOpen(true);
       return;
     }
 
@@ -693,6 +748,8 @@ export default function PosBillForm({
       }
       submitStarted.current = false;
       setSaveLocked(false);
+      // A question or a refusal is read on the bill, which a phone may have shut.
+      setCartOpen(true);
     });
   }
 
@@ -1013,6 +1070,9 @@ export default function PosBillForm({
                   const bySize = sortSizes(group.lines.map((row) => ({ size: row.size, pairs: row.quantity, row }))).map(
                     (entry) => entry.row,
                   );
+                  // Nearly gone after this bill (rule 3): said on the line, not
+                  // only in the size sheet that has closed.
+                  const lowSizes = !back && !isReturn && item ? lowSizesAfterBill(item, cart, group.lines.map((row) => row.size)) : [];
                   const toggle = () =>
                     setOpenGroups((current) =>
                       current.includes(group.key) ? current.filter((key) => key !== group.key) : [...current, group.key],
@@ -1134,6 +1194,18 @@ export default function PosBillForm({
                             ),
                           )}
                         </div>
+                      ) : null}
+                      {lowSizes.length > 0 ? (
+                        <p className="col-span-2 text-xs font-black text-brand-gold-deep">
+                          ⚠{" "}
+                          {lowSizes
+                            .map(({ size, left }) =>
+                              left === 0
+                                ? text(`size ${size}: this was the last pair`, `साइज ${size}: यो अन्तिम जोडी थियो`)
+                                : text(`size ${size}: ${left} left after this bill`, `साइज ${size}: यो बिलपछि ${left} मात्र बाँकी`),
+                            )
+                            .join(" · ")}
+                        </p>
                       ) : null}
                       {!back && wholesaleShort(first.design) > 0 && group.key === groupBillLines(cart, (line) => (line.back ? "back" : "")).find((other) => other.lines[0].design === first.design && !other.lines[0].back)?.key ? (
                         <div className="col-span-2 flex items-center justify-between gap-2 rounded-lg bg-brand-cream-soft px-2.5 py-1.5 text-xs font-black text-brand-gold-deep">
@@ -1674,6 +1746,7 @@ export default function PosBillForm({
               </p>
             ) : null}
 
+            <span ref={answerRef} aria-hidden="true" />
             <ActionMessage state={state} linkLabel={text("Open receipt", "रसिद खोल्ने")} />
             {state?.ask && !givenAnswers.includes(state.ask) ? (
               <button
@@ -1684,6 +1757,15 @@ export default function PosBillForm({
                 {state.ask === "fromFactory"
                   ? text("Yes, give them from the factory and save", "हो, कारखानाबाट दिएर बिल राख्ने")
                   : text("Yes, bill under the minimum this time", "हो, यसपटक कम दिएर बिल राख्ने")}
+              </button>
+            ) : null}
+            {askingDiscount ? (
+              <button
+                type="button"
+                onClick={discountIsMeant}
+                className="min-h-12 rounded-lg border-2 border-brand-gold-deep bg-brand-cream-soft px-4 text-base font-black text-brand-gold-deep"
+              >
+                {text("Yes, give this discount", "हो, यति नै छुट दिने")}
               </button>
             ) : null}
 
@@ -1861,6 +1943,11 @@ export default function PosBillForm({
             add(picking, size, color);
             setPicking(null);
           }}
+          onQuickCash={
+            offersQuickCash && !isReturn && !isExchange && rateForChannel(channel, picking) > 0
+              ? (size, color) => quickCash(picking, size, color)
+              : undefined
+          }
           onPickSet={(sizes, color) => {
             let next = cart;
             for (const size of sizes) {

@@ -112,6 +112,11 @@ export default function ShopCatalogControls({
   const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("featured");
+  // A phone shows the search box and one ⚙ Filter button; the shelves, the
+  // order and Ready/Low open behind it (owner, 2026-10-20, rule 2). From a
+  // tablet up they stay open, beside the shoes.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const onPhone = filtersOpen ? "" : "max-md:hidden";
 
   // Once, on arrival. A shopper who then edits the box is not fighting the
   // address bar, which is what the previous seed-from-URL was protecting.
@@ -145,8 +150,8 @@ export default function ShopCatalogControls({
 
   return (
     <>
-      <section className="mb-8 rounded-lg border border-black/10 bg-brand-paper p-4 shadow-sm md:p-5">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+      <section className="mb-4 rounded-lg border border-black/10 bg-brand-paper p-3 shadow-sm md:mb-8 md:p-5">
+        <div className={`-mx-3 flex gap-2 overflow-x-auto px-3 pb-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden ${onPhone}`}>
           <Link
             href="/shop"
             className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-sm font-bold transition ${
@@ -174,25 +179,39 @@ export default function ShopCatalogControls({
           ))}
         </div>
 
-        <div className="grid gap-3 border-t border-black/10 pt-4 lg:grid-cols-[1fr_180px_auto]">
+        <div className={`grid gap-3 lg:grid-cols-[1fr_180px_auto] md:border-t md:border-black/10 md:pt-4 ${filtersOpen ? "max-md:border-t max-md:border-black/10 max-md:pt-3" : ""}`}>
           {/* Called filtering, not searching, and deliberately.
               This box and the palette in the header looked like the same
               control in two places, and a shopper could not tell which one to
               use. They do different jobs: the palette finds a pair anywhere in
               the shop, this one narrows the pairs already on screen. Naming
               them differently is most of the fix. */}
-          <label className="relative block">
-            <span className="sr-only">{text("Filter the pairs shown below", "तलका जुत्ता छान्ने")}</span>
-            <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-muted" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={text("Filter these: name, colour", "यीमध्ये छान्नुहोस्: नाम, रङ")}
-              className="min-h-12 w-full rounded-full border border-black/10 bg-brand-mist/60 py-2 pl-12 pr-4 text-sm font-semibold text-brand-green-ink outline-none transition focus:border-brand-green focus:bg-brand-paper"
-            />
-          </label>
+          <div className="flex gap-2">
+            <label className="relative block min-w-0 flex-1">
+              <span className="sr-only">{text("Filter the pairs shown below", "तलका जुत्ता छान्ने")}</span>
+              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-muted" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={text("Filter these: name, colour", "यीमध्ये छान्नुहोस्: नाम, रङ")}
+                className="min-h-12 w-full rounded-full border border-black/10 bg-brand-mist/60 py-2 pl-12 pr-4 text-base font-semibold text-brand-green-ink outline-none transition focus:border-brand-green focus:bg-brand-paper md:text-sm"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((open) => !open)}
+              aria-expanded={filtersOpen}
+              className={`min-h-12 shrink-0 rounded-full border px-4 text-sm font-black transition md:hidden ${
+                filtersOpen || availability !== "all" || sortMode !== "featured"
+                  ? "border-brand-green bg-brand-green text-white"
+                  : "border-black/10 bg-brand-paper text-brand-green-ink"
+              }`}
+            >
+              ⚙ {text("Filter", "छान्ने")}
+            </button>
+          </div>
 
-          <label>
+          <label className={onPhone}>
             <span className="sr-only">{text("Sort products", "क्रम मिलाउने")}</span>
             <select
               value={sortMode}
@@ -207,7 +226,7 @@ export default function ShopCatalogControls({
             </select>
           </label>
 
-          <div className="flex flex-wrap gap-2">
+          <div className={`flex flex-wrap gap-2 ${onPhone}`}>
             {(["all", "ready", "low"] as AvailabilityFilter[]).map((filter) => (
               <button
                 key={filter}
@@ -225,7 +244,7 @@ export default function ShopCatalogControls({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div className={`mt-4 flex flex-wrap items-center justify-between gap-3 text-sm ${hasLocalFilters ? "" : onPhone}`}>
           <p className="font-bold text-brand-green-ink">
             {visibleProducts.length} shown
             <span className="font-semibold text-brand-muted"> / {availabilityLabel(availability, products)}</span>
@@ -282,7 +301,7 @@ export default function ShopCatalogControls({
           </div>
         </div>
       ) : visibleProducts.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
           {visibleProducts.map((product, index) => (
             <ProductCard key={product.id} product={product} intent="shop" eager={index < 4} />
           ))}
