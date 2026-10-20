@@ -37,8 +37,11 @@ export type QueuedBill = QueuedBase & {
   kind: "bill";
   /** The bill form's fields, as it would have been sent. */
   entries: [string, string][];
-  /** The bill as it stood, to open it again on the counter. */
-  snapshot: { cart: unknown; channel: string; kind: string };
+  /**
+   * The bill as it stood, to open it again on the counter: its key, so a bill
+   * that did reach the shop is not made twice, and what was typed on it.
+   */
+  snapshot: { cart: unknown; channel: string; kind: string; key?: string; bill?: Record<string, unknown> };
 };
 
 export type QueuedWork = QueuedBase & {
@@ -109,6 +112,11 @@ export function removeQueued(id: string) {
 
 export function holdForYou(id: string, message: string) {
   writeQueue(readQueue().map((item) => (item.id === id ? { ...item, status: "needs-you" as const, message } : item)));
+}
+
+/** Back to waiting: the owner asks for one held to be sent again. */
+export function waitAgain(id: string) {
+  writeQueue(readQueue().map((item) => (item.id === id ? { ...item, status: "waiting" as const, message: undefined } : item)));
 }
 
 /** Pure: the queue with one more, waiting, oldest first. */
@@ -188,3 +196,5 @@ export async function sendQueue(
 
 /** Where the counter finds a held bill to open again. */
 export const POS_RESTORE_KEY = "krishoe-pos-restore-v1";
+/** Said when one is put there, for a counter already open. */
+export const POS_RESTORE_EVENT = "krishoe:pos-restore";

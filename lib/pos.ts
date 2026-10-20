@@ -37,6 +37,7 @@ import { stockRowForSize } from "@/lib/stock-by-size";
 import { BILL_PREFIX, isBillNumberTaken, nextBillNumber, noteNamesBill } from "@/lib/bill-number";
 import { reportingErrors } from "@/lib/report-error";
 import { PosNeedsAnswer } from "@/lib/pos-questions";
+import { keptBillTime } from "@/lib/kept-bill-time";
 import { pairsAtPlaces } from "@/lib/pos-place-check";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
@@ -175,6 +176,8 @@ export type CreatePosInvoiceInput = {
   paidAmount: number;
   note: string;
   sourceSubmissionKey?: string;
+  /** When a bill kept on a phone without the internet was sold (lib/kept-bill-time). */
+  soldAt?: string;
   items: Array<{
     sku: string;
     design: string;
@@ -808,8 +811,10 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
   }
 
   const id = invoiceId || createId(input.kind === "Return" ? "RETURN" : "POS");
+  // A cash sale kept on a phone is dated when it was sold; nothing else is.
+  const kept = input.kind === "Sale" && creditAmount === 0 && !due ? keptBillTime(input.soldAt, new Date()) : null;
   const invoiceNumber = await nextInvoiceNumber(input.kind);
-  const createdAt = new Date().toISOString();
+  const createdAt = kept ? kept.createdAt : new Date().toISOString();
   const invoice: PosInvoice = {
     id,
     invoiceNumber,
@@ -837,7 +842,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
     ledgerTransactionId: "",
     barcodeValue: invoiceNumber,
     qrPayload: "",
-    note: cleanText(input.note),
+    note: [cleanText(input.note), kept?.remark ?? ""].filter(Boolean).join(" · "),
     sourceSubmissionKey,
     payments: [
       ...parts,

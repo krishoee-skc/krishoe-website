@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createPosInvoiceAction } from "@/app/admin/pos/actions";
 import { useLanguage } from "@/components/LanguageProvider";
 import {
+  POS_RESTORE_EVENT,
   POS_RESTORE_KEY,
   holdForYou,
   readQueue,
@@ -12,9 +13,11 @@ import {
   sendQueue,
   useOfflineQueue,
   useOnline,
+  waitAgain,
   type Queued,
   type SendResult,
 } from "@/lib/offline-queue";
+import { DATABASE_DID_NOT_ANSWER } from "@/lib/postgres/retryable";
 
 /** How often to try again while something waits and the browser says it is online. */
 const RETRY_MS = 20_000;
@@ -24,6 +27,8 @@ async function sendOne(item: Queued): Promise<SendResult> {
     const form = new FormData();
     for (const [name, value] of item.entries) form.append(name, value);
     const result = await createPosInvoiceAction(null, form);
+    // The shop's database blinked: not a refusal, so the bill keeps waiting.
+    if (!result.ok && result.message === DATABASE_DID_NOT_ANSWER) throw new TypeError(result.message);
     return result.ok ? { ok: true } : { ok: false, message: result.message };
   }
   const response = await fetch("/api/factory/work", {
@@ -32,6 +37,10 @@ async function sendOne(item: Queued): Promise<SendResult> {
     body: item.body,
   });
   if (response.ok) return { ok: true };
+  // The shop did not answer (gateway or database): keep waiting, as offline.
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    throw new TypeError(`The shop answered ${response.status}.`);
+  }
   const data = (await response.json().catch(() => ({}))) as { error?: string };
   return { ok: false, message: data.error || `The shop answered ${response.status}.` };
 }
@@ -95,11 +104,14 @@ export default function OfflineSync() {
   function openOnCounter(item: Queued) {
     if (item.kind !== "bill") return;
     try {
-      window.localStorage.setItem(POS_RESTORE_KEY, JSON.stringify({ id: item.id, ...item.snapshot }));
+      window.localStorage.setItem(POS_RESTORE_KEY, JSON.stringify({ id: item.id, message: item.message, ...item.snapshot }));
     } catch {
       return;
     }
     setOpen(false);
+    // Already on the counter: it opens the bill on this word, as a page change
+    // to the same page would not.
+    window.dispatchEvent(new Event(POS_RESTORE_EVENT));
     router.push("/admin/pos");
   }
 
@@ -144,6 +156,11 @@ export default function OfflineSync() {
                           {text("Open on the bill", "बिलमा खोल्ने")}
                         </button>
                       ) : null}
+                      {/* Once the shop can take it — a worker made active again, a blink
+                          passed — without typing it again. */}
+                      <button type="button" onClick={() => waitAgain(item.id)} className="min-h-11 rounded-full border border-brand-green-line px-4 font-black text-brand-green">
+                        {text("Send again", "फेरि पठाउने")}
+                      </button>
                       {confirmRemove === item.id ? (
                         <button
                           type="button"

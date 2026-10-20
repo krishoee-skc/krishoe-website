@@ -45,12 +45,15 @@ export function isRetryableConnectionError(error: unknown) {
   );
 }
 
+/** Said when a write did not land; a bill kept on a phone keeps waiting on it. */
+export const DATABASE_DID_NOT_ANSWER = "The database did not answer. Nothing you typed was lost — press Save again.";
+
 // What to put in front of the admin when a write did not land. A dropped
 // connection is not the admin's fault and pressing Save again fixes it, so say
 // so plainly instead of showing a driver message they can do nothing with.
 export function saveFailureMessage(error: unknown, fallback: string) {
   if (isRetryableConnectionError(error)) {
-    return "The database did not answer. Nothing you typed was lost — press Save again.";
+    return DATABASE_DID_NOT_ANSWER;
   }
 
   // A refusal from Postgres says which rule and which table; passing on its raw

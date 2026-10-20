@@ -5,7 +5,7 @@ import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { useRouter } from "next/navigation";
 import { flushSync } from "react-dom";
 import { POS_ANSWER_FIELD, type PosQuestion } from "@/lib/pos-questions";
-import { POS_RESTORE_KEY, enqueue, isNetworkFailure, removeQueued, useOnline } from "@/lib/offline-queue";
+import { POS_RESTORE_EVENT, POS_RESTORE_KEY, enqueue, isNetworkFailure, removeQueued, useOnline } from "@/lib/offline-queue";
 import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
@@ -267,6 +267,13 @@ export default function PosBillForm({
   const [isOpeningLedger, setIsOpeningLedger] = useState(false);
   const [reference, setReference] = useState("");
   const [cashier, setCashier] = useState(cashierName);
+  // The address and note boxes are left to themselves; a new stamp gives them
+  // fresh boxes — empty for the next bill after one is kept on the phone, or
+  // filled with a kept bill opened again.
+  const [looseBoxes, setLooseBoxes] = useState({ stamp: 0, address: "", note: "" });
+  // A kept bill opened again keeps its key while its shoes stay as they were
+  // (owner, 2026-10-20, the kept-bill sample, 2).
+  const reopened = useRef<{ key: string; cart: string } | null>(null);
 
   const [query, setQuery] = useState("");
   const [note, setNote] = useState("");
@@ -302,30 +309,73 @@ export default function PosBillForm({
   const online = useOnline();
   // A bill this phone kept while offline that the shop would not take, opened
   // again here from the pill's "Open on the bill" (rule 4). Only sales wait.
+  // On arrival, and when the pill is pressed on this very screen — going to
+  // the page one is already on opens nothing new.
   useEffect(() => {
-    let raw: string | null = null;
-    try {
-      raw = window.localStorage.getItem(POS_RESTORE_KEY);
-      window.localStorage.removeItem(POS_RESTORE_KEY);
-    } catch {
-      return;
+    function openKept() {
+      let raw: string | null = null;
+      try {
+        raw = window.localStorage.getItem(POS_RESTORE_KEY);
+        window.localStorage.removeItem(POS_RESTORE_KEY);
+      } catch {
+        return;
+      }
+      if (!raw) return;
+      try {
+        const kept = JSON.parse(raw) as {
+          id?: string;
+          cart?: CartLine[];
+          channel?: string;
+          key?: string;
+          bill?: Record<string, unknown>;
+          message?: string;
+        };
+        if (!Array.isArray(kept.cart) || kept.cart.length === 0) return;
+        // What was typed on it comes back too, each only if it is what it should be.
+        const bill = kept.bill ?? {};
+        const words = (name: string) => (typeof bill[name] === "string" ? (bill[name] as string) : "");
+        const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Bank", "Cheque"];
+        const DISCOUNTS: DiscountMode[] = ["none", "5", "10", "amount"];
+        const cheque = (bill.chequeDetails ?? {}) as Partial<ChequeDetails>;
+        setKind("Sale");
+        setChannel(kept.channel || "Retail");
+        setCart(kept.cart);
+        setStartedAt(Date.now());
+        setPayment(PAYMENTS.includes(words("payment") as Payment) ? (words("payment") as Payment) : "Cash");
+        setReceived(words("received"));
+        setRestMethod(PAYMENTS.includes(words("restMethod") as Payment) ? (words("restMethod") as Payment) : "");
+        setRestReference(words("restReference"));
+        setReference(words("reference"));
+        setDiscountMode(DISCOUNTS.includes(words("discountMode") as DiscountMode) ? (words("discountMode") as DiscountMode) : "none");
+        setDiscountText(words("discountText"));
+        setTax(words("tax"));
+        setPhone(words("phone"));
+        setCustomerName(words("customerName"));
+        setCustomerPan(words("customerPan"));
+        if (words("cashier")) setCashier(words("cashier"));
+        setChequeDetails({
+          bank: typeof cheque.bank === "string" ? cheque.bank : "",
+          date: typeof cheque.date === "string" ? cheque.date : "",
+          name: typeof cheque.name === "string" ? cheque.name : "",
+          number: typeof cheque.number === "string" ? cheque.number : "",
+        });
+        setLooseBoxes((boxes) => ({ stamp: boxes.stamp + 1, address: words("address"), note: words("note") }));
+        if (kept.key) {
+          setSubmissionKey(kept.key);
+          reopened.current = { key: kept.key, cart: JSON.stringify(kept.cart) };
+        }
+        if (kept.message) setState({ ok: false, message: `${text("Why it was held", "किन रोकियो")}: ${kept.message}` });
+        setCartOpen(true);
+        if (kept.id) removeQueued(kept.id);
+        setNote(text("The kept bill is open again — check it and press Save.", "राखिएको बिल फेरि खुल्यो — हेरेर Save थिच्नुहोस्।"));
+      } catch {
+        // A broken note is simply not opened.
+      }
     }
-    if (!raw) return;
-    try {
-      const kept = JSON.parse(raw) as { id?: string; cart?: CartLine[]; channel?: string };
-      if (!Array.isArray(kept.cart) || kept.cart.length === 0) return;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the kept bill is read from the browser after hydration, intentional
-      setKind("Sale");
-      setChannel(kept.channel || "Retail");
-      setCart(kept.cart);
-      setStartedAt(Date.now());
-      setCartOpen(true);
-      if (kept.id) removeQueued(kept.id);
-      setNote(text("The kept bill is open again — check it and press Save.", "राखिएको बिल फेरि खुल्यो — हेरेर Save थिच्नुहोस्।"));
-    } catch {
-      // A broken note is simply not opened.
-    }
-    // Once, on arrival.
+    openKept();
+    window.addEventListener(POS_RESTORE_EVENT, openKept);
+    return () => window.removeEventListener(POS_RESTORE_EVENT, openKept);
+    // Set up once; it reads only the browser and calls setters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -773,10 +823,44 @@ export default function PosBillForm({
     }
 
     const formData = new FormData(event.currentTarget);
+    const soldAt = new Date().toISOString();
+    // A kept bill opened again goes with its own key, unless its shoes were
+    // changed: then it is another bill (the kept one never reached the shop —
+    // that is why it was held).
+    if (reopened.current) {
+      if (reopened.current.cart !== JSON.stringify(cart)) {
+        const fresh = newSubmissionKey();
+        formData.set("sourceSubmissionKey", fresh);
+        setSubmissionKey(fresh);
+      }
+      reopened.current = null;
+    }
     // What may wait on this phone without the internet (rule 4): a new sale
     // paid now. A return, an exchange or credit needs the shop's records.
     const mayWait = kind === "Sale" && creditAmount === 0 && !collectDue && !needsAccount;
-    const snapshot = { cart, channel, kind };
+    const snapshot = {
+      cart,
+      channel,
+      kind,
+      key: String(formData.get("sourceSubmissionKey") ?? ""),
+      bill: {
+        payment,
+        received,
+        restMethod,
+        restReference,
+        reference,
+        discountMode,
+        discountText,
+        tax,
+        phone,
+        customerName,
+        customerPan,
+        cashier,
+        chequeDetails,
+        address: String(formData.get("customerAddress") ?? ""),
+        note: String(formData.get("note") ?? ""),
+      },
+    };
     const label = {
       en: `${totals.pairs} ${totals.pairs === 1 ? "pair" : "pairs"} · ${money(amountDue)}`,
       ne: `${totals.pairs} जोडी · ${money(amountDue)}`,
@@ -794,11 +878,16 @@ export default function PosBillForm({
           const kept = enqueue({
             kind: "bill",
             label,
-            entries: [...formData.entries()].map(([name, value]) => [name, typeof value === "string" ? value : ""]),
+            entries: [
+              ...[...formData.entries()].map(([name, value]): [string, string] => [name, typeof value === "string" ? value : ""]),
+              // When it was sold, for the day it falls on (lib/kept-bill-time).
+              ["offlineSoldAt", soldAt],
+            ],
             snapshot,
           });
           if (kept) {
             resetBill();
+            setLooseBoxes((boxes) => ({ stamp: boxes.stamp + 1, address: "", note: "" }));
             // The next bill is a new one; the kept bill keeps its own key.
             setSubmissionKey(newSubmissionKey());
             setState(null);
@@ -1806,7 +1895,14 @@ export default function PosBillForm({
                   aria-label={text("Sold by", "कसले बेच्यो")}
                   className={inputClass}
                 />
-                <input name="customerAddress" placeholder={text("Address", "ठेगाना")} aria-label={text("Customer address", "ग्राहकको ठेगाना")} className={inputClass} />
+                <input
+                  key={`address-${looseBoxes.stamp}`}
+                  name="customerAddress"
+                  defaultValue={looseBoxes.address}
+                  placeholder={text("Address", "ठेगाना")}
+                  aria-label={text("Customer address", "ग्राहकको ठेगाना")}
+                  className={inputClass}
+                />
                 {channel === "Wholesale" ? null : panBox}
                 <input
                   name="tax"
@@ -1819,7 +1915,9 @@ export default function PosBillForm({
                 />
                 <div className="sm:col-span-2" data-enter-skip>
                   <textarea
+                    key={`note-${looseBoxes.stamp}`}
                     name="note"
+                    defaultValue={looseBoxes.note}
                     placeholder={text("Note: delivery, exchange, anything", "नोट: डेलिभरी, साटफेर, अरू कुरा")}
                     aria-label={text("Note", "नोट")}
                     className="min-h-20 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-base outline-none focus:border-brand-green"

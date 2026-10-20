@@ -216,6 +216,8 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       paidAmount,
       note: textValue(formData, "note"),
       sourceSubmissionKey: textValue(formData, "sourceSubmissionKey"),
+      // Only a bill kept on a phone carries it; the library checks the limits.
+      soldAt: textValue(formData, "offlineSoldAt"),
       items: invoiceItems(formData),
       paymentParts,
       collectDue: dueFrom(formData),
