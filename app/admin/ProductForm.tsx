@@ -332,7 +332,12 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">{text("Colours (comma-separated)", "रङ — कमाले छुट्याउने")}</span>
-          <input name="colors" defaultValue={product?.colors.join(", ")} className="form-input" />
+          <input
+            name="colors"
+            defaultValue={product?.colors.join(", ")}
+            placeholder={text("As in the photo — e.g. Maroon, Cream", "फोटोमा जस्तो — जस्तै Maroon, Cream")}
+            className="form-input"
+          />
         </label>
         <label className="grid gap-1.5">
           <span className="text-sm font-medium">{text("Sizes (comma-separated)", "साइज — कमाले छुट्याउने")}</span>

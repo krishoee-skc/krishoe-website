@@ -548,6 +548,19 @@ export async function upsertProductAction(
     };
   }
 
+  // A shoe on sale must say its own colour (owner, 2026-10-20). A blank box
+  // used to save as "Black", so a maroon pair and a cream pair were sold as
+  // black ones — the customer orders one colour and is sent another. A Draft
+  // may wait for it; the shop may not.
+  const colors = listValue(formData, "colors");
+  if (status === "Active" && colors.length === 0) {
+    const words = {
+      en: "Write the shoe's colour (as in the photo) before making it Active — or save it as a Draft for now.",
+      ne: "Active गर्नुअघि जुत्ताको रङ लेख्नुहोस् (फोटोमा जस्तो) — नत्र अहिलेलाई Draft मा राख्नुहोस्।",
+    };
+    return { ok: false, message: `${words.ne} · ${words.en}` };
+  }
+
   const image = textValue(formData, "image") || category.image;
   const id = textValue(formData, "id") || crypto.randomUUID();
   const name = textValue(formData, "name") || "Untitled Product";
@@ -589,7 +602,7 @@ export async function upsertProductAction(
     longDescriptionNe: textValue(formData, "longDescriptionNe") || undefined,
     material: textValue(formData, "material") || "Premium synthetic finish",
     fit: textValue(formData, "fit") || "Regular fit",
-    colors: listValue(formData, "colors").length > 0 ? listValue(formData, "colors") : ["Black"],
+    colors,
     sizes: listValue(formData, "sizes").length > 0 ? listValue(formData, "sizes") : ["36", "37", "38", "39", "40"],
     stock,
     highlights: listValue(formData, "highlights"),

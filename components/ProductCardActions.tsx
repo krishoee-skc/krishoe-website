@@ -72,7 +72,7 @@ export default function ProductCardActions({ product, compact = false }: Product
     addToCart({
       productId: product.id,
       size: product.sizes[0],
-      color: product.colors[0],
+      color: product.colors[0] ?? "",
       quantity: 1,
     });
     trackCommerceEvent("add_to_cart", {

@@ -28,6 +28,7 @@ function productForm(overrides: Record<string, string> = {}) {
   formData.set("sku", "LH-01");
   formData.set("priceRupees", "1200");
   formData.set("image", "https://example.public.blob.vercel-storage.com/heel.jpg");
+  formData.set("colors", "Maroon");
 
   for (const [key, value] of Object.entries(overrides)) {
     formData.set(key, value);
@@ -234,5 +235,17 @@ describe("deleting a product reports what happened", () => {
 
     expect(state.ok).toBe(false);
     expect(state.message).toContain("press Save again");
+  });
+});
+
+describe("a shoe on sale says its colour (owner, 2026-10-20)", () => {
+  it("refuses Active with a blank colour, and saves a Draft without one", async () => {
+    const refused = await upsertProductAction(null, productForm({ colors: "" }));
+    expect(refused?.ok).toBe(false);
+    expect(refused?.message).toContain("रङ लेख्नुहोस्");
+    expect(upsertProduct).not.toHaveBeenCalled();
+
+    await upsertProductAction(null, productForm({ colors: "", status: "Draft" }));
+    expect(upsertProduct.mock.calls[0][0]).toMatchObject({ status: "Draft", colors: [] });
   });
 });

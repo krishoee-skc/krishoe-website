@@ -45,7 +45,10 @@ export function findInvalidItemOption(items: CheckoutItemInput[], products: Prod
     }
 
     const color = (item.color ?? "").trim();
-    if (!product.colors.some((offered) => offered.trim() === color)) {
+    // A shoe with no colour written offers none to choose; any other must be
+    // one it is made in.
+    const offered = product.colors.map((colour) => colour.trim()).filter(Boolean);
+    if (offered.length > 0 ? !offered.includes(color) : color !== "") {
       return `${product.name} does not come in ${color || "that colour"}. Please remove it from your cart and add it again from the product page.`;
     }
   }

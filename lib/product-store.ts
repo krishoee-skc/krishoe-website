@@ -132,7 +132,10 @@ function cleanProduct(product: Product): Product {
     longDescriptionNe: product.longDescriptionNe?.trim() || undefined,
     material: product.material.trim() || "Premium synthetic finish",
     fit: product.fit.trim() || "Regular fit",
-    colors: colors.length > 0 ? colors : ["Black"],
+    // Never a guessed colour: a blank one used to read as "Black" and a
+    // maroon shoe was sold as black (owner, 2026-10-20). Blank stays blank, and
+    // a shoe cannot go on the shop until its colour is written.
+    colors,
     sizes: sizes.length > 0 ? sizes : ["36", "37", "38", "39", "40"],
     stock,
     highlights: product.highlights.length > 0 ? product.highlights.filter(Boolean) : ["Comfort-focused build"],
@@ -523,7 +526,7 @@ export function buildDraftProductForDesign(design: string, stock: number, takenC
     longDescription: "",
     material: "Premium synthetic finish",
     fit: "Regular fit",
-    colors: ["Black"],
+    colors: [],
     sizes: ["36", "37", "38", "39", "40"],
     stock: Math.max(0, Math.round(stock)),
     highlights: [],

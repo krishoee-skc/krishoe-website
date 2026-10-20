@@ -64,7 +64,7 @@ describe("colours that could not be read", () => {
 describe("the foot of a phone screen", () => {
   it("gives a product page one bar, the one that buys", async () => {
     const tabs = await readFile("components/BottomTabBar.tsx", "utf8");
-    expect(tabs).toContain('isProduct ? "max-md:hidden" : ""');
+    expect(tabs).toContain('isProduct ? "max-lg:hidden" : ""');
     const buy = await readFile("components/ProductDetailActions.tsx", "utf8");
     expect(buy).toContain("fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40");
     expect(buy).not.toContain("bottom-[calc(5.25rem");

@@ -13,6 +13,7 @@ const shoe = {
   gallery: [] as string[],
   priceValue: 95000,
   sizes: ["36", "37", "38", "39", "40"],
+  colors: ["Maroon"],
   stock: 60,
   description: "Soft hill sandal",
   nameNe: "लोज हिल पन्जा",

@@ -29,7 +29,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
   const firstInStock = product.sizes.find((s) => !soldOutSizes.includes(s)) ?? product.sizes[0];
   const [size, setSize] = useState(firstInStock);
   const selectedSizeOut = soldOutSizes.includes(size);
-  const [color, setColor] = useState(product.colors[0]);
+  const [color, setColor] = useState(product.colors[0] ?? "");
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const wished = isWishlisted(product.id);
@@ -56,7 +56,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
     return [
       `Hello KRISHOE, I want to order ${product.name}.`,
       `Size: ${size}`,
-      `Color: ${color}`,
+      ...(color ? [`Color: ${color}`] : []),
       `Quantity: ${selectedQuantity}`,
       `Price: ${product.price}`,
     ].join("\n");
@@ -132,7 +132,9 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
               <SizeGuide sizes={product.sizes} />
             </div>
           </div>
-          <ProductOptionSelector title={text("Select color", "रङ छान्नुहोस्")} options={product.colors} selectedValue={color} onValueChange={setColor} variant="color" />
+          {product.colors.length > 0 ? (
+            <ProductOptionSelector title={text("Select color", "रङ छान्नुहोस्")} options={product.colors} selectedValue={color} onValueChange={setColor} variant="color" />
+          ) : null}
         </div>
 
         {/* Buy Now is the primary path — a shopper who has chosen a size wants to
@@ -224,8 +226,10 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
           quarter of a small phone — the shoe's name and price were under them.
           The tab bar steps aside on product pages (BottomTabBar), so this sits
           where it was: one bar, and the action it exists for. Only on the
-          phone (md:hidden); the page reserves the space. */}
-      <div className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/[.92] px-3 py-2.5 shadow-[0_18px_55px_rgba(16,35,29,0.22)] backdrop-blur-xl md:hidden">
+          phone and the tablet (lg:hidden) — on a tablet the shoe still
+          stands in one column with the buttons far below its photo (owner,
+          2026-10-20); the page reserves the space. */}
+      <div className="fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/[.92] px-3 py-2.5 shadow-[0_18px_55px_rgba(16,35,29,0.22)] backdrop-blur-xl lg:hidden">
         {/* On the phone, the impulse zone. Buy Now leads; Add and WhatsApp stay
             within reach for the shopper who wants a cart or a chat first. */}
         <div className="mx-auto grid max-w-md grid-cols-[1.4fr_auto_auto] gap-2">

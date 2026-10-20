@@ -16,7 +16,7 @@ export type ShoeNeed = { key: string; en: string; ne: string };
 
 export type ShoeReadiness = { ready: boolean; blocking: ShoeNeed[]; advice: ShoeNeed[] };
 
-type ReadinessFields = Pick<Product, "image" | "gallery" | "priceValue" | "sizes" | "stock" | "description" | "nameNe">;
+type ReadinessFields = Pick<Product, "image" | "gallery" | "priceValue" | "sizes" | "colors" | "stock" | "description" | "nameNe">;
 
 /** "25, 26, 27" → "25–27" when it runs without a gap; otherwise the list. */
 function sizeWords(sizes: string[]) {
@@ -44,6 +44,11 @@ export function shoeReadiness(product: ReadinessFields, stockSizes: string[] = [
   const sizes = product.sizes.map((size) => size.trim()).filter(Boolean);
   if (sizes.length === 0) {
     blocking.push({ key: "sizes", en: "sizes", ne: "साइज" });
+  }
+  // The colour the customer is sent must be the colour they chose — a blank
+  // one used to go out as "Black" (owner, 2026-10-20).
+  if (!(product.colors ?? []).some((colour) => colour.trim())) {
+    blocking.push({ key: "colour", en: "its colour", ne: "रङ" });
   }
   if (!(product.stock > 0)) {
     blocking.push({ key: "stock", en: "pairs in stock", ne: "स्टकमा जोडी" });
