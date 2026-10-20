@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { adminNavLinks, adminSetupLinks, navLinkForPath, type AdminNavLink } from "@/app/admin/nav-links";
+import { adminNavLinks, adminOffMenuLinks, adminSetupLinks, navLinkForPath, type AdminNavLink } from "@/app/admin/nav-links";
 
 /**
  * ★ Favourites and the pages opened last (owner, 2026-10-14, the menu sample):
@@ -16,7 +16,8 @@ const MAX_PINS = 8;
 const MAX_RECENT = 4;
 const CHANGED = "krishoe:admin-shortcuts";
 
-const everyLink: AdminNavLink[] = [...adminNavLinks, ...adminSetupLinks];
+// Off-menu pages too (owner, 2026-10-20): a ☆ on Cheques keeps its name.
+const everyLink: AdminNavLink[] = [...adminNavLinks, ...adminOffMenuLinks, ...adminSetupLinks];
 
 /** The menu entry for an href, or undefined when it is not one. */
 export function shortcutLink(href: string): AdminNavLink | undefined {

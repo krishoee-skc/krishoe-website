@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { adminNavLinks } from "@/app/admin/nav-links";
+import { adminOffMenuLinks } from "@/app/admin/nav-links";
 import { canAccessAdminPath } from "@/lib/admin-role-permissions";
 
 /**
@@ -73,8 +73,9 @@ describe("the admin list", () => {
     expect(page).toContain("https://wa.me/");
   });
 
-  it("is in the menu and behind a permission", () => {
-    const link = adminNavLinks.find((item) => item.href === "/admin/wholesale");
+  it("is on the Customers row and behind a permission", () => {
+    // Off the menu since 2026-10-20 (owner, sample ख), on the Customers row.
+    const link = adminOffMenuLinks.find((item) => item.href === "/admin/wholesale");
     expect(link?.nepali).toBe("थोकको सोधपुछ");
 
     expect(canAccessAdminPath("Owner", "/admin/wholesale")).toBe(true);

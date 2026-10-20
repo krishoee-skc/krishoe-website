@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminNavGroups,
   adminNavLinks,
+  adminOffMenuLinks,
   workspaceForPath,
 } from "@/app/admin/nav-links";
 
@@ -45,7 +46,9 @@ describe("admin navigation", () => {
     // behind /admin/reports, which lists it as the first of eleven reports.
     // The rule this test exists for is that nothing becomes unreachable.
     const reports = await readFile("lib/reports.ts", "utf8");
-    const now = adminNavLinks.map((link) => link.href);
+    // The menu, and the pages that left it for a row or the top bar (owner,
+    // 2026-10-20, sample ख) — moved, not lost.
+    const now = [...adminNavLinks, ...adminOffMenuLinks].map((link) => link.href);
 
     for (const href of before) {
       const reachable = now.includes(href) || reports.includes(`"${href}"`);

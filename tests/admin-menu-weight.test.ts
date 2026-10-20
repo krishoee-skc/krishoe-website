@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   adminNavGroups,
   adminNavLinks,
+  adminOffMenuLinks,
   adminSetupGroups,
   adminSetupLinks,
 } from "@/app/admin/nav-links";
@@ -121,17 +122,17 @@ describe("what stayed in the menu", () => {
     }
   });
 
-  it("keeps the four things reached from anywhere", () => {
+  it("keeps the three things reached from anywhere", () => {
     const everywhere = adminNavGroups.find((group) => group.id === "everywhere");
 
     // The report hub sits here rather than analytics itself: eleven ways to
     // read the shop, one door, and money is read from both sides of the
     // business. Analytics is the first report inside it. Robot दरबार is not
     // here: the owner took it out of the menu; it is reached from the Security
-    // Center instead (tested below).
+    // Center instead (tested below). Search left the menu (owner, 2026-10-20):
+    // the box at the top of every page opens it.
     expect(everywhere?.links.map((link) => link.href)).toEqual([
       "/admin",
-      "/admin/search",
       "/admin/reports",
       "/admin/settings",
     ]);
@@ -156,6 +157,8 @@ describe("nothing fell out of the app", () => {
   it("still reaches every screen that had a menu entry before", () => {
     const reachable = new Set([
       ...adminNavLinks.map((link) => link.href),
+      // Off the menu, on a row or the top bar (owner, 2026-10-20, sample ख).
+      ...adminOffMenuLinks.map((link) => link.href),
       ...adminSetupLinks.map((link) => link.href),
       ...ADMIN_SEARCH_PAGES.map((page) => page.href),
     ]);

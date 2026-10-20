@@ -12,7 +12,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { TABLET_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 import type { AttentionLevel } from "@/app/admin/nav-attention";
-import { adminNavGroups, adminNavTone, adminNavToneClasses, type AdminNavLink, type AdminNavTone } from "@/app/admin/nav-links";
+import { adminNavTone, adminNavToneClasses, navGroupForHref, type AdminNavLink, type AdminNavTone } from "@/app/admin/nav-links";
 import { shortcutLink, usePins } from "@/app/admin/admin-shortcuts";
 import { AdminAccountPanel, AdminAvatar, type AdminIdentity } from "@/app/admin/AdminAccount";
 import { useEffect, useRef, useState } from "react";
@@ -58,7 +58,7 @@ export default function AdminNav({
   const pinnedLinks = pins.flatMap((href): Array<{ link: AdminNavLink; tone: AdminNavTone }> => {
     const link = shortcutLink(href);
     if (!link || !canAccessAdminPath(adminRole, href)) return [];
-    const group = adminNavGroups.find((candidate) => candidate.links.some((entry) => entry.href === href));
+    const group = navGroupForHref(href);
     return [{ link, tone: adminNavTone(group?.id ?? "everywhere") }];
   });
   const identity: AdminIdentity = { adminRole, adminName, adminEmail, branchId, branchName, branchType, seesAllBranches, branchCount, branchSwitch };

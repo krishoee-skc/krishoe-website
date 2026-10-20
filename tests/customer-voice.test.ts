@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { daysWaiting, type CustomerVoice } from "@/lib/customer-voice";
-import { adminNavLinks } from "@/app/admin/nav-links";
+import { adminNavLinks, adminOffMenuLinks } from "@/app/admin/nav-links";
 
 const MIGRATION = "scripts/migrations/20260823_customer_voice.sql";
 const LIB = "lib/customer-voice.ts";
@@ -58,7 +58,8 @@ describe("one place for what customers say", () => {
     // name, a location and a monthly quantity — not a message.
     expect(sql).not.toContain("'wholesale'");
     expect(code(page)).not.toContain('"wholesale"');
-    expect(adminNavLinks.some((link) => link.href === "/admin/wholesale")).toBe(true);
+    // On the Customers row now, off the menu (owner, 2026-10-20, sample ख).
+    expect(adminOffMenuLinks.some((link) => link.href === "/admin/wholesale")).toBe(true);
   });
 
   it("records how long a customer has been waiting", async () => {

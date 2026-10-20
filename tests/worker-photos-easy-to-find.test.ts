@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { adminNavGroups } from "@/app/admin/nav-links";
+import { adminNavGroups, adminOffMenuLinks, workspaceForPath } from "@/app/admin/nav-links";
 import { factoryLinks } from "@/app/admin/factory/_components/factory-nav";
 import { photoLine, requestLine, workerInboxPush } from "@/lib/worker-inbox-alert";
 
@@ -12,9 +12,14 @@ const read = (file: string) => readFile(file, "utf8");
  * factory row and board, and the admin phones are told when one arrives.
  */
 describe("workers' photos are easy to find", () => {
-  it("sits in the menu under Factory today, with a count", async () => {
+  // Owner, 2026-10-20 (sample ख): out of the menu — the factory row has it,
+  // named the same, with the count, and the bell says when one comes.
+  it("is off the menu but keeps its side and name, and the count rides the factory row", async () => {
     const work = adminNavGroups.find((group) => group.id === "factory-work");
-    expect(work?.links[1]?.href).toBe("/admin/factory/photos");
+    expect(work?.links.map((link) => link.href)).not.toContain("/admin/factory/photos");
+    expect(adminOffMenuLinks.find((link) => link.href === "/admin/factory/photos")?.nepali).toBe("कामदारको फोटो");
+    expect(workspaceForPath("/admin/factory/photos")).toBe("factory");
+    expect(factoryLinks.find((link) => link.href === "/admin/factory/photos")?.english).toBe("Workers' photos");
     const layout = await read("app/admin/layout.tsx");
     expect(layout).toContain('canAccessAdminPath(adminRole, "/admin/factory/photos")');
     expect(layout).toContain("counts={counts}");

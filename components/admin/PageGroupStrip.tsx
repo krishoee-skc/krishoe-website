@@ -34,6 +34,28 @@ export const pageGroups = {
       { href: "/admin/measurement", en: "Measurement setup", ne: "मापन सेटअप" },
     ],
   },
+  // The shop's money and its customers (owner, 2026-10-20, sample ख):
+  // Cheques, Discount codes and Wholesale left the menu, and are here, beside
+  // the menu pages they belong with.
+  money: {
+    en: "Money",
+    ne: "पैसा",
+    links: [
+      { href: "/admin/payments", en: "Payments", ne: "भुक्तानी" },
+      { href: "/admin/dues", en: "Credit / Dues", ne: "उधारो" },
+      { href: "/admin/cheques", en: "Cheques", ne: "चेक खाता" },
+      { href: "/admin/coupons", en: "Discount codes", ne: "छुटको कोड" },
+    ],
+  },
+  customers: {
+    en: "Customers",
+    ne: "ग्राहक",
+    links: [
+      { href: "/admin/customers", en: "Customers", ne: "ग्राहक" },
+      { href: "/admin/inbox", en: "Customer Voice", ne: "ग्राहकको आवाज" },
+      { href: "/admin/wholesale", en: "Wholesale", ne: "थोकको सोधपुछ" },
+    ],
+  },
   health: {
     en: "The app's health",
     ne: "app को स्वास्थ्य",

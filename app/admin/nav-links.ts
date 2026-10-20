@@ -115,10 +115,9 @@ export const adminNavGroups: AdminNavGroup[] = [
       // the dashboard, search, the chip row — opens the work form. One name,
       // two places; the owner pressed it to enter work and landed elsewhere.
       { href: "/admin/factory", label: "Factory today", nepali: "कारखाना आज", icon: FactoryIcon },
-      // What workers send from their app (owner, 2026-10-03): it was three
-      // presses deep, behind a link on Workers, and a photo sat unseen. The
-      // menu shows how many wait (AdminNav `counts`).
-      { href: "/admin/factory/photos", label: "Workers' photos", nepali: "कामदारको फोटो", icon: CameraIcon },
+      // Workers' photos left the menu (owner, 2026-10-20, sample ख): it is on
+      // the factory row, with how many wait, and the bell says when one comes.
+      // See adminOffMenuGroups.
       // Wages, kharcha, stock postings and cost cards — a daily-needed screen that
       // had no menu link and could only be reached by typing its URL. It read
       // "Cost & profit", which is the costing screen further down this file:
@@ -165,7 +164,7 @@ export const adminNavGroups: AdminNavGroup[] = [
       // created. Answering a customer meant opening all four and hoping none
       // had been missed. They are one inbox now.
       { href: "/admin/inbox", label: "Customer Voice", nepali: "ग्राहकको आवाज", icon: MessageSquareIcon },
-      { href: "/admin/wholesale", label: "Wholesale", nepali: "थोकको सोधपुछ", icon: UserIcon },
+      // Wholesale is on the Customers row now (owner, 2026-10-20, sample ख).
     ],
   },
   {
@@ -176,9 +175,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
       { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CoinsIcon },
-      // The cheque book (owner, 2026-10-01): every cheque taken or given.
-      { href: "/admin/cheques", label: "Cheques", nepali: "चेक खाता", icon: CreditCardIcon },
-      { href: "/admin/coupons", label: "Discount codes", nepali: "छुटको कोड", icon: TagIcon },
+      // Cheques and Discount codes are on the Money row now (owner,
+      // 2026-10-20, sample ख).
     ],
   },
   {
@@ -188,7 +186,8 @@ export const adminNavGroups: AdminNavGroup[] = [
     workspace: "both",
     links: [
       { href: "/admin", label: "Dashboard", nepali: "मुख्य पाना", icon: HomeIcon },
-      { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
+      // Search left the menu (owner, 2026-10-20): the box at the top of every
+      // page opens it.
       // Robot दरबार (/admin/robots) is not in the menu: the owner wanted the
       // daily menu for daily work. The robots keep running; their page is one
       // tap away from the Security Center, and each job's real result is in
@@ -203,6 +202,57 @@ export const adminNavGroups: AdminNavGroup[] = [
     ],
   },
 ];
+
+/**
+ * Pages that left the menu but still belong to a side (owner, 2026-10-20,
+ * sample ख): each was a second door to a page reached another way — the
+ * factory row, the money and customers rows, the search box at the top. They
+ * keep their side, their name and their colour, so the page still says where
+ * it is, the switch still knows its side, and a ☆ on one still reads right.
+ * Same group ids as the menu, for the colour.
+ */
+export const adminOffMenuGroups: AdminNavGroup[] = [
+  {
+    id: "factory-work",
+    titleEn: "Work",
+    titleNe: "काम",
+    workspace: "factory",
+    links: [{ href: "/admin/factory/photos", label: "Workers' photos", nepali: "कामदारको फोटो", icon: CameraIcon }],
+  },
+  {
+    id: "shop-customers",
+    titleEn: "Customers",
+    titleNe: "ग्राहक",
+    workspace: "shop",
+    links: [{ href: "/admin/wholesale", label: "Wholesale", nepali: "थोकको सोधपुछ", icon: UserIcon }],
+  },
+  {
+    id: "shop-money",
+    titleEn: "Money",
+    titleNe: "पैसा",
+    workspace: "shop",
+    links: [
+      // The cheque book (owner, 2026-10-01): every cheque taken or given.
+      { href: "/admin/cheques", label: "Cheques", nepali: "चेक खाता", icon: CreditCardIcon },
+      { href: "/admin/coupons", label: "Discount codes", nepali: "छुटको कोड", icon: TagIcon },
+    ],
+  },
+  {
+    id: "everywhere",
+    titleEn: "Everywhere",
+    titleNe: "सबैतिर",
+    workspace: "both",
+    links: [{ href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon }],
+  },
+];
+
+/** The menu's groups and the off-menu ones: every page that belongs to a side. */
+const everyPageGroup = [...adminNavGroups, ...adminOffMenuGroups];
+
+/** The group a page sits in, on the menu or off it — for its colour. */
+export function navGroupForHref(href: string): AdminNavGroup | undefined {
+  return everyPageGroup.find((group) => group.links.some((link) => link.href === href));
+}
 
 /**
  * The screens that are opened once and then not again.
@@ -268,6 +318,9 @@ export const adminNavLinks = adminNavGroups
     (link, index, all) => all.findIndex((other) => other.href === link.href) === index,
   );
 
+/** The pages off the menu (adminOffMenuGroups), flat. */
+export const adminOffMenuLinks = adminOffMenuGroups.flatMap((group) => group.links);
+
 /**
  * Where each side opens when its switch is pressed and nothing better is
  * remembered: the screen that side is opened for fifty times a day.
@@ -289,7 +342,7 @@ function pathMatches(pathname: string, href: string) {
  * they sit under "Everywhere".
  */
 export function pathIsOnSide(pathname: string, side: "factory" | "shop") {
-  return adminNavGroups.some(
+  return everyPageGroup.some(
     (group) => group.workspace === side
       && group.links.some((link) => pathMatches(pathname, link.href)),
   );
@@ -330,7 +383,7 @@ export function workspaceDestination(
  */
 export function navLinkForPath(pathname: string): AdminNavLink | undefined {
   let best: AdminNavLink | undefined;
-  for (const link of adminNavLinks) {
+  for (const link of [...adminNavLinks, ...adminOffMenuLinks]) {
     if (pathMatches(pathname, link.href) && link.href.length > (best?.href.length ?? -1)) {
       best = link;
     }
@@ -349,7 +402,7 @@ export function workspaceForPath(pathname: string): AdminWorkspace {
   let bestLength = -1;
   let workspaces = new Set<AdminWorkspace>();
 
-  for (const group of adminNavGroups) {
+  for (const group of everyPageGroup) {
     for (const link of group.links) {
       const matches = pathname === link.href || pathname.startsWith(`${link.href}/`);
       if (!matches) continue;
