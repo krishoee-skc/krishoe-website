@@ -38,7 +38,8 @@ describe("pages read right", () => {
   it("asks about Nepali in one slim line, not a card", async () => {
     const invite = await read("components/LanguageInvite.tsx");
     expect(invite).toContain('role="region"');
-    expect(invite).toContain("rounded-full border border-brand-gold/40");
+    // A slim pill from a laptop up; a slim strip up top on a phone (2026-10-21).
+    expect(invite).toContain("lg:rounded-full lg:border lg:border-brand-gold/40");
   });
 
   it("reads the card's sizes aloud as words, not a label on a paragraph", async () => {

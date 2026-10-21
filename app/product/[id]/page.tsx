@@ -158,7 +158,9 @@ export default async function ProductPage({ params }: Props) {
       <div className="pb-32 lg:pb-0">
       <main className="bg-brand-paper">
         <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-16">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+          {/* Closer on a phone, so the name and price follow the photo on the
+              first screen (owner, 2026-10-21). */}
+          <div className="grid gap-5 md:gap-12 lg:grid-cols-2 lg:gap-16">
             <ProductGallery name={product.name} image={product.image} gallery={product.gallery} />
 
             <div className="flex flex-col">

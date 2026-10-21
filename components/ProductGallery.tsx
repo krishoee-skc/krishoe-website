@@ -79,7 +79,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
 
   if (images.length === 0) {
     return (
-      <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg">
+      <div className="relative mx-auto aspect-[4/5] w-full max-w-[80%] overflow-hidden rounded-lg md:max-w-none">
         <NoPhotoYet name={name} />
       </div>
     );
@@ -89,7 +89,14 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
     <div className="flex flex-col gap-4">
       {/* The photo opens the big view. A shoe is bought on its stitching, its
           sole and the shade of its colour, and none of that is legible in a
-          square thumbnail on a phone. */}
+          square thumbnail on a phone.
+          Narrower on a phone (owner, 2026-10-21, the website sample, 2): the
+          full-width photo and the row of thumbnails filled the first screen,
+          and the shoe's name, price and stock came only after a scroll. Still
+          4:5, the frame the owner sets each photo in (2026-10-02) — a square
+          would cut off what he framed — at 80% of the width, as tall as a
+          square would be. The other photos are a swipe or a dot away. */}
+      <div className="relative">
       <button
         type="button"
         onClick={() => {
@@ -117,7 +124,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           }
         }}
         aria-label={text(`See ${name} larger`, `${name} ठूलो पारेर हेर्ने`)}
-        className="group relative aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-lg bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2"
+        className="group relative mx-auto block aspect-[4/5] w-full max-w-[80%] cursor-zoom-in overflow-hidden rounded-lg bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 md:max-w-none"
       >
         <SafeImage
           src={selectedImage}
@@ -135,16 +142,35 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           {text("Tap to enlarge", "ठूलो पार्न थिच्नुहोस्")}
         </span>
         {images.length > 1 ? (
-          <span aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
+          <span aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 hidden -translate-x-1/2 gap-1.5 md:flex">
             {images.map((src) => (
               <span key={src} className={`h-2 w-2 rounded-full ${src === selectedImage ? "bg-white" : "bg-white/50"} shadow`} />
             ))}
           </span>
         ) : null}
       </button>
+      {/* On a phone the dots are the thumbnails: each one a press away, with
+          room around it for a thumb. */}
+      {images.length > 1 ? (
+        <span className="absolute bottom-2 left-1/2 flex -translate-x-1/2 md:hidden">
+          {images.map((src, index) => (
+            <button
+              key={src}
+              type="button"
+              onClick={() => showImage(src)}
+              aria-label={text(`${name}, photo ${index + 1}`, `${name}, फोटो ${index + 1}`)}
+              aria-pressed={src === selectedImage}
+              className="grid h-9 w-9 place-items-center"
+            >
+              <span className={`h-2.5 w-2.5 rounded-full shadow ${src === selectedImage ? "bg-white" : "bg-white/55"}`} />
+            </button>
+          ))}
+        </span>
+      ) : null}
+      </div>
 
       {images.length > 1 ? (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="hidden grid-cols-4 gap-3 md:grid">
           {images.slice(0, 4).map((imgUrl, index) => {
             const isSelected = selectedImage === imgUrl;
 

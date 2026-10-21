@@ -17,7 +17,7 @@ import { useLanguage } from "@/components/LanguageProvider";
  * because a question is never wrong the way a guess can be.
  *
  * It asks once. A choice — or a dismissal — is remembered, and the card never
- * appears again. It waits a few seconds first and sits at the bottom, so it
+ * appears again. It waits a few seconds first and sits over the delivery strip, so it
  * interrupts nobody who is already reading, and it is not a modal: a shopper
  * who ignores it can carry on shopping in English, which is what a foreign or
  * wholesale visitor will want anyway.
@@ -64,15 +64,19 @@ export default function LanguageInvite() {
   };
 
   // One slim line, not a card (owner, 2026-10-07): the card covered the first
-  // shoes on a phone and the hero's buttons on a laptop. Same question, same
-  // place, a third of the height.
+  // shoes on a phone and the hero's buttons on a laptop. Same question, a third
+  // of the height. Up top on a phone and tablet (owner, 2026-10-21, the website
+  // sample, 3): at the foot it sat on the tab bar and with it hid a quarter of
+  // the first screen, the "Cash on delivery" cards with it. Up top it covers
+  // the delivery strip and the header's own top padding — 44px, the height of
+  // a phone's buttons (globals.css), with a shadow for its edge so a border
+  // adds nothing — not the logo; from a laptop up it stays at the foot on the
+  // right.
   return (
     <div
       role="region"
       aria-label="भाषा छान्नुहोस् · Choose language"
-      // Above the tab bar (and the buy bar on a product page), not across it:
-      // at bottom-3 the two sat on the same strip of a phone.
-      className="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-md items-center gap-2 rounded-full border border-brand-gold/40 bg-brand-paper py-1.5 pl-3 pr-1.5 shadow-[0_10px_30px_rgba(11,77,59,0.18)] md:inset-x-auto md:right-6 lg:bottom-6"
+      className="fixed inset-x-0 top-0 z-[60] flex items-center gap-2 bg-brand-paper pl-3 pr-1.5 pt-[env(safe-area-inset-top)] shadow-[0_1px_0_rgba(201,162,75,0.45),0_4px_12px_rgba(11,77,59,0.12)] lg:inset-x-auto lg:bottom-6 lg:right-6 lg:top-auto lg:max-w-md lg:rounded-full lg:border lg:border-brand-gold/40 lg:py-1.5 lg:shadow-[0_10px_30px_rgba(11,77,59,0.18)]"
     >
       <span className="text-lg leading-none" aria-hidden="true">
         🇳🇵
@@ -84,14 +88,14 @@ export default function LanguageInvite() {
       <button
         type="button"
         onClick={() => answer("ne")}
-        className="min-h-10 flex-none rounded-full bg-brand-green px-4 text-sm font-black text-white"
+        className="min-h-9 flex-none rounded-full lg:min-h-10 bg-brand-green px-4 text-sm font-black text-white"
       >
         नेपाली
       </button>
       <button
         type="button"
         onClick={() => answer("en")}
-        className="min-h-10 flex-none rounded-full border border-brand-green/30 px-3 text-sm font-black text-brand-green-ink"
+        className="min-h-9 flex-none rounded-full lg:min-h-10 border border-brand-green/30 px-3 text-sm font-black text-brand-green-ink"
       >
         English
       </button>
@@ -99,7 +103,7 @@ export default function LanguageInvite() {
         type="button"
         onClick={() => answer(null)}
         aria-label="बन्द गर्ने · Close"
-        className="grid h-10 w-10 flex-none place-items-center rounded-full text-base leading-none text-brand-muted hover:bg-brand-mist"
+        className="grid h-9 w-9 flex-none place-items-center rounded-full lg:h-10 lg:w-10 text-base leading-none text-brand-muted hover:bg-brand-mist"
       >
         ✕
       </button>
