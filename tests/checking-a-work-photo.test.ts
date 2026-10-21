@@ -32,9 +32,16 @@ describe("checking a worker's photo", () => {
     expect(worker).toContain("✖ मिलेन");
   });
 
-  it("takes work back the way Add work removes an entry — owner only, never a paid month", async () => {
+  // Taken back, not deleted: proof of a wage stays (owner, 2026-10-21).
+  it("takes work back the way the piece ledger does — kept, reversed, owner only, never a paid month", async () => {
     const actions = await read("app/admin/factory/photos/actions.ts");
-    expect(actions).toContain("await deleteFactoryWork({ workId: photo.workId,");
+    expect(actions).toContain("await reverseFactoryWork({ workId: photo.workId,");
+    expect(actions).not.toContain("deleteFactoryWork");
+    // Booked again after a take-back, it goes in with the next key.
+    expect(actions).toContain("const submissionKey = await photoWorkKey(photoKey);");
+    const lib = await read("lib/worker-portal.ts");
+    expect(lib).toContain("return takenBack > 0 ? `${submissionKey}:again-${takenBack}` : submissionKey;");
+    expect(lib).toContain("WHERE ${PHOTO_KEYS_SQL} AND status <> 'reversed'");
     expect(actions.slice(actions.indexOf("export async function takeBackPhotoWorkAction"))).toContain('requireAdminPermission("wages:write")');
   });
 

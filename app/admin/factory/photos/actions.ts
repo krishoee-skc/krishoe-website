@@ -5,11 +5,11 @@ import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { reportError } from "@/lib/report-error";
 import { del } from "@vercel/blob";
-import { deleteWorkerPhotoRow, getWorkerPhoto, linkWorkerPhotoToWork, markWorkerPhoto, resolveWorkerRequest, reviewWorkerPhoto, setPhotoRobotOn, workBookedFromPhoto } from "@/lib/worker-portal";
+import { deleteWorkerPhotoRow, getWorkerPhoto, linkWorkerPhotoToWork, markWorkerPhoto, photoWorkKey, resolveWorkerRequest, reviewWorkerPhoto, setPhotoRobotOn, workBookedFromPhoto } from "@/lib/worker-portal";
 import { robotLookAtPhoto } from "@/lib/worker-photo-robot";
 import { isAiConfigured } from "@/lib/ai/gemini";
 import { photoRobotReady } from "@/lib/worker-portal-db";
-import { createFactoryWork, deleteFactoryWork, FactoryMutationError } from "@/lib/factory-mutations";
+import { createFactoryWork, FactoryMutationError, reverseFactoryWork } from "@/lib/factory-mutations";
 import { FACTORY_WORKER_CATEGORIES } from "@/lib/factory-worker-options";
 import { photoDraftReady, photoReviewReady } from "@/lib/worker-portal-db";
 
@@ -60,7 +60,7 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
   const rejects = Math.max(0, Math.min(count, Math.round(Number(input.rejectPairs) || 0)));
   if (workDate > nepalDay(new Date().toISOString())) return { ok: false, en: "The day cannot be after today.", ne: "दिन आजभन्दा पछिको हुन सक्दैन।" };
 
-  const submissionKey = `worker-photo:${photo.id}`;
+  const photoKey = `worker-photo:${photo.id}`;
   const markBooked = (work: { id: string; amount: number; pairs: number; color: string; size: string; workDate: string; itemId: string }) =>
     photoReviewReady().then((ready) =>
       ready
@@ -75,7 +75,7 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
   // Already on the books from this photo (2026-10-03: the work saved and the
   // photo's own mark failed, so it still read "to check"): mark the photo with
   // the entry that is there. Never a second entry — the key is the photo's.
-  const already = await workBookedFromPhoto(submissionKey).catch(() => null);
+  const already = await workBookedFromPhoto(photoKey).catch(() => null);
   if (already) {
     try {
       await markBooked(already);
@@ -92,6 +92,8 @@ export async function bookPhotoWorkAction(photoId: string, input: BookInput): Pr
     };
   }
 
+  // The photo's own key, or the next after a booking from it was taken back.
+  const submissionKey = await photoWorkKey(photoKey);
   let entry: Awaited<ReturnType<typeof createFactoryWork>>;
   try {
     entry = await createFactoryWork({
@@ -156,9 +158,11 @@ export async function notWorkPhotoAction(photoId: string, reason: string, messag
 }
 
 /**
- * Back off the books: the work entry the photo became is removed the way the
- * Add work list removes one — with the reason in the audit, and never from a
- * month already closed and paid. The photo goes back to "to check".
+ * Back off the books: the work entry the photo became is taken back the way
+ * the piece ledger takes one back (owner, 2026-10-21) — it stays on the books,
+ * marked reversed, as proof of the wage, with the reason on it, and never from
+ * a month already closed and paid. It used to be deleted. The photo goes back
+ * to "to check"; booked again, it makes a new entry.
  */
 export async function takeBackPhotoWorkAction(photoId: string): Promise<InboxReply> {
   const actor = await requireAdminPermission("wages:write");
@@ -166,7 +170,7 @@ export async function takeBackPhotoWorkAction(photoId: string): Promise<InboxRep
   const photo = await getWorkerPhoto(photoId);
   if (!photo || photo.status !== "added" || !photo.workId) return { ok: false, en: "This photo is not on the books.", ne: "यो फोटो हिसाबमा छैन।" };
   try {
-    await deleteFactoryWork({ workId: photo.workId, reason: `Taken back from ${photo.workerName}'s work photo ${photo.id}`, deletedBy: byOf(actor) });
+    await reverseFactoryWork({ workId: photo.workId, reason: `Taken back from ${photo.workerName}'s work photo ${photo.id}`, reversedBy: byOf(actor) });
     await reviewWorkerPhoto(photo.id, { status: "seen", workId: null }, { by: byOf(actor), what: "Taken back off the books" });
   } catch (error) {
     if (error instanceof FactoryMutationError) return { ok: false, en: `Not taken back: ${error.message}`, ne: `फिर्ता भएन: ${error.message}` };

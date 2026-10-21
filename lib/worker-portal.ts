@@ -470,11 +470,32 @@ export async function robotExamplePhotos(): Promise<Array<{ itemId: string; imag
     .catch(() => []);
 }
 
-/** The work already booked from a photo, found by the photo's own key — so a photo is never booked twice. */
+/**
+ * A photo's work keys: the photo's own, then ":again-1", ":again-2"… once a
+ * booking from it was taken back (owner, 2026-10-21). A taken-back entry stays
+ * on the books, reversed, as proof of the wage, and keeps its key — so the
+ * photo booked again needs the next one.
+ */
+const PHOTO_KEYS_SQL = "(submission_key = $1 OR left(submission_key, length($1) + 7) = $1 || ':again-')";
+
+/** The key the next booking from this photo goes in with. */
+export async function photoWorkKey(submissionKey: string) {
+  const rows = await queryPostgres<{ taken_back: string | number }>(
+    STORE,
+    `SELECT count(*) AS taken_back FROM factory_daily_work WHERE ${PHOTO_KEYS_SQL} AND status = 'reversed'`,
+    [submissionKey],
+  );
+  const takenBack = Number(rows[0]?.taken_back) || 0;
+  return takenBack > 0 ? `${submissionKey}:again-${takenBack}` : submissionKey;
+}
+
+/** The work already booked from a photo, found by the photo's own keys — so a photo is never booked twice. A taken-back entry does not count. */
 export async function workBookedFromPhoto(submissionKey: string): Promise<{ id: string; amount: number; pairs: number; color: string; size: string; workDate: string; itemId: string } | null> {
   const rows = await queryPostgres<{ id: string; amount_earned: string | number; pairs_count: number; color: string | null; size: string | null; date: string | Date; item_id: string }>(
     STORE,
-    "SELECT id, amount_earned, pairs_count, color, size, date, item_id FROM factory_daily_work WHERE submission_key = $1 LIMIT 1",
+    `SELECT id, amount_earned, pairs_count, color, size, date, item_id FROM factory_daily_work
+     WHERE ${PHOTO_KEYS_SQL} AND status <> 'reversed'
+     ORDER BY created_at DESC LIMIT 1`,
     [submissionKey],
   );
   const row = rows[0];

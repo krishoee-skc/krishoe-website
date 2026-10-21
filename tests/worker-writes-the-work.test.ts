@@ -44,7 +44,7 @@ describe("a worker writes the day's work", () => {
     expect(inbox).toContain("color: photo.color || history[itemId]?.color");
     expect(inbox).toContain("<WrittenFace");
     const booking = await read("app/admin/factory/photos/actions.ts");
-    expect(booking).toContain("const submissionKey = `worker-photo:${photo.id}`;");
+    expect(booking).toContain("const photoKey = `worker-photo:${photo.id}`;");
   });
 
   it("is the first button on the worker's home and a tab of its own", async () => {

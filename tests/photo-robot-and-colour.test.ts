@@ -110,7 +110,7 @@ describe("a photo's mark after the books", () => {
 
   it("marks a photo from the entry already booked with its key, before booking anything", async () => {
     const actions = await read("app/admin/factory/photos/actions.ts");
-    const found = actions.indexOf("const already = await workBookedFromPhoto(submissionKey)");
+    const found = actions.indexOf("const already = await workBookedFromPhoto(photoKey)");
     const booked = actions.indexOf("entry = await createFactoryWork({");
     expect(found).toBeGreaterThan(0);
     expect(found).toBeLessThan(booked);
