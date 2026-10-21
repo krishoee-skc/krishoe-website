@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { getCoupon, normalizeCouponCode, saveCoupon, setCouponStatus, type CouponKind } from "@/lib/coupons";
+import { couponHasEnded, getCoupon, normalizeCouponCode, saveCoupon, setCouponStatus, type CouponKind } from "@/lib/coupons";
 import { LOW_CAP_RUPEES } from "./cap";
 
 function textValue(formData: FormData, key: string) {
@@ -61,7 +61,7 @@ export async function saveCouponAction(formData: FormData) {
     }
     // On, with an end already gone by, is off in all but name.
     const endsAt = textValue(formData, "expiresAt");
-    if (textValue(formData, "status") !== "Disabled" && endsAt && new Date(endsAt) < new Date()) {
+    if (textValue(formData, "status") !== "Disabled" && endsAt && couponHasEnded(endsAt)) {
       throw new Error(both(SAY.ended));
     }
 
@@ -112,7 +112,7 @@ export async function switchCouponAction(formData: FormData) {
     const coupon = await getCoupon(code);
     if (!coupon) {
       outcome = { kind: "error", message: both(SAY.missing) };
-    } else if (turnOn && coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+    } else if (turnOn && couponHasEnded(coupon.expiresAt)) {
       outcome = { kind: "error", message: both(SAY.ended), edit: coupon.code };
     } else if (turnOn && coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
       outcome = { kind: "error", message: both(SAY.usedUp), edit: coupon.code };

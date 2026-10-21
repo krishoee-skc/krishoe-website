@@ -4,6 +4,7 @@ import {
   toBikramSambatNumeric,
 } from "@/lib/bikram-sambat";
 import type { PosInvoice } from "@/lib/pos";
+import { nepalDay } from "@/lib/nepal-day";
 import type { PurchaseInvoice } from "@/lib/purchasing";
 
 // The weekly and monthly digests. Where the daily email answers "how was
@@ -15,10 +16,10 @@ import type { PurchaseInvoice } from "@/lib/purchasing";
 
 export type PeriodKind = "weekly" | "monthly";
 
-// A half-open range of ISO date keys, [startKey, endKey). Keys are the first ten
-// characters of an invoice's createdAt ("2026-07-24"), compared as strings —
-// which orders ISO dates correctly — matching how the rest of the app slices its
-// day, month and year buckets.
+// A half-open range of ISO date keys, [startKey, endKey). Keys are the Nepal
+// calendar day of an invoice's createdAt ("2026-07-24"), compared as strings —
+// which orders ISO dates correctly — matching how the bills page buckets its
+// day, month and year (lib/nepal-day).
 export type PeriodRange = {
   startKey: string;
   endKey: string;
@@ -48,8 +49,9 @@ export type PeriodReport = {
   changePercent: number | null;
 };
 
+// Nepal's day, not UTC's: a bill at 1 am is that day's (2026-10-21).
 function dateKeyOf(value: string) {
-  return value.slice(0, 10);
+  return nepalDay(value);
 }
 
 function inRange(value: string, range: PeriodRange) {

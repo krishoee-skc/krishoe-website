@@ -38,6 +38,7 @@ import { BILL_PREFIX, isBillNumberTaken, nextBillNumber, noteNamesBill } from "@
 import { reportingErrors } from "@/lib/report-error";
 import { PosNeedsAnswer } from "@/lib/pos-questions";
 import { keptBillTime } from "@/lib/kept-bill-time";
+import { nepalDay } from "@/lib/nepal-day";
 import { pairsAtPlaces } from "@/lib/pos-place-check";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
@@ -255,20 +256,21 @@ function cleanNumber(value: number) {
   return Math.max(0, Math.round(Number(value) || 0));
 }
 
+// Days, months and years are Nepal's, turning at midnight there (lib/nepal-day).
 function currentDateKey() {
-  return new Date().toISOString().slice(0, 10);
+  return nepalDay(new Date());
 }
 
 function invoiceDateKey(value: string) {
-  return value.slice(0, 10);
+  return nepalDay(value);
 }
 
 function currentMonthKey() {
-  return new Date().toISOString().slice(0, 7);
+  return currentDateKey().slice(0, 7);
 }
 
 function currentYearKey() {
-  return new Date().toISOString().slice(0, 4);
+  return currentDateKey().slice(0, 4);
 }
 
 function sum<T>(items: T[], getValue: (item: T) => number) {
@@ -1269,11 +1271,11 @@ function isSameDay(value: string) {
 }
 
 function isSameMonth(value: string) {
-  return value.slice(0, 7) === currentMonthKey();
+  return invoiceDateKey(value).slice(0, 7) === currentMonthKey();
 }
 
 function isSameYear(value: string) {
-  return value.slice(0, 4) === currentYearKey();
+  return invoiceDateKey(value).slice(0, 4) === currentYearKey();
 }
 
 function activeInvoices(invoices: PosInvoice[]) {

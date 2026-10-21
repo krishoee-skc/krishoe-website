@@ -7,7 +7,7 @@ import CapBox from "./CapBox";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { listCoupons, normalizeCouponCode } from "@/lib/coupons";
+import { couponHasEnded, listCoupons, normalizeCouponCode } from "@/lib/coupons";
 import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = { title: "Discount codes | KRISHOE Admin" };
@@ -56,7 +56,7 @@ export default async function CouponsPage({
   const isLive = (coupon: (typeof coupons)[number]) =>
     coupon.status === "Active" &&
     !(coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) &&
-    !(coupon.expiresAt && new Date(coupon.expiresAt) < now);
+    !couponHasEnded(coupon.expiresAt, now);
   const liveCount = coupons.filter(isLive).length;
   const usedTotal = coupons.reduce((sum, coupon) => sum + coupon.usedCount, 0);
 
@@ -252,7 +252,7 @@ export default async function CouponsPage({
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {coupons.map((coupon) => {
               const exhausted = coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses;
-              const expired = Boolean(coupon.expiresAt && new Date(coupon.expiresAt) < new Date());
+              const expired = couponHasEnded(coupon.expiresAt, now);
               const live = coupon.status === "Active" && !exhausted && !expired;
 
               return (

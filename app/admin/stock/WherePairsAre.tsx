@@ -863,133 +863,144 @@ export default function WherePairsAre({
           )}
         </p>
 
-        <EnterWalkForm onSubmit={handleSend} className="mt-4 grid gap-3">
-          <input type="hidden" name="lineCount" value={lines.length} />
-          <input type="hidden" name="fromLocation" value={from} />
-          <input type="hidden" name="toLocation" value={to} />
-          <input type="hidden" name="sentBy" value={staffName} />
-          <input type="hidden" name="sentDate" value={today} />
-          {/* One challan per press, however slow the connection. */}
-          <input type="hidden" name="submissionKey" value={`trf-${today}-${nextKey}-${staffName}`} />
+        {/* Moving pairs is a write: only with operations:write, like 🔢 Count
+            (owner, 2026-10-21). */}
+        {canCount ? (
+          <EnterWalkForm onSubmit={handleSend} className="mt-4 grid gap-3">
+            <input type="hidden" name="lineCount" value={lines.length} />
+            <input type="hidden" name="fromLocation" value={from} />
+            <input type="hidden" name="toLocation" value={to} />
+            <input type="hidden" name="sentBy" value={staffName} />
+            <input type="hidden" name="sentDate" value={today} />
+            {/* One challan per press, however slow the connection. */}
+            <input type="hidden" name="submissionKey" value={`trf-${today}-${nextKey}-${staffName}`} />
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setFrom(from === "Factory" ? "Shop" : "Factory")}
-              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand-green bg-brand-green-wash px-4 text-sm font-black text-brand-green"
-            >
-              <span>{from === "Factory" ? "🏭" : "🛒"} {placeLabel(from)}</span>
-              <span aria-hidden="true">→</span>
-              <span>{to === "Factory" ? "🏭" : "🛒"} {placeLabel(to)}</span>
-            </button>
-            <span className="text-xs text-brand-muted">
-              {text("Press to turn it around", "उल्टो पार्न थिच्नुहोस्")}
-            </span>
-            <span className="ml-auto text-xs font-bold text-brand-muted-soft">{todayBs}</span>
-          </div>
-
-          <div className="grid gap-2">
-            {lines.map((line, index) => {
-              const held = heldAt.get(`${line.design}::${line.sizeRun}`) ?? 0;
-              const asking = Number(line.pairs) || 0;
-              const tooMany = Boolean(line.design) && asking > held;
-
-              return (
-                <div key={line.key} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_auto] sm:items-center">
-                  <input type="hidden" name={`line${index}SizeRun`} value={line.sizeRun} />
-                  <select
-                    name={`line${index}Design`}
-                    className={box}
-                    value={line.design ? `${line.design}::${line.sizeRun}` : ""}
-                    onChange={(event) => {
-                      const [design, sizeRun] = event.target.value.split("::");
-                      updateLine(line.key, { design: design ?? "", sizeRun: sizeRun ?? "Mixed" });
-                    }}
-                    aria-label={text(`Shoe ${index + 1}`, `जुत्ता ${index + 1}`)}
-                  >
-                    <option value="">{text("Choose a shoe…", "जुत्ता छान्नुहोस्…")}</option>
-                    {rows
-                      .filter((row) => (from === "Factory" ? row.factory : row.shop) > 0)
-                      .map((row) => (
-                        <option key={`${row.design}::${row.sizeRun}`} value={`${row.design}::${row.sizeRun}`}>
-                          {row.design}
-                          {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""} —{" "}
-                          {from === "Factory" ? row.factory : row.shop}
-                        </option>
-                      ))}
-                  </select>
-                  <input
-                    name={`line${index}Pairs`}
-                    type="number"
-                    min="0"
-                    inputMode="numeric"
-                    className={`${box} text-right tabular-nums ${tooMany ? "border-brand-clay bg-brand-clay-tint/40" : ""}`}
-                    placeholder={text("Pairs", "जोडी")}
-                    value={line.pairs}
-                    onChange={(event) => updateLine(line.key, { pairs: event.target.value })}
-                    aria-label={text(`Pairs ${index + 1}`, `जोडी ${index + 1}`)}
-                  />
-                  <span className="text-xs font-bold text-brand-muted-soft sm:w-28">
-                    {line.design
-                      ? tooMany
-                        ? text(`only ${held} there`, `त्यहाँ ${held} मात्र`)
-                        : text(`${held} there`, `त्यहाँ ${held}`)
-                      : ""}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input aria-label="Who is carrying it (optional)"
-              name="carriedBy"
-              className={box}
-              placeholder={text("Who is carrying it (optional)", "कसले लग्यो (चाहिए)")}
-            />
-            <input aria-label="Vehicle, gate pass, note"
-              name="note"
-              className={box}
-              placeholder={text("Vehicle, gate pass, note", "गाडी, गेट पास, टिपोट")}
-            />
-          </div>
-
-          {/* The owner's own suggestion: one press when he carries the pairs
-              himself, two when somebody else does. */}
-          <label className="flex items-start gap-3 rounded-xl border border-brand-green-line bg-brand-mist/40 p-3">
-            <input
-              type="checkbox"
-              name="receiveNow"
-              checked={receiveNow}
-              onChange={(event) => setReceiveNow(event.target.checked)}
-              className="mt-0.5 h-5 w-5 accent-[#12634A]"
-            />
-            <span className="text-sm leading-6 text-brand-green-ink">
-              <strong>{text("Received now", "अहिल्यै बुझ्ने")}</strong>
-              <span className="block text-xs text-brand-muted">
-                {text(
-                  "Tick when you are carrying the pairs yourself — the challan is closed in the same press. Leave it for somebody else to count in.",
-                  "आफैं लैजाँदा टिक लगाउनुहोस् — एकै पटकमा सकिन्छ। अरूले लैजाँदा नलगाउनुहोस्, पुगेपछि गनेर बुझ्ने।",
-                )}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setFrom(from === "Factory" ? "Shop" : "Factory")}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-brand-green bg-brand-green-wash px-4 text-sm font-black text-brand-green"
+              >
+                <span>{from === "Factory" ? "🏭" : "🛒"} {placeLabel(from)}</span>
+                <span aria-hidden="true">→</span>
+                <span>{to === "Factory" ? "🏭" : "🛒"} {placeLabel(to)}</span>
+              </button>
+              <span className="text-xs text-brand-muted">
+                {text("Press to turn it around", "उल्टो पार्न थिच्नुहोस्")}
               </span>
-            </span>
-          </label>
+              <span className="ml-auto text-xs font-bold text-brand-muted-soft">{todayBs}</span>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="h-12 rounded-full bg-brand-green px-7 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
-            >
-              {saving
-                ? text("Saving…", "राख्दै…")
-                : receiveNow
-                  ? text("Move and close", "सारेर सक्ने")
-                  : text("Send challan", "चलान पठाउने")}
-            </button>
-            <ActionMessage state={state} />
-          </div>
-        </EnterWalkForm>
+            <div className="grid gap-2">
+              {lines.map((line, index) => {
+                const held = heldAt.get(`${line.design}::${line.sizeRun}`) ?? 0;
+                const asking = Number(line.pairs) || 0;
+                const tooMany = Boolean(line.design) && asking > held;
+
+                return (
+                  <div key={line.key} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_auto] sm:items-center">
+                    <input type="hidden" name={`line${index}SizeRun`} value={line.sizeRun} />
+                    <select
+                      name={`line${index}Design`}
+                      className={box}
+                      value={line.design ? `${line.design}::${line.sizeRun}` : ""}
+                      onChange={(event) => {
+                        const [design, sizeRun] = event.target.value.split("::");
+                        updateLine(line.key, { design: design ?? "", sizeRun: sizeRun ?? "Mixed" });
+                      }}
+                      aria-label={text(`Shoe ${index + 1}`, `जुत्ता ${index + 1}`)}
+                    >
+                      <option value="">{text("Choose a shoe…", "जुत्ता छान्नुहोस्…")}</option>
+                      {rows
+                        .filter((row) => (from === "Factory" ? row.factory : row.shop) > 0)
+                        .map((row) => (
+                          <option key={`${row.design}::${row.sizeRun}`} value={`${row.design}::${row.sizeRun}`}>
+                            {row.design}
+                            {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""} —{" "}
+                            {from === "Factory" ? row.factory : row.shop}
+                          </option>
+                        ))}
+                    </select>
+                    <input
+                      name={`line${index}Pairs`}
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      className={`${box} text-right tabular-nums ${tooMany ? "border-brand-clay bg-brand-clay-tint/40" : ""}`}
+                      placeholder={text("Pairs", "जोडी")}
+                      value={line.pairs}
+                      onChange={(event) => updateLine(line.key, { pairs: event.target.value })}
+                      aria-label={text(`Pairs ${index + 1}`, `जोडी ${index + 1}`)}
+                    />
+                    <span className="text-xs font-bold text-brand-muted-soft sm:w-28">
+                      {line.design
+                        ? tooMany
+                          ? text(`only ${held} there`, `त्यहाँ ${held} मात्र`)
+                          : text(`${held} there`, `त्यहाँ ${held}`)
+                        : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input aria-label="Who is carrying it (optional)"
+                name="carriedBy"
+                className={box}
+                placeholder={text("Who is carrying it (optional)", "कसले लग्यो (चाहिए)")}
+              />
+              <input aria-label="Vehicle, gate pass, note"
+                name="note"
+                className={box}
+                placeholder={text("Vehicle, gate pass, note", "गाडी, गेट पास, टिपोट")}
+              />
+            </div>
+
+            {/* The owner's own suggestion: one press when he carries the pairs
+                himself, two when somebody else does. */}
+            <label className="flex items-start gap-3 rounded-xl border border-brand-green-line bg-brand-mist/40 p-3">
+              <input
+                type="checkbox"
+                name="receiveNow"
+                checked={receiveNow}
+                onChange={(event) => setReceiveNow(event.target.checked)}
+                className="mt-0.5 h-5 w-5 accent-[#12634A]"
+              />
+              <span className="text-sm leading-6 text-brand-green-ink">
+                <strong>{text("Received now", "अहिल्यै बुझ्ने")}</strong>
+                <span className="block text-xs text-brand-muted">
+                  {text(
+                    "Tick when you are carrying the pairs yourself — the challan is closed in the same press. Leave it for somebody else to count in.",
+                    "आफैं लैजाँदा टिक लगाउनुहोस् — एकै पटकमा सकिन्छ। अरूले लैजाँदा नलगाउनुहोस्, पुगेपछि गनेर बुझ्ने।",
+                  )}
+                </span>
+              </span>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="h-12 rounded-full bg-brand-green px-7 text-sm font-black text-white transition hover:bg-brand-green-ink disabled:opacity-60"
+              >
+                {saving
+                  ? text("Saving…", "राख्दै…")
+                  : receiveNow
+                    ? text("Move and close", "सारेर सक्ने")
+                    : text("Send challan", "चलान पठाउने")}
+              </button>
+              <ActionMessage state={state} />
+            </div>
+          </EnterWalkForm>
+        ) : (
+          <p className="mt-4 rounded-xl border border-dashed border-brand-green-line p-3 text-sm text-brand-muted">
+            {text(
+              "Moving pairs needs the Owner or an Inventory account.",
+              "माल सार्न Owner वा Inventory account चाहिन्छ।",
+            )}
+          </p>
+        )}
       </section>
 
       {/* ── Challans ────────────────────────────────────────────────── */}
@@ -1069,7 +1080,7 @@ export default function WherePairsAre({
                   </div>
                 </div>
 
-                {open ? (
+                {open && canCount ? (
                   <EnterWalkForm onSubmit={handleReceive} className="mt-3 grid gap-2 border-t border-brand-green-line pt-3">
                     <input type="hidden" name="transferId" value={transfer.id} />
                     <input type="hidden" name="receivedBy" value={staffName} />

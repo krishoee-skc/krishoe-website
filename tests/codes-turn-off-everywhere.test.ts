@@ -8,11 +8,11 @@ const redirect = vi.fn((url: string) => {
   throw Object.assign(new Error("NEXT_REDIRECT"), { url });
 });
 
-vi.mock("@/lib/coupons", () => ({
+vi.mock("@/lib/coupons", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/coupons")>()),
   getCoupon: (...args: unknown[]) => getCoupon(...args),
   setCouponStatus: (...args: unknown[]) => setCouponStatus(...args),
   saveCoupon: (...args: unknown[]) => saveCoupon(...args),
-  normalizeCouponCode: (code: string) => (code ?? "").trim().toUpperCase().replace(/\s+/g, ""),
 }));
 vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: async () => ({ role: "Owner", session: { email: "owner@x" } }) }));
 vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
@@ -96,7 +96,8 @@ describe("2 · an ended code is off everywhere", () => {
     const lib = await read("lib/coupons.ts");
     const sql = lib.slice(lib.indexOf("export async function turnOffEndedCoupons"));
     expect(sql).toContain("SET status = 'Disabled', updated_at = now()");
-    expect(sql).toContain("AND ((expires_at IS NOT NULL AND expires_at < $1)");
+    expect(sql).toContain("AND ((expires_at IS NOT NULL AND (expires_at AT TIME ZONE 'UTC')::date < $1::date)");
+    expect(sql).toContain("[nepalDay(now)],");
     expect(sql).toContain("OR (max_uses IS NOT NULL AND used_count >= max_uses))");
     const cron = await read("app/api/cron/daily-sales/route.ts");
     expect(cron).toContain('name: "coupon-ends",');

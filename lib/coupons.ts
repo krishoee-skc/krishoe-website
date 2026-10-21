@@ -1,5 +1,23 @@
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 import type { PostgresExecutor } from "@/lib/postgres/client";
+import { nepalDay } from "@/lib/nepal-day";
+
+/**
+ * A code runs whole Nepal days (owner, 2026-10-21): the start and end are
+ * dates, kept as that date at 00:00 UTC, and "ends 17 Oct" means it works
+ * until midnight in Nepal that night — not until 5:45 that morning.
+ */
+export function couponDay(value: string) {
+  return value.slice(0, 10);
+}
+
+export function couponHasEnded(expiresAt: string | null, now = new Date()) {
+  return Boolean(expiresAt) && nepalDay(now) > couponDay(expiresAt as string);
+}
+
+export function couponHasStarted(startsAt: string | null, now = new Date()) {
+  return !startsAt || nepalDay(now) >= couponDay(startsAt);
+}
 
 export type CouponKind = "percent" | "amount";
 export type CouponStatus = "Active" | "Disabled";
@@ -130,11 +148,11 @@ export function evaluateCoupon(
     return { ok: false, reason: "This code is no longer active." };
   }
 
-  if (coupon.startsAt && now < new Date(coupon.startsAt)) {
+  if (!couponHasStarted(coupon.startsAt, now)) {
     return { ok: false, reason: "This code has not started yet." };
   }
 
-  if (coupon.expiresAt && now > new Date(coupon.expiresAt)) {
+  if (couponHasEnded(coupon.expiresAt, now)) {
     return { ok: false, reason: "This code has expired." };
   }
 
@@ -289,11 +307,13 @@ export async function turnOffEndedCoupons(now = new Date()) {
     `UPDATE coupons
      SET status = 'Disabled', updated_at = now()
      WHERE status = 'Active'
-       AND ((expires_at IS NOT NULL AND expires_at < $1)
+       AND ((expires_at IS NOT NULL AND (expires_at AT TIME ZONE 'UTC')::date < $1::date)
          OR (max_uses IS NOT NULL AND used_count >= max_uses))
      RETURNING code, used_count,
-       CASE WHEN expires_at IS NOT NULL AND expires_at < $1 THEN 'expired' ELSE 'used up' END AS ended`,
-    [now],
+       CASE WHEN expires_at IS NOT NULL AND (expires_at AT TIME ZONE 'UTC')::date < $1::date
+         THEN 'expired' ELSE 'used up' END AS ended`,
+    // Its end date is behind Nepal's today: the same rule as couponHasEnded.
+    [nepalDay(now)],
   );
   return rows.map((row) => ({ code: row.code, usedCount: Number(row.used_count) || 0, ended: row.ended }));
 }

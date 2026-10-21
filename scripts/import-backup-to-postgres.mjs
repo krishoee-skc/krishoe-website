@@ -9,6 +9,7 @@ import pg from "pg";
 import {
   assetBackupTables,
   backupExtensionTableSpecs,
+  keptTableNames,
   backupKeyColumns,
   factoryBackupTables,
   productionAccountingBackupTables,
@@ -70,6 +71,7 @@ function usage() {
     "  --replace           Truncate app tables before import. Requires --confirm-replace.",
     "  --confirm-replace   Explicit confirmation for destructive preview/restore imports.",
     "  --confirm-database  Exact target database name required for a destructive restore.",
+    "  --allow-losing-kept-rows  With --replace: go on even if rows of tables the backup does not carry cannot be put back.",
     "  --database-url=...  Override DATABASE_URL.",
     "",
     "Environment:",
@@ -122,6 +124,7 @@ function parseArgs(argv) {
     confirmDatabase: "",
     dryRun: false,
     databaseUrl: "",
+    allowLosingKeptRows: false,
   };
 
   for (const value of argv) {
@@ -131,6 +134,8 @@ function parseArgs(argv) {
       args.confirmReplace = true;
     } else if (value.startsWith("--confirm-database=")) {
       args.confirmDatabase = value.slice("--confirm-database=".length);
+    } else if (value === "--allow-losing-kept-rows") {
+      args.allowLosingKeptRows = true;
     } else if (value === "--dry-run") {
       args.dryRun = true;
     } else if (value.startsWith("--database-url=")) {
@@ -1547,7 +1552,76 @@ async function upsertAdminStaffAccount(client, staff) {
   );
 }
 
-async function importBackup(client, backup, replace) {
+/**
+ * Tables a --replace would empty that this backup does not carry (owner,
+ * 2026-10-21). TRUNCATE ... CASCADE also empties every table that points at
+ * the ones replaced, so restoring a backup made before a table joined the
+ * manifest wiped it: the shop's per-size stock, workers' photos, requests and
+ * leave, customers' email choices. Those are proof of wages and of stock;
+ * they are read first and put back after the import.
+ */
+async function tablesTheBackupDoesNotCarry(client, data, truncated) {
+  const result = await client.query(
+    `WITH RECURSIVE dep(rel) AS (
+       SELECT c.oid FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public' AND c.relname = ANY($1::text[])
+       UNION
+       SELECT con.conrelid FROM pg_constraint con JOIN dep ON con.confrelid = dep.rel
+       WHERE con.contype = 'f'
+     )
+     SELECT DISTINCT c.relname AS name FROM dep JOIN pg_class c ON c.oid = dep.rel`,
+    [truncated],
+  );
+  const core = appTables.filter((table) => ![...backupExtensionTableSpecs, ...shopBackupTables].some((spec) => spec.table === table));
+  return keptTableNames(result.rows.map(({ name }) => name), data, core);
+}
+
+async function readKeptTables(client, tables) {
+  const kept = [];
+  for (const table of tables) {
+    const result = await client.query(`SELECT row_to_json(t)::text AS row FROM "${table}" t`);
+    if (result.rows.length > 0) kept.push({ table, rows: result.rows.map(({ row }) => row) });
+  }
+  return kept;
+}
+
+/**
+ * Puts the kept rows back, each once. A row whose parent is not back yet
+ * waits for another pass; one that still cannot go back stops the whole
+ * restore, which rolls back, rather than lose it in silence.
+ */
+async function putKeptTablesBack(client, kept, allowLoss) {
+  const report = Object.fromEntries(kept.map(({ table, rows }) => [table, { kept: rows.length, back: 0 }]));
+  let waiting = kept.flatMap(({ table, rows }) => rows.map((row) => ({ table, row })));
+  for (let pass = 0; pass < 4 && waiting.length > 0; pass += 1) {
+    const next = [];
+    for (const item of waiting) {
+      await client.query("SAVEPOINT kept_row");
+      try {
+        await client.query(
+          `INSERT INTO "${item.table}" SELECT * FROM json_populate_record(NULL::"${item.table}", $1::json) ON CONFLICT DO NOTHING`,
+          [item.row],
+        );
+        await client.query("RELEASE SAVEPOINT kept_row");
+        report[item.table].back += 1;
+      } catch (error) {
+        await client.query("ROLLBACK TO SAVEPOINT kept_row");
+        next.push({ ...item, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    waiting = next;
+  }
+  if (waiting.length > 0 && !allowLoss) {
+    const first = waiting[0];
+    throw new Error(
+      `${waiting.length} row(s) kept from tables this backup does not carry could not go back (first: ${first.table}: ${first.error}). Nothing was changed. Add --allow-losing-kept-rows only if losing them is meant.`,
+    );
+  }
+  return report;
+}
+
+async function importBackup(client, backup, replace, allowLoss = false) {
   const data = backup.data;
   const operations = data.operations ?? {};
   const purchasing = data.purchasing ?? {};
@@ -1593,7 +1667,10 @@ async function importBackup(client, backup, replace) {
   await client.query("BEGIN");
 
   try {
+    let kept = [];
     if (replace) {
+      const truncated = [...appTables, ...(data.shop !== undefined ? shopBackupTables.map(({ table }) => table) : [])];
+      kept = await readKeptTables(client, await tablesTheBackupDoesNotCarry(client, data, truncated));
       await client.query(`TRUNCATE TABLE ${appTables.join(", ")} RESTART IDENTITY CASCADE`);
       if (data.shop !== undefined) {
         await client.query(`TRUNCATE TABLE ${shopBackupTables.map(({ table }) => table).join(", ")}`);
@@ -1752,6 +1829,9 @@ async function importBackup(client, backup, replace) {
       await importRawBackupTables(client, data, shopBackupTables, imported.shop);
     }
 
+    // What the backup did not carry goes back as it was before the restore.
+    if (kept.length > 0) imported.keptFromBeforeRestore = await putKeptTablesBack(client, kept, allowLoss);
+
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -1823,7 +1903,7 @@ async function main() {
   const client = await pool.connect();
 
   try {
-    const imported = await importBackup(client, backup, args.replace);
+    const imported = await importBackup(client, backup, args.replace, args.allowLosingKeptRows);
     console.log(JSON.stringify({ ok: true, replace: args.replace, imported }, null, 2));
   } finally {
     client.release();

@@ -103,7 +103,10 @@ export async function createStockTransferAction(
   _previous: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAdminPermission("stock:read");
+  // Moving pairs is a write (owner, 2026-10-21): it needed only stock:read, so
+  // a Sales or Viewer sign-in could send pairs between places. The same
+  // permission as 🔢 Count.
+  await requireAdminPermission("operations:write");
 
   const from = placeValue(formData, "fromLocation");
   const to = placeValue(formData, "toLocation");
@@ -165,7 +168,8 @@ export async function receiveStockTransferAction(
   _previous: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAdminPermission("stock:read");
+  // Receiving moves pairs into a place: a write, as sending is (2026-10-21).
+  await requireAdminPermission("operations:write");
 
   const transferId = textValue(formData, "transferId");
   if (!transferId) return { ok: false, message: "Which challan is being counted?" };
