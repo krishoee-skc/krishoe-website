@@ -263,3 +263,37 @@ export async function saveCoupon(input: {
 
   return couponFromRow(rows[0]);
 }
+
+/** On or off, from the code's own card (owner, 2026-10-21, the coupon sample, 1). */
+export async function setCouponStatus(code: string, status: CouponStatus) {
+  const normalized = normalizeCouponCode(code);
+  if (!normalized) return null;
+  const rows = await queryPostgres<CouponRow>(
+    STORE,
+    `UPDATE coupons SET status = $2, updated_at = now() WHERE code = $1 RETURNING ${COLUMNS}`,
+    [normalized, status],
+  );
+  return rows[0] ? couponFromRow(rows[0]) : null;
+}
+
+/**
+ * The night's word on codes that have ended (owner, 2026-10-21, the coupon
+ * sample, 2): one past its end date, or used as many times as it may be, is
+ * turned off, so every screen and report reads it the same as checkout does.
+ * Checkout already refuses them the moment they end; this only makes the
+ * record say so. The same rule as evaluateCoupon.
+ */
+export async function turnOffEndedCoupons(now = new Date()) {
+  const rows = await queryPostgres<{ code: string; used_count: number | string; ended: "expired" | "used up" }>(
+    STORE,
+    `UPDATE coupons
+     SET status = 'Disabled', updated_at = now()
+     WHERE status = 'Active'
+       AND ((expires_at IS NOT NULL AND expires_at < $1)
+         OR (max_uses IS NOT NULL AND used_count >= max_uses))
+     RETURNING code, used_count,
+       CASE WHEN expires_at IS NOT NULL AND expires_at < $1 THEN 'expired' ELSE 'used up' END AS ended`,
+    [now],
+  );
+  return rows.map((row) => ({ code: row.code, usedCount: Number(row.used_count) || 0, ended: row.ended }));
+}

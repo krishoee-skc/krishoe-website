@@ -2,11 +2,12 @@ import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { PageHead, StatStrip } from "@/components/admin/PageKit";
 import type { Metadata } from "next";
 import T from "@/components/T";
-import { saveCouponAction } from "./actions";
+import { saveCouponAction, switchCouponAction } from "./actions";
+import CapBox from "./CapBox";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import NepaliDateFieldUncontrolled from "@/components/admin/NepaliDateFieldUncontrolled";
 import { requireAdminPermission } from "@/lib/admin-permissions";
-import { listCoupons } from "@/lib/coupons";
+import { listCoupons, normalizeCouponCode } from "@/lib/coupons";
 import { formatAdminDate } from "@/lib/format-date";
 
 export const metadata: Metadata = { title: "Discount codes | KRISHOE Admin" };
@@ -19,6 +20,23 @@ function rupees(paisa: number) {
   return `Rs. ${Math.round(paisa / 100).toLocaleString("en-IN")}`;
 }
 
+/** A box with its unit in front — "Rs" or "%" — so a rupee is not typed as something else (owner, 2026-10-21). */
+function Unit({ mark, children }: { mark: string; children: React.ReactNode }) {
+  return (
+    <span className="flex items-stretch [&>input]:rounded-l-none">
+      <span className="grid place-items-center rounded-l-xl border border-r-0 border-brand-green-line bg-brand-paper-deep px-3 text-sm font-black text-brand-muted">
+        {mark}
+      </span>
+      {children}
+    </span>
+  );
+}
+
+/** A stored time as the date box takes it. */
+function dayOf(value: string | null) {
+  return value ? value.slice(0, 10) : "";
+}
+
 function nepaliDate(value: string | null) {
   if (!value) return "—";
   return formatAdminDate(value);
@@ -27,11 +45,13 @@ function nepaliDate(value: string | null) {
 export default async function CouponsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ success?: string; error?: string }>;
+  searchParams?: Promise<{ success?: string; error?: string; edit?: string }>;
 }) {
   await requireAdminPermission("settings:write");
   const params = await searchParams;
   const coupons = await listCoupons();
+  // The code whose Edit was pressed, opened in the form with what it has.
+  const editing = params?.edit ? coupons.find((coupon) => coupon.code === normalizeCouponCode(params.edit ?? "")) : undefined;
   const now = new Date();
   const isLive = (coupon: (typeof coupons)[number]) =>
     coupon.status === "Active" &&
@@ -65,14 +85,15 @@ export default async function CouponsPage({
 
       {/* The codes first; making one, now and then, one press away (owner,
           2026-10-12: the eleven-box form filled the first screen). */}
-      <details className="mt-5" open={Boolean(params?.error)}>
+      <details id="coupon-form" className="mt-5 scroll-mt-24" open={Boolean(params?.error) || Boolean(editing)}>
         <summary className="inline-flex min-h-11 cursor-pointer list-none items-center rounded-full bg-brand-green px-5 text-sm font-black text-white [&::-webkit-details-marker]:hidden">
           ＋ <T en="New code" ne="नयाँ कोड" />
         </summary>
-        <EnterWalkForm action={saveCouponAction} className="mt-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+        <EnterWalkForm key={editing?.code ?? "new"} action={saveCouponAction} className="mt-3 rounded-2xl border border-brand-green-line bg-brand-paper p-5 shadow-sm">
           <h2 className="text-lg font-black text-brand-green-ink">
-            <T en="Make a new code" ne="नयाँ कोड बनाउने" />
+            {editing ? <T en={`Change ${editing.code}`} ne={`${editing.code} बदल्ने`} /> : <T en="Make a new code" ne="नयाँ कोड बनाउने" />}
           </h2>
+          <input type="hidden" name="editing" value={editing?.code ?? ""} />
           <p className="mt-1 text-sm text-brand-muted">
             <T
               en="Entering a code that already exists changes that one — it does not make a second."
@@ -83,7 +104,7 @@ export default async function CouponsPage({
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Code" ne="कोड" />
-              <input name="code" required placeholder="DASHAIN10" className={`${inputClass} uppercase tracking-[0.14em]`} />
+              <input name="code" required defaultValue={editing?.code ?? ""} placeholder="DASHAIN10" className={`${inputClass} uppercase tracking-[0.14em]`} />
               <span className="text-xs font-normal text-brand-muted">
                 <T
                   en="English letters and digits only. Capitals make no difference."
@@ -94,7 +115,7 @@ export default async function CouponsPage({
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="What kind of discount" ne="कस्तो छुट" />
-              <select name="kind" defaultValue="percent" className={inputClass}>
+              <select name="kind" defaultValue={editing?.kind ?? "percent"} className={inputClass}>
                 <option value="percent">{"%"}</option>
                 <option value="amount">Rs.</option>
               </select>
@@ -102,17 +123,45 @@ export default async function CouponsPage({
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="If a percentage — how much %" ne="प्रतिशत भए — कति %" />
-              <input name="percent" type="number" min="1" max="100" placeholder="10" className={inputClass} />
+              <Unit mark="%">
+                <input
+                  name="percent"
+                  type="number"
+                  min="1"
+                  max="100"
+                  placeholder="10"
+                  defaultValue={editing?.kind === "percent" ? editing.value : undefined}
+                  className={inputClass}
+                />
+              </Unit>
             </label>
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="If an amount — how many rupees" ne="रकम भए — कति रुपैयाँ" />
-              <input name="amountRupees" type="number" min="1" placeholder="200" className={inputClass} />
+              <Unit mark="Rs">
+                <input
+                  name="amountRupees"
+                  type="number"
+                  min="1"
+                  placeholder="200"
+                  defaultValue={editing?.kind === "amount" ? editing.value / 100 : undefined}
+                  className={inputClass}
+                />
+              </Unit>
             </label>
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Smallest order it works on" ne="कम्तीमा कतिको किनमेल" />
-              <input name="minOrderRupees" type="number" min="0" placeholder="1000" className={inputClass} />
+              <Unit mark="Rs">
+                <input
+                  name="minOrderRupees"
+                  type="number"
+                  min="0"
+                  placeholder="1000"
+                  defaultValue={editing && editing.minOrderPaisa > 0 ? editing.minOrderPaisa / 100 : undefined}
+                  className={inputClass}
+                />
+              </Unit>
               <span className="text-xs font-normal text-brand-muted">
                 <T en="Leave empty for no minimum." ne="खाली भए कुनै सीमा छैन।" />
               </span>
@@ -120,7 +169,7 @@ export default async function CouponsPage({
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Most a percentage may take off" ne="प्रतिशतमा बढीमा कति छुट" />
-              <input name="maxDiscountRupees" type="number" min="1" placeholder="500" className={inputClass} />
+              <CapBox className={inputClass} defaultValue={editing?.maxDiscountPaisa ? String(editing.maxDiscountPaisa / 100) : ""} />
               <span className="text-xs font-normal text-brand-muted">
                 <T
                   en="So a large order does not give away too much. Leave empty for no ceiling."
@@ -131,17 +180,17 @@ export default async function CouponsPage({
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Starts" ne="कहिलेदेखि" />
-              <NepaliDateFieldUncontrolled name="startsAt" />
+              <NepaliDateFieldUncontrolled name="startsAt" defaultValue={dayOf(editing?.startsAt ?? null)} />
             </label>
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Ends" ne="कहिलेसम्म" />
-              <NepaliDateFieldUncontrolled name="expiresAt" />
+              <NepaliDateFieldUncontrolled name="expiresAt" defaultValue={dayOf(editing?.expiresAt ?? null)} />
             </label>
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Most times it may be used" ne="बढीमा कति पटक चल्ने" />
-              <input name="maxUses" type="number" min="1" placeholder="100" className={inputClass} />
+              <input name="maxUses" type="number" min="1" placeholder="100" defaultValue={editing?.maxUses ?? undefined} className={inputClass} />
               <span className="text-xs font-normal text-brand-muted">
                 <T
                   en="Leave empty for unlimited. Put a limit on anything going into a TikTok."
@@ -152,7 +201,7 @@ export default async function CouponsPage({
 
             <label className="grid gap-2 text-sm font-bold text-brand-green-ink">
               <T en="Status" ne="अवस्था" />
-              <select name="status" defaultValue="Active" className={inputClass}>
+              <select name="status" defaultValue={editing && !params?.error ? editing.status : "Active"} className={inputClass}>
                 <option value="Active">Active</option>
                 <option value="Disabled">Disabled</option>
               </select>
@@ -163,6 +212,7 @@ export default async function CouponsPage({
               <input
                 name="note"
                 maxLength={240}
+                defaultValue={editing?.note ?? ""}
                 placeholder="Dashain campaign — TikTok"
                 className={inputClass}
               />
@@ -229,8 +279,8 @@ export default async function CouponsPage({
                       }`}
                     >
                       <T
-                        en={live ? "Active" : expired ? "Expired" : exhausted ? "Used up" : "Disabled"}
-                        ne={live ? "चालु" : expired ? "म्याद सकियो" : exhausted ? "सकियो" : "बन्द"}
+                        en={live ? "Active" : coupon.status === "Disabled" ? (expired ? "Off · expired" : exhausted ? "Off · used up" : "Off") : expired ? "Expired" : "Used up"}
+                        ne={live ? "चालु" : coupon.status === "Disabled" ? (expired ? "बन्द · म्याद सकियो" : exhausted ? "बन्द · सबै चल्यो" : "बन्द") : expired ? "म्याद सकियो" : "सकियो"}
                       />
                     </span>
                   </div>
@@ -274,6 +324,31 @@ export default async function CouponsPage({
                   {coupon.note ? (
                     <p className="mt-3 rounded-lg bg-brand-paper-deep px-3 py-2 text-xs text-brand-muted">{coupon.note}</p>
                   ) : null}
+
+                  {/* Off and on from the card itself (owner, 2026-10-21, the
+                      coupon sample, 1); Edit opens the form filled in. */}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <form action={switchCouponAction}>
+                      <input type="hidden" name="code" value={coupon.code} />
+                      <input type="hidden" name="to" value={coupon.status === "Active" ? "off" : "on"} />
+                      <FormSubmitButton
+                        className={`min-h-11 rounded-full px-4 text-sm font-black disabled:opacity-60 ${
+                          coupon.status === "Active"
+                            ? "border-2 border-brand-clay text-brand-clay"
+                            : "bg-brand-green text-white"
+                        }`}
+                        pendingLabel="…"
+                      >
+                        {coupon.status === "Active" ? <T en="Turn off" ne="बन्द गर्ने" /> : <T en="Turn back on" ne="फेरि चालू गर्ने" />}
+                      </FormSubmitButton>
+                    </form>
+                    <a
+                      href={`/admin/coupons?edit=${encodeURIComponent(coupon.code)}#coupon-form`}
+                      className="inline-flex min-h-11 items-center rounded-full border-2 border-brand-green px-4 text-sm font-black text-brand-green"
+                    >
+                      <T en="Edit" ne="बदल्ने" />
+                    </a>
+                  </div>
                 </article>
               );
             })}

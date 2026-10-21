@@ -15,6 +15,13 @@ import { outsideCheckStillRunning } from "@/lib/shop-watch";
 import { getCheques } from "@/lib/cheque-book";
 import { nepalDayKey } from "@/lib/dashboard-figures";
 import { tellOwnerChequesDue, tellOwnerTheDay } from "@/lib/notifications";
+import { turnOffEndedCoupons } from "@/lib/coupons";
+
+/** The night line for a code turned off, both languages. */
+const CODE_ENDED = {
+  expired: { en: "ended, turned off", ne: "म्याद सकियो, बन्द गरियो" },
+  "used up": { en: "used up, turned off", ne: "सबै पटक चल्यो, बन्द गरियो" },
+} as const;
 
 /** What a job reports: a digest's delivery status, and a line for the owner. */
 type JobResult = {
@@ -155,6 +162,20 @@ export async function GET(request: Request) {
         deliveryStatus: "sent" as const,
         summary: await tellOwnerChequesDue(await getCheques(), nepalDayKey(new Date())),
       }),
+    },
+    // A discount code past its end date, or used up, is turned off, so the
+    // record says what checkout already does (owner, 2026-10-21).
+    {
+      name: "coupon-ends",
+      run: async () => {
+        const ended = await turnOffEndedCoupons();
+        return {
+          deliveryStatus: "sent" as const,
+          summary: ended.length
+            ? ended.map((coupon) => `${coupon.code}: ${CODE_ENDED[coupon.ended].ne} · ${CODE_ENDED[coupon.ended].en} · used ${coupon.usedCount}`).join("; ")
+            : "Checked. No code had ended.",
+        };
+      },
     },
     ...(isSunday
       ? [

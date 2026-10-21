@@ -25,6 +25,7 @@ export const nightlyJobLabels: Record<string, { en: string; ne: string }> = {
   "weekly-backup": { en: "Nightly backup", ne: "रातको backup" },
   "cheque-reminders": { en: "Cheques due (phone alert)", ne: "चेकको सम्झना (फोनमा)" },
   "outside-check": { en: "Outside check (is the shop answering?)", ne: "बाहिरबाट हुने जाँच (पसल चलिरहेको छ?)" },
+  "coupon-ends": { en: "Ended discount codes turned off", ne: "सकिएका छुट code बन्द" },
   weekly: { en: "Weekly sales report", ne: "साप्ताहिक बिक्री रिपोर्ट" },
   "weekly-production": { en: "Weekly production report", ne: "साप्ताहिक उत्पादन रिपोर्ट" },
   monthly: { en: "Monthly sales report", ne: "मासिक बिक्री रिपोर्ट" },

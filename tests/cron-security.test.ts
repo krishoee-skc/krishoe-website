@@ -28,6 +28,8 @@ vi.mock("@/lib/scheduled-backup", () => ({
 vi.mock("@/lib/staff-idle", () => ({ sweepIdleStaffAccounts: vi.fn(async () => ({ closed: [], warned: [] })) }));
 vi.mock("@/lib/review-requests", () => ({ sendReviewRequests: vi.fn() }));
 vi.mock("@/lib/monitoring", () => ({ pruneOldMonitoringRows: vi.fn() }));
+// The night turns ended discount codes off (owner, 2026-10-21).
+vi.mock("@/lib/coupons", () => ({ turnOffEndedCoupons: vi.fn(async () => []) }));
 vi.mock("@/lib/shop-watch", () => ({
   outsideCheckStillRunning: vi.fn(async () => ({ deliveryStatus: "sent", outcome: "ok", summary: "test" })),
 }));
