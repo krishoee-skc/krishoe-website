@@ -15,7 +15,10 @@ describe("one top bar", () => {
   it("is 64px on a phone and 72px on a computer, sticky only on a phone", async () => {
     const layout = await read("app/admin/layout.tsx");
     expect(layout).toContain('<header data-admin-chrome className="sticky top-0 z-40');
-    expect(layout).toContain("lg:static");
+    // Scrolls away on a computer, still above the page (2026-10-21: static
+    // let the red notice cover the 🔔 list).
+    expect(layout).toContain("lg:relative lg:bg-brand-paper");
+    expect(layout).not.toContain("lg:static");
     expect(layout).toContain('className="relative flex h-16 items-center gap-2 px-3 sm:px-4 lg:h-[4.5rem]');
   });
 
