@@ -36,6 +36,7 @@ import { DateDisplayAdmin } from "@/components/DateDisplay";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { OrderDispatch } from "@/lib/order-dispatch";
+import { orderCameFromWhatsApp } from "@/lib/whatsapp-order";
 
 type OrderPosInvoiceLink = {
   id: string;
@@ -614,7 +615,10 @@ export default function OrdersClient({
                   }`}
                 >
                   <span className="flex justify-between gap-2 font-black text-brand-green-ink">
-                    <span className="truncate">{order.name}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate">{order.name}</span>
+                      {orderCameFromWhatsApp(order) ? <WhatsAppChip /> : null}
+                    </span>
                     <span className="shrink-0 tabular-nums">{money(rupees)}</span>
                   </span>
                   <span className="flex justify-between gap-2 text-xs text-brand-muted">
@@ -655,6 +659,15 @@ export default function OrdersClient({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** Marks an order typed in from WhatsApp (app/admin/orders/AddWhatsAppOrder.tsx). */
+function WhatsAppChip() {
+  return (
+    <span className="shrink-0 rounded-full bg-brand-green-wash px-2 py-0.5 text-xs font-black text-brand-green">
+      💬 WhatsApp
+    </span>
   );
 }
 
@@ -725,7 +738,10 @@ function OrderDetail({
     <article className="grid content-start gap-4 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-lg font-black text-brand-green-ink">{order.name}</p>
+          <p className="flex flex-wrap items-center gap-2 text-lg font-black text-brand-green-ink">
+            {order.name}
+            {orderCameFromWhatsApp(order) ? <WhatsAppChip /> : null}
+          </p>
           <p className="text-xs text-brand-muted">
             <span className="font-mono">{order.id}</span> · <DateDisplayAdmin date={order.createdAt} />
           </p>

@@ -48,6 +48,14 @@ import {
 import { cancelReasonToSave } from "@/lib/order-cancel-reasons";
 import type { PosQuestion } from "@/lib/pos-questions";
 import { getUserByEmail, getUserById, markUserPhoneVerified } from "@/lib/user-store";
+import { paymentOptions, validateDeliveryArea } from "@/lib/commerce";
+import { STORE_PICKUP } from "@/lib/delivery-fee";
+import { getDeliveryPricing } from "@/lib/delivery-settings";
+import { getFinishedStock } from "@/lib/operations";
+import { validateCustomerProfileInput } from "@/lib/customer-profile";
+import { parseCheckoutItems } from "@/lib/order-pricing";
+import { placeCheckoutOrder } from "@/lib/checkout-order";
+import { whatsappOrderKey } from "@/lib/whatsapp-order";
 
 export type ActionState = {
   ok: boolean;
@@ -769,4 +777,73 @@ export async function setViewingBranchAction(branchId: string): Promise<ActionSt
   revalidatePath("/admin", "layout");
 
   return { ok: true, message: chosen ? "Now showing one branch." : "Now showing all branches." };
+}
+
+/**
+ * An order that came by WhatsApp, typed in on the order desk (owner,
+ * 2026-10-21). It goes through the website's own checkout, so stock, price and
+ * delivery are worked out exactly as for an order placed online, and the
+ * form's key makes a second press of Save return the same order.
+ */
+export async function addWhatsAppOrderAction(
+  _previousState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdminPermission("orders:write");
+  const key = whatsappOrderKey(textValue(formData, "formKey"));
+  if (!key) return { ok: false, message: "This form is stale. Close it and open it again." };
+
+  const delivery = textValue(formData, "delivery");
+  const deliveryZone = textValue(formData, "deliveryZone");
+  const payment = textValue(formData, "payment");
+  const profile = validateCustomerProfileInput(
+    { name: textValue(formData, "name"), phone: textValue(formData, "phone"), address: textValue(formData, "address") },
+    { requirePhone: true, requireAddress: true },
+  );
+  if (!profile.ok) return { ok: false, message: profile.message };
+  const deliveryError = validateDeliveryArea(delivery);
+  if (deliveryError) return { ok: false, message: deliveryError };
+  if (!paymentOptions.includes(payment)) return { ok: false, message: "Choose how the customer pays." };
+
+  const items = parseCheckoutItems(textValue(formData, "items"));
+  if (items.length === 0) return { ok: false, message: "Choose at least one shoe." };
+
+  const [catalog, finishedStock, deliveryPricing] = await Promise.all([
+    getProducts(),
+    getFinishedStock(),
+    getDeliveryPricing(),
+  ]);
+  if (
+    deliveryPricing.zones?.length &&
+    delivery !== STORE_PICKUP &&
+    !deliveryPricing.zones.some((zone) => zone.id === deliveryZone)
+  ) {
+    return { ok: false, message: "Choose the delivery area." };
+  }
+
+  const placement = await placeCheckoutOrder({
+    checkoutSubmissionKey: key,
+    name: profile.profile.name,
+    phone: profile.profile.phone ?? "",
+    address: profile.profile.address ?? "",
+    delivery,
+    deliveryZone,
+    payment,
+    items,
+    submittedCode: "",
+    catalog,
+    finishedStock,
+    deliveryPricing,
+  });
+  // The checkout speaks to a shopper about "your cart"; here it is this form.
+  if (!placement.ok) return { ok: false, message: placement.message.replace(/your cart/g, "the shoes on this form") };
+
+  const order = placement.order;
+  if (!placement.replayed) {
+    await auditAdminAction("order_whatsapp_added", `Order ${order.id} added from WhatsApp for ${order.name}, ${order.total}.`);
+  }
+  revalidatePath("/admin/orders");
+  // The pairs it holds come off what the website shows as buyable.
+  revalidatePath("/", "layout");
+  return { ok: true, message: `Saved: ${order.id} · ${order.total}`, href: order.id };
 }

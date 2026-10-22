@@ -17,7 +17,8 @@ vi.mock("@/lib/product-store", () => ({
 }));
 vi.mock("@/lib/admin-permissions", () => ({ requireAdminPermission: vi.fn() }));
 vi.mock("@/lib/admin-audit", () => ({ recordAdminAuditEvent: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// unstable_cache: lib/delivery-settings.ts, which the WhatsApp order action reads.
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), unstable_cache: (run: unknown) => run }));
 
 import { deleteProductAction, upsertProductAction } from "@/app/admin/actions";
 

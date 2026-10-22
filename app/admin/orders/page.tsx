@@ -9,6 +9,12 @@ import { getOrders } from "@/lib/submissions";
 import { getOrderDispatchByIds, orderDispatchAvailable } from "@/lib/order-dispatch";
 import { reportError } from "@/lib/report-error";
 import ExportButton from "@/components/admin/ExportButton";
+import AddWhatsAppOrder from "@/app/admin/orders/AddWhatsAppOrder";
+import { paymentOptions, shippingOptions } from "@/lib/commerce";
+import { getDeliveryPricing } from "@/lib/delivery-settings";
+import { withSizeStock } from "@/lib/stock-by-size";
+import { reservedByProduct } from "@/lib/order-stock";
+import { reservedBySize, sizeHoldKey } from "@/lib/checkout-item-check";
 
 export const metadata = {
   title: "Orders | KRISHOE Admin",
@@ -18,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminOrdersPage() {
   const orders = await getOrders();
-  const [operations, paymentTransactions, posInvoices, products, dispatchReady, dispatchById] = await Promise.all([
+  const [operations, paymentTransactions, posInvoices, products, dispatchReady, dispatchById, deliveryPricing] = await Promise.all([
     getOperationsDataForReports(),
     getPaymentTransactionsByOrderIds(orders.map((order) => order.id)),
     getPosInvoices(),
@@ -30,7 +36,32 @@ export default async function AdminOrdersPage() {
       reportError("read order dispatch", error);
       return {};
     }),
+    getDeliveryPricing(),
   ]);
+  // What the WhatsApp order form can sell: the shoes on sale, with the pairs
+  // per size where the stock is kept that way (the same rule the shop uses),
+  // less what open orders hold — the number the save itself will judge by.
+  const held = reservedByProduct(orders);
+  const heldSizes = reservedBySize(orders);
+  const shoesOnSale = withSizeStock(
+    products.filter((product) => product.status === "Active"),
+    operations.finishedStock,
+  ).map((product) => ({
+    id: product.id,
+    name: product.name,
+    priceValue: product.priceValue,
+    sizes: product.sizes,
+    colors: product.colors,
+    stock: Math.max(0, product.stock - (held.get(product.id) ?? 0)),
+    sizeStock: product.sizeStock
+      ? Object.fromEntries(
+          Object.entries(product.sizeStock).map(([size, pairs]) => [
+            size,
+            Math.max(0, pairs - (heldSizes.get(sizeHoldKey(product.id, size)) ?? 0)),
+          ]),
+        )
+      : undefined,
+  }));
   const posInvoicesByOrderId = Object.fromEntries(
     orders.map((order) => {
       const invoice = posInvoices.find((item) => posInvoiceMatchesOnlineOrder(item, order.id));
@@ -71,8 +102,8 @@ export default async function AdminOrdersPage() {
 
   return (
     <section className="p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="order-1 mr-auto">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
             <T en="Online orders" ne="अनलाइन अर्डर" />
           </p>
@@ -86,7 +117,13 @@ export default async function AdminOrdersPage() {
             />
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <AddWhatsAppOrder
+          shoes={shoesOnSale}
+          deliveryOptions={shippingOptions}
+          paymentOptions={paymentOptions}
+          zones={(deliveryPricing.zones ?? []).map((zone) => ({ id: zone.id, name: zone.name }))}
+        />
+        <div className="order-3 flex flex-wrap gap-2">
           {/* Buttons, not links: a <Link> is prefetched as soon as it is on
               screen, so every visit to this page ran both exports and wrote
               them to the activity log — nine "exported" rows in a minute nobody
