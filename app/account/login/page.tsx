@@ -36,14 +36,11 @@ export default async function AccountLoginPage({ searchParams }: AccountLoginPag
       <Navbar />
       <section className="mx-auto grid max-w-7xl gap-8 px-5 py-8 md:py-16 md:px-8 lg:grid-cols-[minmax(0,520px)_1fr]">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-            <T en="KRISHOE account" ne="KRISHOE खाता" />
-          </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
-            <T en="Your saved checkout starts here." ne="तपाईंको विवरण यहीँ सुरक्षित रहन्छ।" />
+          <h1 className="text-4xl font-black tracking-tight text-brand-green-ink md:text-6xl">
+            <T en="Sign in" ne="लगइन गर्नुहोस्" />
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-brand-muted">
-            <T en="Sign in to keep delivery details ready for your next order request." ne="लगइन गर्नुहोस् — अर्को पटक ठेगाना फेरि लेख्नु पर्दैन।" />
+          <p className="mt-3 max-w-xl text-sm leading-7 text-brand-muted">
+            <T en="Your address is kept for the next order." ne="अर्को पटक ठेगाना फेरि लेख्नु पर्दैन।" />
           </p>
           {resolvedSearchParams?.reset === "success" ? (
             <p className="mt-6 rounded-lg bg-brand-green-mist p-4 text-sm font-semibold text-brand-green">

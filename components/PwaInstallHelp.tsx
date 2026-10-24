@@ -46,7 +46,9 @@ function isBuyingPage(pathname: string) {
   return pathname.startsWith("/product/")
     || pathname === "/cart"
     || pathname.startsWith("/checkout")
-    || pathname.startsWith("/order");
+    || pathname.startsWith("/order")
+    // A form to fill: the bar lay over its mobile-number box (owner, 2026-10-24).
+    || pathname.startsWith("/track-order");
 }
 
 /**

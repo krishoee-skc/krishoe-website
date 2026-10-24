@@ -113,6 +113,11 @@ export const businessContact = {
     "https://maps.app.goo.gl/gkZXYXWtKZcLVYdk9",
 };
 
+/** The shop's address opened in Google Maps — tapping it gives directions. */
+export const businessMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+  `${businessContact.streetAddress}, ${businessContact.addressLocality}, ${businessContact.addressRegion}`,
+)}`;
+
 /**
  * The social profiles that are actually configured, each with its label.
  *

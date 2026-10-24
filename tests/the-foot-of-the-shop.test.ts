@@ -199,7 +199,9 @@ describe("what the footer still has to carry", () => {
   it("keeps the address tappable as directions", async () => {
     const footer = await readFile(FOOTER, "utf8");
 
-    expect(footer).toContain("https://www.google.com/maps/search/?api=1&query=");
+    // The link is built once in lib/seo.ts since 2026-10-24, for the contact page too.
+    expect(footer).toContain("href={businessMapsUrl}");
+    expect(await readFile("lib/seo.ts", "utf8")).toContain("https://www.google.com/maps/search/?api=1&query=");
   });
 
   it("keeps phone, WhatsApp and email live", async () => {

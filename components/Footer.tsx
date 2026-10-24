@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
-import { businessContact, businessSocialProfiles } from "@/lib/seo";
+import { businessContact, businessSocialProfiles, businessMapsUrl } from "@/lib/seo";
 import T from "@/components/T";
 import FooterGroups, { type FooterGroup, type FooterLink } from "@/components/FooterGroups";
 import { ReturnIcon, StarIcon, StoreIcon, TruckIcon } from "@/components/Icons";
@@ -99,9 +99,6 @@ function HelpMark({ icon }: { icon: (typeof helpLinks)[number]["icon"] }) {
   return <StoreIcon className={className} />;
 }
 
-const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-  `${businessContact.streetAddress}, ${businessContact.addressLocality}, ${businessContact.addressRegion}`,
-)}`;
 
 /**
  * The gold ground, lifted at its dark end so deep-green type clears WCAG AA
@@ -300,7 +297,7 @@ export default async function Footer() {
             {whatsappSvg}
             WhatsApp
           </a>
-          <a href={mapsUrl} target="_blank" rel="noreferrer" className={`${quickButton} border-[1.5px] border-brand-green bg-white/70 text-brand-green`}>
+          <a href={businessMapsUrl} target="_blank" rel="noreferrer" className={`${quickButton} border-[1.5px] border-brand-green bg-white/70 text-brand-green`}>
             {pinSvg}
             <T en="Map" ne="नक्सा" />
           </a>
@@ -319,30 +316,30 @@ export default async function Footer() {
               <span className={contactMark}>{phoneSvg}</span>
               <span className="min-w-0">
                 <b className="block truncate text-[13px] font-extrabold">{businessContact.phoneDisplay}</b>
-                <span className="block truncate text-[11px]"><T en="Call the shop" ne="पसलमा फोन" /></span>
+                <span className="block truncate text-[13px]"><T en="Call the shop" ne="पसलमा फोन" /></span>
               </span>
             </a>
             <a href={`https://wa.me/${businessContact.whatsappNumber}`} target="_blank" rel="noreferrer" className={contactTile}>
               <span className={contactMark}>{whatsappSvg}</span>
               <span className="min-w-0">
                 <b className="block truncate text-[13px] font-extrabold">{businessContact.whatsappDisplay}</b>
-                <span className="block truncate text-[11px]">WhatsApp</span>
+                <span className="block truncate text-[13px]">WhatsApp</span>
               </span>
             </a>
             {/* The address opens the place in Google Maps, so tapping it gives
                 directions rather than being dead text. */}
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className={contactTile}>
+            <a href={businessMapsUrl} target="_blank" rel="noreferrer" className={contactTile}>
               <span className={contactMark}>{pinSvg}</span>
               <span className="min-w-0">
                 <b className="block truncate text-[13px] font-extrabold">{businessContact.streetAddress}</b>
-                <span className="block truncate text-[11px]"><T en="Get directions" ne="बाटो हेर्ने" /></span>
+                <span className="block truncate text-[13px]"><T en="Get directions" ne="बाटो हेर्ने" /></span>
               </span>
             </a>
             <a href={`mailto:${businessContact.email}`} className={contactTile}>
               <span className={contactMark}>{mailSvg}</span>
               <span className="min-w-0">
                 <b className="block truncate text-[13px] font-extrabold"><T en="Email us" ne="इमेल गर्नुहोस्" /></b>
-                <span className="block truncate text-[11px]">{businessContact.email}</span>
+                <span className="block truncate text-[13px]">{businessContact.email}</span>
               </span>
             </a>
           </div>
@@ -351,7 +348,7 @@ export default async function Footer() {
         {/* On a phone: where the shop is, and its socials, on one line. */}
         <div className="flex items-center justify-between gap-3 lg:hidden">
           <div className="flex min-w-0 flex-col text-xs font-semibold leading-5 text-brand-green-ink">
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className="text-xs">
+            <a href={businessMapsUrl} target="_blank" rel="noreferrer" className="text-xs">
               {businessContact.streetAddress}, {businessContact.addressLocality}
             </a>
             <a href={`mailto:${businessContact.email}`} className="truncate text-xs">{businessContact.email}</a>

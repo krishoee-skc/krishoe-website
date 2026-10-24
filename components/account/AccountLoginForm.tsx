@@ -37,13 +37,10 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
 
   return (
     <form onSubmit={handleSubmit} className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
-      <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("Customer account", "ग्राहक खाता")}</p>
-      <h2 className="mt-3 text-3xl font-black text-brand-green-ink">{text("Sign in", "लगइन गर्नुहोस्")}</h2>
-      <p className="mt-3 text-sm leading-7 text-brand-muted">
-        {text("Save checkout details and manage your KRISHOE profile.", "ठेगाना बचाउनुहोस् — अर्को पटक अर्डर छिटो हुन्छ।")}
-      </p>
-
-      <div className="mt-7 grid gap-4">
+      {/* The page says "Sign in" once, above this card; the card's own title
+          and two lines of introduction pushed the email box half a phone screen
+          down (owner, 2026-10-24). */}
+      <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-brand-green-ink">
           Email
           <input
@@ -79,6 +76,13 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
             {state.message}
           </p>
         ) : null}
+        {/* Checkout takes any shopper; an account only keeps the address. */}
+        <p className="rounded-lg bg-brand-cream-soft px-4 py-3 text-sm font-bold text-brand-gold-ink">
+          {text(
+            "No account needed to order. Pay when the pair reaches you.",
+            "अर्डर गर्न खाता चाहिँदैन। जुत्ता आइपुगेपछि पैसा तिर्नुहोस्।",
+          )}
+        </p>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold">
@@ -86,7 +90,7 @@ export default function AccountLoginForm({ nextPath = "/account" }: { nextPath?:
           href={`/account/register?next=${encodeURIComponent(nextPath)}`}
           className="text-brand-green hover:text-brand-gold-deep"
         >
-          {text("Create account", "खाता खोल्नुहोस्")}
+          {text("New here? Create an account", "नयाँ हो? खाता खोल्नुहोस्")}
         </Link>
         <a href="#password-reset" className="text-brand-muted hover:text-brand-green">
           {text("Forgot password?", "पासवर्ड बिर्सनुभयो?")}
