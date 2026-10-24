@@ -14,6 +14,7 @@ import {
   recordFailedAccountLogin,
   recordFailedLogin,
 } from "@/lib/login-rate-limit";
+import { checkAndRecordRateLimit } from "@/lib/rate-limit-store";
 import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
 import { clearAdminSessionCookie, getAdminSession, setAdminSessionCookie } from "@/lib/admin-auth";
 import {
@@ -277,6 +278,8 @@ ${link}
  * killed the one they were still holding. Safe to do from the challenge alone:
  * a live mfa_login token is proof the password was already accepted minutes ago.
  */
+const MFA_RESEND_LIMIT = { bucket: "admin:mfa-resend", maxAttempts: 3, windowMs: 15 * 60 * 1000 };
+
 export async function resendAdminMfaCodeAction(
   challengeToken: string,
   remember = false,
@@ -291,6 +294,26 @@ export async function resendAdminMfaCodeAction(
 
   if (!staff || staff.status !== "Active" || !staff.mfaEnabled) {
     return { ok: false, message: "This staff account cannot complete sign in." };
+  }
+
+  // Each new code brings five fresh tries, so unlimited resends were unlimited
+  // guesses for anyone holding the password (deep audit 13, owner 2026-10-24).
+  const resend = await checkAndRecordRateLimit({ ...MFA_RESEND_LIMIT, key: staff.id });
+  if (resend.limited) {
+    await recordAdminAuditEvent(
+      "login_mfa_resend_limited",
+      `Too many new MFA codes asked for ${staff.email}; refused for now.`,
+      "warning",
+      { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+    );
+    return {
+      ok: false,
+      message: "Three new codes were sent in the last 15 minutes. Type the newest code from your email, or wait 15 minutes.",
+      requiresMfa: true,
+      challengeToken: challengeToken.trim(),
+      emailHint: emailHint(staff.email),
+      remember,
+    };
   }
 
   const { challenge, delivery } = await issueMfaChallenge(staff.email, staff.id);

@@ -55,7 +55,11 @@ export default function AdminLoginForm({
   bootstrapLoginAllowed?: boolean;
   portal?: "admin" | "worker";
 }) {
-  const { text } = useLanguage();
+  const { text: chosen } = useLanguage();
+  // The worker door speaks Nepali whatever the phone was last set to, like the
+  // rest of the worker app (deep audit 5, owner 2026-10-24). The admin door
+  // keeps the reader's own choice.
+  const text = (english: string, nepali: string) => (portal === "worker" ? nepali : chosen(english, nepali));
   const [state, setState] = useState<LoginState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [code, setCode] = useState("");
@@ -246,7 +250,7 @@ export default function AdminLoginForm({
         {portal === "worker" ? `KRISHOE · ${text("Worker", "कामदार")}` : "KRISHOE · Admin"}
       </p>
       <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink">
-        {portal === "worker" ? "KRISHOE worker portal" : "KRISHOE Admin"}
+        {portal === "worker" ? text("KRISHOE worker portal", "KRISHOE कामदार portal") : "KRISHOE Admin"}
       </h1>
       <p className="mt-3 text-sm leading-7 text-brand-muted">
         {portal === "worker"

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getDataBackendConfig } from "@/lib/data-backend";
 import { queryPostgres } from "@/lib/postgres/client";
+import { CACHE_30S, databaseAnswers } from "@/lib/database-answer-memo";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,13 @@ export async function GET(request: NextRequest) {
   }
 
   if (deep && config.backend === "postgres") {
-    try {
+    // Remembered for 30 seconds: the check is open, and a loop of deep calls
+    // would otherwise keep the database awake (lib/database-answer-memo.ts).
+    const answers = await databaseAnswers(async () => {
       const rows = await queryPostgres<{ ok: number }>("health check", "SELECT 1 AS ok");
-      database = rows[0]?.ok === 1 ? "ready" : "unavailable";
-    } catch {
-      database = "unavailable";
-    }
+      return rows[0]?.ok === 1;
+    });
+    database = answers ? "ready" : "unavailable";
   }
 
   const ok = database !== "unavailable";
@@ -51,7 +53,8 @@ export async function GET(request: NextRequest) {
     {
       status: ok ? 200 : 503,
       headers: {
-        "Cache-Control": "no-store",
+        // A deep answer may be kept at the edge for the same 30 seconds.
+        "Cache-Control": deep ? CACHE_30S : "no-store",
       },
     },
   );

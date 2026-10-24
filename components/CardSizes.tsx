@@ -43,7 +43,7 @@ export default function CardSizes({ product }: { product: Pick<Product, "id" | "
         <span
           key={choice.size}
           aria-hidden="true"
-          className={`rounded-md border px-1 text-[11px] font-bold tabular-nums leading-4 ${
+          className={`rounded-md border px-1 text-[13px] font-bold tabular-nums leading-5 ${
             choice.soldOut
               ? "border-brand-green-line text-brand-muted line-through"
               : "border-brand-green/40 text-brand-green"
@@ -53,7 +53,7 @@ export default function CardSizes({ product }: { product: Pick<Product, "id" | "
         </span>
       ))}
       {more > 0 ? (
-        <span aria-hidden="true" className="text-[11px] font-bold text-brand-muted">
+        <span aria-hidden="true" className="text-[13px] font-bold text-brand-muted">
           +{more}
         </span>
       ) : null}

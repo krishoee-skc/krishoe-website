@@ -26,7 +26,8 @@ describe("install help", () => {
     // At 1rem it lay across the top half of the tab bar; on a product page it
     // covered the name, the price and Add. It clears the tab bar everywhere,
     // and does not appear at all on a product, the cart, checkout or an order.
-    expect(source).toContain("bottom-[calc(6.25rem+env(safe-area-inset-bottom))] lg:bottom-4");
+    // The tab bar is phone-only (md:hidden) since deep audit 8, 2026-10-24.
+    expect(source).toContain("bottom-[calc(6.25rem+env(safe-area-inset-bottom))] md:bottom-4");
     expect(source).toContain('pathname.startsWith("/product/")');
     expect(source).toContain('pathname === "/cart"');
     expect(source).toContain('pathname.startsWith("/checkout")');

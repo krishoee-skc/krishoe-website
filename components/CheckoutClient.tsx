@@ -12,6 +12,7 @@ import { submitCheckout, type FormState } from "@/app/actions";
 import type { SafeUser } from "@/lib/user-store";
 import { ArrowRightIcon, CheckIcon } from "@/components/Icons";
 import OrderSummary from "@/components/OrderSummary";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import PaymentInstructions, { type BankDetails } from "@/components/PaymentInstructions";
 import SubmitButton from "@/components/SubmitButton";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
@@ -793,38 +794,41 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
     return <CheckoutSuccess user={user} submittedOrder={submittedOrder} message={state.message} />;
   }
 
+  // Empty: the way back to the shop comes first, and the page's own
+  // "Confirm your order" heading steps aside (data-empty-checkout, read by
+  // app/checkout/page.tsx) — deep audit 12, owner 2026-10-24.
   if (cartItems.length === 0) {
     return (
-      <div className="rounded-lg border border-black/10 bg-brand-paper p-8 text-center shadow-sm md:p-10">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
-          {text("Empty checkout", "कार्ट खाली छ")}
-        </p>
-        <h2 className="mt-3 text-3xl font-black text-brand-green-ink md:text-4xl">
-          {text("Checkout needs a cart.", "अर्डर गर्न कार्टमा सामान चाहिन्छ।")}
-        </h2>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
-          {text(
-            "Add a KRISHOE pair first, then continue into checkout.",
-            "पहिले KRISHOE को एक जोडी थप्नुहोस्, अनि अर्डर अगाडि बढाउनुहोस्।",
-          )}
-        </p>
-        <div className="mx-auto mt-6 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
-          {[
-            text("Choose a pair", "जोडी छान्नुहोस्"),
-            text("Add size and color", "साइज र रङ छान्नुहोस्"),
-            text("Confirm request", "अनुरोध पुष्टि गर्नुहोस्"),
-          ].map((item, index) => (
-            <div key={item} className="rounded-lg border border-brand-green/10 bg-brand-mist px-4 py-3 text-sm font-bold text-brand-green-ink">
-              {index + 1}. {item}
-            </div>
-          ))}
+      <div data-empty-checkout className="grid gap-6">
+        <div className="rounded-lg border border-black/10 bg-brand-paper p-8 text-center shadow-sm md:p-10">
+          <h2 className="text-3xl font-black text-brand-green-ink md:text-4xl">
+            {text("Your cart is empty.", "तपाईंको कार्ट खाली छ।")}
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-brand-muted">
+            {text(
+              "Add a KRISHOE pair first, then continue into checkout.",
+              "पहिले KRISHOE को एक जोडी थप्नुहोस्, अनि अर्डर अगाडि बढाउनुहोस्।",
+            )}
+          </p>
+          <Link
+            href="/shop"
+            className="mt-5 inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
+          >
+            {text("Go to the shop", "पसलमा जाने")}
+          </Link>
+          <div className="mx-auto mt-6 grid max-w-2xl gap-2 text-left sm:grid-cols-3">
+            {[
+              text("Choose a pair", "जोडी छान्नुहोस्"),
+              text("Add size and color", "साइज र रङ छान्नुहोस्"),
+              text("Confirm request", "अनुरोध पुष्टि गर्नुहोस्"),
+            ].map((item, index) => (
+              <div key={item} className="rounded-lg border border-brand-green/10 bg-brand-mist px-4 py-3 text-sm font-bold text-brand-green-ink">
+                {index + 1}. {item}
+              </div>
+            ))}
+          </div>
         </div>
-        <Link
-          href="/shop"
-          className="mt-7 inline-flex h-12 items-center rounded-full bg-brand-green px-6 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
-        >
-          {text("Shop collection", "सङ्ग्रह हेर्नुहोस्")}
-        </Link>
+        <RecentlyViewed />
       </div>
     );
   }

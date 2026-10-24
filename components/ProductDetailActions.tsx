@@ -248,10 +248,10 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
                 : selectedSizeOut
                   ? text(`Size ${size} sold out`, `साइज ${size} सकियो`)
                   : size
-                    ? text(`Buy now · ${size}`, `अहिले किन्ने · ${size}`)
+                    ? text(`Buy now · Size ${size}`, `अहिले किन्ने · साइज ${size}`)
                     : text("Buy now", "अहिले किन्ने")}
             </span>
-            {!blockPurchase ? <span className="text-[11px] font-bold opacity-85">{product.price}</span> : null}
+            {!blockPurchase ? <span className="text-[13px] font-bold opacity-85">{product.price}</span> : null}
           </button>
           <button
             type="button"

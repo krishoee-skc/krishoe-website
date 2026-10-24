@@ -53,7 +53,7 @@ function isBuyingPage(pathname: string) {
  * Above the tab bar on a phone, where it used to overlap it: the tab bar is
  * 4.4rem tall from 0.65rem up, and the card sat at 1rem, across its top half.
  */
-const BOTTOM_OFFSET = "bottom-[calc(6.25rem+env(safe-area-inset-bottom))] lg:bottom-4";
+const BOTTOM_OFFSET = "bottom-[calc(6.25rem+env(safe-area-inset-bottom))] md:bottom-4";
 
 /** Pages seen, across visits. The offer waits for someone who is browsing. */
 const VIEWS_KEY = "krishoe-page-views";

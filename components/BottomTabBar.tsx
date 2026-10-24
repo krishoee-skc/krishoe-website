@@ -46,12 +46,14 @@ export default function BottomTabBar() {
   return (
     <>
       {/* Spacer keeps page content clear of the fixed bar (only where the bar
-          shows — it is absent on admin and on desktop). */}
-      <div className="h-[calc(5rem+env(safe-area-inset-bottom))] lg:hidden" aria-hidden />
+          shows — it is absent on admin, and from tablet width up, where the ☰
+          menu at the top already does its job: a tablet showed both — deep
+          audit 8, owner 2026-10-24). */}
+      <div className="h-[calc(5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden />
 
       <nav
         aria-label={text("Primary", "मुख्य मेनु")}
-        className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/[.88] shadow-[0_18px_55px_rgba(47,28,46,0.22)] backdrop-blur-xl transition-transform duration-200 lg:hidden ${isProduct ? "max-lg:hidden" : ""} ${keyboardOpen ? "translate-y-[150%]" : ""}`}
+        className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 rounded-[1.6rem] border border-white/80 bg-white/[.88] shadow-[0_18px_55px_rgba(47,28,46,0.22)] backdrop-blur-xl transition-transform duration-200 md:hidden ${isProduct ? "max-lg:hidden" : ""} ${keyboardOpen ? "translate-y-[150%]" : ""}`}
       >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1 p-1.5">
           <Link href="/" className={tabClass(isHome)} aria-current={isHome ? "page" : undefined}>

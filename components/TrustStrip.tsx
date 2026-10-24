@@ -61,7 +61,7 @@ export default function TrustStrip() {
             <item.Icon className="h-5 w-5" />
           </span>
           <p className="mt-1.5 text-sm font-black leading-tight text-brand-green-ink">{item.value}</p>
-          <p className="mt-0.5 text-[11px] leading-4 text-brand-muted">{item.label}</p>
+          <p className="mt-0.5 text-[13px] leading-[1.15rem] text-brand-muted">{item.label}</p>
         </li>
       ))}
     </ul>

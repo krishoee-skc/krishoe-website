@@ -105,10 +105,12 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
         <CountBadge count={wishlistCount} />
       </Link>
 
+      {/* On a phone the bottom bar has the cart, so this one showed it twice
+          (deep audit 7). A shoe's page has no bottom bar, so it keeps this. */}
       <Link
         href="/cart"
         aria-label={text("Open cart", "कार्ट खोल्ने")}
-        className="relative grid h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green"
+        className={`relative ${pathname.startsWith("/product/") ? "grid" : "hidden md:grid"} h-10 w-10 place-items-center rounded-full border border-black/[0.09] text-brand-green-ink transition duration-200 hover:border-brand-gold/60 hover:text-brand-green`}
       >
         <ShoppingCartIcon className="h-5 w-5" />
         <CountBadge count={cartCount} />

@@ -1,6 +1,7 @@
 import { currentDeploymentVersion } from "@/lib/deployment-version";
 import { queryPostgres } from "@/lib/postgres/client";
 import { NextResponse } from "next/server";
+import { CACHE_30S, databaseAnswers } from "@/lib/database-answer-memo";
 
 /**
  * Which build is serving, and whether it can reach the database.
@@ -23,18 +24,20 @@ export async function GET() {
   const checkedAt = new Date().toISOString();
   const version = currentDeploymentVersion() || "local";
 
-  try {
-    // Whether the database answers, not what it holds.
+  // Whether the database answers, not what it holds — remembered for 30
+  // seconds, so a loop of calls cannot keep it awake (lib/database-answer-memo.ts).
+  const connected = await databaseAnswers(async () => {
     await queryPostgres(STORE, "SELECT 1", []);
+    return true;
+  });
 
-    return NextResponse.json(
-      { app: "KRISHOE", version, status: "ready", checkedAt, database: { connected: true } },
-      { headers: { "Cache-Control": "no-store, max-age=0" } },
-    );
-  } catch {
-    return NextResponse.json(
-      { app: "KRISHOE", version, status: "degraded", checkedAt, database: { connected: false } },
-      { headers: { "Cache-Control": "no-store, max-age=0" } },
-    );
-  }
+  return connected
+    ? NextResponse.json(
+        { app: "KRISHOE", version, status: "ready", checkedAt, database: { connected: true } },
+        { headers: { "Cache-Control": CACHE_30S } },
+      )
+    : NextResponse.json(
+        { app: "KRISHOE", version, status: "degraded", checkedAt, database: { connected: false } },
+        { headers: { "Cache-Control": CACHE_30S } },
+      );
 }
