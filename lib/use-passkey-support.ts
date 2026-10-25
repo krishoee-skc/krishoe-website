@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
  * Whether this browser can do passkeys at all.
  *
  * False on the first render everywhere, then the real answer straight after.
- * It was read through useSyncExternalStore with a server snapshot of false,
+ * It was read through a store hook with a server snapshot of false,
  * which should have kept the first browser render equal to the server's — but
  * on the live sign-in page, when the page's script arrived early, the browser
  * drew "Let this device recognise me" while hydrating a page the server had
