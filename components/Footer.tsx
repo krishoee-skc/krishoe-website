@@ -353,14 +353,16 @@ export default async function Footer() {
         </div>
 
         {/* On a phone: where the shop is, and its socials, on one line. */}
-        <div className="flex items-center justify-between gap-3 lg:hidden">
-          <div className="flex min-w-0 flex-col text-xs font-semibold leading-5 text-brand-green-ink">
+        <div className="flex flex-wrap items-center justify-between gap-3 lg:hidden">
+          {/* Full width, so the email is never broken mid-word; the socials
+              take the line under it. */}
+          <div className="flex w-full min-w-0 flex-col items-start text-xs font-semibold leading-5 text-brand-green-ink">
             <a href={businessMapsUrl} target="_blank" rel="noreferrer" className="text-xs">
               {businessContact.streetAddress}, {businessContact.addressLocality}
             </a>
             {/* The whole address, on a 44px row (owner's phone sample 1): it was
                 cut to "skschhapal@gmail.co" on a phone. */}
-            <a href={`mailto:${businessContact.email}`} className="mt-1 inline-flex min-h-11 items-center gap-1.5 break-all rounded-xl border-[1.5px] border-brand-green-ink/60 px-2.5 text-[13px] font-bold">
+            <a href={`mailto:${businessContact.email}`} className="mt-1 inline-flex min-h-11 max-w-full items-center gap-1.5 break-all rounded-xl border-[1.5px] border-brand-green-ink/60 px-2.5 text-[13px] font-bold">
               {mailSvg}
               {businessContact.email}
             </a>

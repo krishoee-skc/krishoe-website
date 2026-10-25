@@ -19,7 +19,8 @@ describe("1 · the foot of the shop", () => {
   it("shows the whole email on a 44px row, and lets the help pills wrap", async () => {
     const footer = await read("components/Footer.tsx");
     expect(footer).not.toContain('className="truncate text-xs">{businessContact.email}');
-    expect(footer).toContain("min-h-11 items-center gap-1.5 break-all");
+    expect(footer).toContain("min-h-11 max-w-full items-center gap-1.5 break-all");
+    expect(footer).toContain("flex w-full min-w-0 flex-col items-start");
     const help = footer.slice(footer.indexOf('<nav aria-label="Help"'), footer.indexOf('<nav aria-label="Help"') + 200);
     expect(help).toContain("flex-wrap");
     expect(help).not.toContain("overflow-x-auto");

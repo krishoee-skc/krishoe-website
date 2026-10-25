@@ -127,7 +127,7 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
                 <p className="text-lg font-black text-brand-green sm:text-xl">{formatPrice(item.lineTotal)}</p>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                 <div className="flex h-11 items-center rounded-full border border-black/10">
                   <button
                     type="button"
@@ -151,7 +151,7 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
                 <button
                   type="button"
                   onClick={() => removeFromCart(item.key)}
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-black/10 px-4 text-sm font-semibold text-brand-clay transition hover:border-brand-clay"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-full border border-black/10 px-3 text-sm font-semibold text-brand-clay transition hover:border-brand-clay sm:gap-2 sm:px-4"
                 >
                   <TrashIcon className="h-4 w-4" />
                   {text("Remove", "हटाउनुहोस्")}

@@ -200,7 +200,6 @@ function CheckoutForm({
       {/* The total and the next step, held at the foot of a phone (owner's
           phone sample 2, 2026-10-24): the total was only at the end of the
           page. The tab bar steps aside on checkout; this goes while typing. */}
-      <div aria-hidden="true" className="h-20 md:hidden" />
       <div data-checkout-bar className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 rounded-2xl border border-white/80 bg-brand-paper/95 p-2 pl-4 shadow-[0_14px_40px_rgba(16,35,29,0.22)] backdrop-blur transition-transform duration-200 md:hidden ${keyboardOpen ? "translate-y-[150%]" : ""}`}>
         <span className="min-w-0 flex-1 leading-tight">
           <span className="block text-xs font-semibold text-brand-muted">{text("Total · delivery on the call", "जम्मा · डेलिभरी फोनमा")}</span>
@@ -601,6 +600,8 @@ function CheckoutForm({
             </a>
         </div>
       </div>
+      {/* Room at the foot for the held bar, so the last button is not under it. */}
+      <div aria-hidden="true" className="h-16 md:hidden" />
     </form>
   );
 }
