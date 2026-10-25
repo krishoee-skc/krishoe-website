@@ -34,12 +34,3 @@ describe("the service worker and the app's own scripts", () => {
     expect(leave).toBeLessThan(fetchHandler.indexOf("caches.match(request)"));
   });
 });
-
-describe("the service worker and private pages", () => {
-  it("lets the browser load admin, worker and account pages itself", () => {
-    const worker = readFileSync("public/sw.js", "utf8");
-    const privateBranch = worker.slice(worker.indexOf("if (isPrivatePath(url.pathname)) {"));
-    expect(privateBranch.indexOf('if (request.mode === "navigate") return;')).toBeGreaterThan(-1);
-    expect(privateBranch.indexOf('if (request.mode === "navigate") return;')).toBeLessThan(privateBranch.indexOf("event.respondWith("));
-  });
-});

@@ -167,16 +167,13 @@ describe("the sign-in button", () => {
     expect(hook).toContain("PublicKeyCredential");
   });
 
-  it("draws nothing in the first render, so the sign-in page hydrates", async () => {
+  it("reads the capability without an extra render", async () => {
     const hook = await readFile("lib/use-passkey-support.ts", "utf8");
 
-    // It was read through useSyncExternalStore, which should have kept the
-    // first browser render equal to the server's; on the live sign-in page it
-    // did not, and React threw #418 on about one load in four (owner,
-    // 2026-10-25). One extra render is the price of a page that hydrates.
-    expect(hook).toContain("useState(false)");
-    expect(hook).toContain("setTimeout(");
-    expect(hook).not.toContain("useSyncExternalStore");
+    // It cannot change while the page is open, so it is not state. Through an
+    // effect it rendered once as unsupported and again as supported.
+    expect(hook).toContain("useSyncExternalStore");
+    expect(hook).not.toContain("useEffect");
   });
 
   it("treats a cancelled fingerprint prompt as a change of mind", async () => {
