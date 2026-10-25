@@ -170,6 +170,8 @@ describe("the service worker", () => {
 
   it("was bumped, or the old worker would keep running", async () => {
     const sw = await readFile("public/sw.js", "utf8");
-    expect(sw).toContain("krishoe-shell-v3");
+    // v3 for push (2026-09); v4 when scripts were left to the browser (2026-10-25).
+    expect(sw).toMatch(/krishoe-shell-v(\d+)/);
+    expect(Number(sw.match(/krishoe-shell-v(\d+)/)?.[1])).toBeGreaterThanOrEqual(4);
   });
 });

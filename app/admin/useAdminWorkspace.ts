@@ -67,10 +67,16 @@ function storedLastPage(side: "factory" | "shop"): string | null {
 export function useAdminWorkspace(adminRole: AdminRole, pathname: string) {
   const router = useRouter();
   const pathWorkspace = workspaceForPath(pathname);
-  const [chosen, setChosen] = useState<AdminWorkspace>(() => {
-    if (pathWorkspace !== "both") return pathWorkspace;
-    return storedWorkspace() ?? "factory";
-  });
+  // The remembered side, read so that the first render matches the server's
+  // ("factory") and the browser's memory follows straight after. It was read
+  // inside useState's first value, so on a page of both sides a browser that
+  // remembered "shop" drew the shop menu while hydrating a factory one: React
+  // error #418 on Dashboard and Stock, and the whole page drawn again
+  // (owner, 2026-10-25).
+  const remembered = useShownWorkspace();
+  // A side pressed on this page. Cleared on leaving it: by then the press is
+  // in localStorage, which `remembered` reads.
+  const [picked, setPicked] = useState<AdminWorkspace | null>(null);
   const [lastPath, setLastPath] = useState(pathname);
 
   // Render-time adjustment rather than an effect: React's sanctioned pattern
@@ -78,23 +84,28 @@ export function useAdminWorkspace(adminRole: AdminRole, pathname: string) {
   // an effect.
   if (lastPath !== pathname) {
     setLastPath(pathname);
-    if (pathWorkspace !== "both" && pathWorkspace !== chosen) {
-      setChosen(pathWorkspace);
-    }
+    if (picked !== null) setPicked(null);
   }
+
+  // A side this page decides: one pressed, or the side the page belongs to.
+  // On a page of both sides nothing is decided until a press, and only a
+  // decided side is written back: writing the shown one wrote the server's
+  // "factory" over a remembered "shop" before the memory had been read.
+  const decided: AdminWorkspace | null = picked ?? (pathWorkspace !== "both" ? pathWorkspace : null);
+  const chosen: AdminWorkspace = decided ?? remembered;
 
   // The side on show, for the top bar (owner, 2026-10-14): a screen of both
   // sides — Stock, Settings — is named under the side the menu is showing,
   // as the menu sample draws Stock under 🏭 कारखाना.
   useEffect(() => {
-    if (chosen === "both") return;
+    if (decided === null || decided === "both") return;
     try {
-      window.localStorage.setItem(STORAGE_KEY, chosen);
+      window.localStorage.setItem(STORAGE_KEY, decided);
     } catch {
       // Remembering is a convenience; failing to remember is not an error.
     }
     window.dispatchEvent(new Event(SHOWN_CHANGED));
-  }, [chosen]);
+  }, [decided]);
 
   // The screen last used on each side, so coming back to a side returns to
   // the work that was left there rather than to its front door.
@@ -108,7 +119,7 @@ export function useAdminWorkspace(adminRole: AdminRole, pathname: string) {
   }, [pathWorkspace, pathname]);
 
   function chooseWorkspace(workspace: AdminWorkspace) {
-    setChosen(workspace);
+    setPicked(workspace);
     try {
       window.localStorage.setItem(STORAGE_KEY, workspace);
     } catch {

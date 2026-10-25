@@ -1,7 +1,7 @@
 // Bumped so the push and notification-click handlers below actually replace
 // the old worker; a service worker with an unchanged file is not reinstalled.
-const CACHE_NAME = "krishoe-shell-v3";
-const RUNTIME_CACHE = "krishoe-public-assets-v3";
+const CACHE_NAME = "krishoe-shell-v4";
+const RUNTIME_CACHE = "krishoe-public-assets-v4";
 const OFFLINE_URL = "/offline";
 const SHELL_ASSETS = [OFFLINE_URL];
 
@@ -23,7 +23,6 @@ function isPrivatePath(pathname) {
 
 function isPublicStaticAsset(pathname) {
   return (
-    pathname.startsWith("/_next/static/") ||
     pathname.startsWith("/images/") ||
     pathname.startsWith("/icons/") ||
     /\.(?:avif|css|gif|ico|jpe?g|png|svg|webp|woff2?)$/i.test(pathname)
@@ -93,6 +92,14 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
+
+  // The app's own scripts and styles are left to the browser, which keeps
+  // them a year (immutable, hashed names), so nothing is slower. Served from
+  // here, cache-first, they ran before the page's HTML had finished arriving,
+  // and React found a different page from the one it was building: error #418
+  // on Dashboard and Stock, and the whole page drawn a second time
+  // (owner, 2026-10-25). v4 also drops the scripts the v3 cache held.
+  if (url.pathname.startsWith("/_next/static/")) return;
 
   if (!isPublicStaticAsset(url.pathname)) {
     event.respondWith(fetch(request));
