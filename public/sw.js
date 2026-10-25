@@ -74,6 +74,11 @@ self.addEventListener("fetch", (event) => {
 
   // Authenticated, personal and API responses must never enter Cache Storage.
   if (isPrivatePath(url.pathname)) {
+    // A page of these is left to the browser altogether. Passed through here,
+    // the admin's streamed pages reached React in a different order on the
+    // live site, and the sign-in page threw error #418 on 4 of 12 first visits
+    // (owner, 2026-10-25). Nothing of them was ever cached here either way.
+    if (request.mode === "navigate") return;
     event.respondWith(
       fetch(request, { cache: "no-store" }).catch(
         () => new Response("Network connection required", { status: 503 }),
