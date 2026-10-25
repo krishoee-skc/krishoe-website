@@ -4,7 +4,7 @@ import { Inter, Fraunces, Mukta, Tiro_Devanagari_Hindi, Orbitron } from "next/fo
 import { CommerceProvider } from "@/components/commerce/CommerceProvider";
 import { StructuredData } from "@/components/commerce/StructuredData";
 import SkipToContent from "@/components/SkipToContent";
-import { themeBootScript } from "@/components/ThemeToggle";
+import { themeBootScript } from "@/lib/theme-boot";
 import VersionWatcher from "@/components/VersionWatcher";
 import LanguageProvider from "@/components/LanguageProvider";
 import StorefrontEnhancements from "@/components/StorefrontEnhancements";

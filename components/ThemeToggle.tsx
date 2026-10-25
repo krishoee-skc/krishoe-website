@@ -1,18 +1,12 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { THEME_STORAGE_KEY } from "@/lib/theme-boot";
 
 type Theme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "krishoe-theme";
-
-// Runs before the first paint, inlined in <head>. Without it the page renders
-// light, then flips to dark once React has hydrated — a white flash on every
-// navigation, which is worse at night than having no dark mode at all.
-//
-// Kept as a string because it has to be a <script>, and deliberately tiny: it
-// runs on the critical path for every page in the shop.
-export const themeBootScript = `(function(){try{var s=localStorage.getItem("${THEME_STORAGE_KEY}");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",d);}catch(e){}})();`;
+// The boot script that sets the class before the first paint is in
+// lib/theme-boot.ts — a plain module, so the root layout inlines its text.
 
 // The class on <html> is the single source of truth — the boot script sets it
 // before React exists, and the toggle writes to it. So the theme is read as an
