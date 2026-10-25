@@ -7,6 +7,7 @@ import { ReturnIcon, StarIcon, StoreIcon, TruckIcon } from "@/components/Icons";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { loadShelfCounts, shelfSlugOf } from "@/lib/shop-shelves";
 import { reportError } from "@/lib/report-error";
+import { getGatewayConfig } from "@/lib/payment-gateways";
 
 /**
  * The foot of the shop, in gold, framed.
@@ -237,6 +238,12 @@ export default async function Footer() {
   // The ways to pay that are really offered (owner's sample 9 क): "Bank" only
   // once there is an account in Settings, as the checkout already does.
   const payments = bank ? ["COD", "eSewa", "Khalti", "Bank"] : ["COD", "eSewa", "Khalti"];
+  // Which of them take money today (owner's phone sample 1, 2026-10-24): cash
+  // and a bank account do; eSewa and Khalti only once their gateway is live.
+  // The rest stay on show, marked "soon", so the promise is never bigger than
+  // the checkout.
+  const live = (method: string) =>
+    method === "eSewa" ? getGatewayConfig("esewa").liveReady : method === "Khalti" ? getGatewayConfig("khalti").liveReady : true;
 
   return (
     <footer
@@ -351,16 +358,22 @@ export default async function Footer() {
             <a href={businessMapsUrl} target="_blank" rel="noreferrer" className="text-xs">
               {businessContact.streetAddress}, {businessContact.addressLocality}
             </a>
-            <a href={`mailto:${businessContact.email}`} className="truncate text-xs">{businessContact.email}</a>
+            {/* The whole address, on a 44px row (owner's phone sample 1): it was
+                cut to "skschhapal@gmail.co" on a phone. */}
+            <a href={`mailto:${businessContact.email}`} className="mt-1 inline-flex min-h-11 items-center gap-1.5 break-all rounded-xl border-[1.5px] border-brand-green-ink/60 px-2.5 text-[13px] font-bold">
+              {mailSvg}
+              {businessContact.email}
+            </a>
           </div>
           <Socials socials={socials} size="sm" />
         </div>
       </div>
 
-      {/* Help, in one row of pills along the bottom (owner, 2026-10-02); on a
-          phone the row slides sideways. */}
+      {/* Help, in one row of pills along the bottom (owner, 2026-10-02). On a
+          phone they wrap to a second line rather than slide (owner's phone
+          sample 1, 2026-10-24): "Our Story" sat off the edge, unseen. */}
       <div className="border-t border-brand-green-ink/20 bg-white/20">
-        <nav aria-label="Help" className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2 [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+        <nav aria-label="Help" className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-2 sm:px-6">
           <span className="mr-1 hidden text-[10.5px] font-black uppercase tracking-[0.2em] text-brand-green-ink sm:inline">
             <T en="Help" ne="सहयोग" />
           </span>
@@ -368,7 +381,7 @@ export default async function Footer() {
             <Link
               key={link.href}
               href={link.href}
-              className="inline-flex min-h-9 flex-none items-center gap-1.5 rounded-full border border-brand-green/20 bg-white/50 px-3 text-[12.5px] font-bold text-brand-green-ink transition hover:border-brand-green hover:bg-white/80 active:scale-95"
+              className="inline-flex min-h-10 flex-none items-center gap-1.5 rounded-full border border-brand-green/20 bg-white/50 px-3 text-[13px] font-bold text-brand-green-ink transition hover:border-brand-green hover:bg-white/80 active:scale-95"
             >
               <HelpMark icon={link.icon} />
               <T en={link.en} ne={link.ne} />
@@ -401,10 +414,17 @@ export default async function Footer() {
               <span aria-hidden="true">🔐</span>
             </Link>
           </p>
-          <div className="flex items-center gap-2">
-            {payments.map((method) => (
-              <span key={method} className="rounded border border-white/15 bg-white/10 px-2.5 py-1 font-semibold text-white/80">{method}</span>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-white/85"><T en="We accept" ne="भुक्तानी" /></span>
+            {payments.map((method) =>
+              live(method) ? (
+                <span key={method} className="rounded border border-brand-gold-bright/60 bg-brand-green px-2.5 py-1 font-bold text-white">✓ {method}</span>
+              ) : (
+                <span key={method} className="rounded border border-dashed border-white/40 px-2.5 py-1 font-semibold text-white/85">
+                  {method} · <T en="soon" ne="छिट्टै" />
+                </span>
+              ),
+            )}
             {/* "#top" takes the reader to the top of the page, with no script. */}
             <a
               href="#top"

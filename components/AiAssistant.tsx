@@ -88,9 +88,11 @@ export default function AiAssistant() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label={text("Open KRISHOE assistant", "KRISHOE सहायक खोल्नुहोस्")}
-          className={`fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex h-12 w-12 md:bottom-5 lg:h-14 lg:w-14 ${buyingPage ? "max-lg:hidden" : ""} items-center justify-center rounded-full bg-brand-green-ink text-white shadow-xl ring-2 ring-brand-gold/60 transition hover:scale-105`}
+          // Smaller and at the very edge on a phone (owner's phone sample 9 ख,
+          // 2026-10-24): at 48px, 16px in, it sat over the cards' corners.
+          className={`fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom))] right-2 z-40 flex h-10 w-10 md:right-4 md:bottom-5 md:h-12 md:w-12 lg:h-14 lg:w-14 ${buyingPage ? "max-lg:hidden" : ""} items-center justify-center rounded-full bg-brand-green-ink text-white shadow-xl ring-2 ring-brand-gold/60 transition hover:scale-105`}
         >
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" strokeWidth="2">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

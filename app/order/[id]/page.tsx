@@ -270,7 +270,7 @@ export default async function OrderStatusPage({ params, searchParams }: OrderSta
                     {pairsToReview.map((pair) => (
                       <Link
                         key={pair.id}
-                        href={`/product/${pair.id}#reviews`}
+                        href={`/product/${pair.id}#write-review`}
                         className="inline-flex min-h-11 items-center rounded-full bg-brand-green px-5 text-sm font-bold text-white transition hover:bg-brand-gold-bright hover:text-brand-green-ink"
                       >
                         ⭐ {pair.name}

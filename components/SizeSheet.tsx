@@ -8,7 +8,8 @@ import { ShoppingBagIcon, XIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import { trackCommerceEvent } from "@/lib/analytics-events";
-import { formatPrice, type Product } from "@/lib/products";
+import { formatPrice, isStandInPhoto, type Product } from "@/lib/products";
+import { colourLabel } from "@/lib/colour-name";
 
 /** A size with this many pairs or fewer says so: "2 left". */
 const FEW_LEFT = 2;
@@ -102,7 +103,19 @@ export default function SizeSheet({ product, open, onClose, onAdded }: { product
         <span aria-hidden="true" className="mx-auto h-1 w-10 rounded-full bg-brand-green-line sm:hidden" />
         <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3">
           <span className="relative block aspect-[4/5] overflow-hidden rounded-xl bg-brand-mist">
-            <SafeImage src={live.image} alt="" fill sizes="64px" className="object-cover" />
+            {/* The same as the card (owner's phone sample 5, 2026-10-24): a shoe
+                waiting for its photo said "Photo coming soon" on the card and
+                showed another shoe's sample picture here. */}
+            {isStandInPhoto(live.image) ? (
+              <span role="img" aria-label={text("Photo coming soon", "फोटो छिट्टै")} className="absolute inset-0 grid place-items-center bg-[radial-gradient(120%_100%_at_30%_10%,#FBF4E6,#E8F2EC)] text-center">
+                <span className="grid justify-items-center gap-0.5">
+                  <span className="grid h-6 w-6 place-items-center rounded-lg bg-[linear-gradient(150deg,#e3c684,#c9a24b)] text-xs font-black text-brand-green-ink">K</span>
+                  <span className="text-xs font-bold leading-tight text-brand-muted">{text("Photo soon", "फोटो छिट्टै")}</span>
+                </span>
+              </span>
+            ) : (
+              <SafeImage src={live.image} alt="" fill sizes="64px" className="object-cover" />
+            )}
           </span>
           <div className="min-w-0">
             <p className="truncate font-display text-lg font-semibold">{live.name}</p>
@@ -168,14 +181,16 @@ export default function SizeSheet({ product, open, onClose, onAdded }: { product
                     color === item ? "border-brand-green-ink bg-brand-green-ink text-white" : "border-brand-green-line bg-brand-paper"
                   }`}
                 >
-                  {item}
+                  {colourLabel(item)}
                 </button>
               ))}
             </div>
           </div>
         ) : live.colors[0] ? (
           <p className="text-sm text-brand-muted">
-            {text("Colour", "रङ")}: <b className="text-brand-green-ink">{live.colors[0]}</b>
+            {text("Colour", "रङ")}: <b className="text-brand-green-ink">{colourLabel(live.colors[0])}</b>
+            {/* No real photo to check the colour against: say it is confirmed on the call. */}
+            {isStandInPhoto(live.image) ? text(" · we confirm it on the call", " · फोनमा पक्का गर्छौं") : null}
           </p>
         ) : null}
 

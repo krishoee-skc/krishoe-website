@@ -48,3 +48,13 @@ export function canonicalColourName(typed: string, knownColours: Iterable<string
 
   return typed.trim();
 }
+
+/**
+ * A colour as a shopper reads it: "cherry" shows as "Cherry" (owner's phone
+ * sample 3, 2026-10-24). Display only — the stored spelling is left alone,
+ * because stock and bills match colours by it.
+ */
+export function colourLabel(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  return text ? text.charAt(0).toLocaleUpperCase() + text.slice(1) : "";
+}

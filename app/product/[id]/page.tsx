@@ -249,7 +249,9 @@ export default async function ProductPage({ params }: Props) {
                 />
               </div>
 
-              <div className="mt-10 grid gap-3 border-t border-black/10 pt-6 text-sm text-brand-muted sm:grid-cols-2">
+              {/* One card of label and value, one line each (owner's phone sample
+                  6, 2026-10-24): six separate boxes took half a phone screen. */}
+              <dl className="mt-10 divide-y divide-black/5 rounded-xl border border-black/10 bg-brand-mist px-4 text-sm text-brand-muted">
                 {[
                   // Value untranslated where it is catalog data the owner typed.
                   { label: { en: "SKU", ne: "SKU" }, value: { en: product.sku, ne: product.sku } },
@@ -274,14 +276,16 @@ export default async function ProductPage({ params }: Props) {
                   },
                   { label: { en: "Stock", ne: "स्टक" }, value: stockLabel },
                 ].map((row) => (
-                  <p key={row.label.en} className="rounded-lg bg-brand-mist px-4 py-3">
-                    <span className="font-semibold text-brand-green-ink">
-                      <T en={row.label.en} ne={row.label.ne} />:
-                    </span>{" "}
-                    <T en={row.value.en} ne={row.value.ne} />
-                  </p>
+                  <div key={row.label.en} className="flex items-baseline justify-between gap-4 py-2.5">
+                    <dt className="shrink-0 font-semibold text-brand-green-ink">
+                      <T en={row.label.en} ne={row.label.ne} />
+                    </dt>
+                    <dd className="text-right">
+                      <T en={row.value.en} ne={row.value.ne} />
+                    </dd>
+                  </div>
                 ))}
-              </div>
+              </dl>
             </div>
           </div>
         </section>

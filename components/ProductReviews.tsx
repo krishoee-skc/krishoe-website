@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { StarIcon } from "@/components/Icons";
@@ -191,6 +191,13 @@ export default function ProductReviews({
 }) {
   const { text, language } = useLanguage();
   const totalReviews = reviews.length;
+  // Open from the start when there is nothing to read yet.
+  const [writeOpen, setWriteOpen] = useState(totalReviews === 0);
+  useEffect(() => {
+    if (window.location.hash !== "#write-review") return;
+    const id = window.setTimeout(() => setWriteOpen(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
 
   const averageRating =
     totalReviews > 0
@@ -226,34 +233,8 @@ export default function ProductReviews({
           </div>
         )}
 
-        {/* The form comes first, right under the rating, so the "Leave a review"
-            link at the top of the page lands straight on it — a shopper who
-            wants to write one does not read past every existing review to reach
-            the box. It is open to everyone: nothing appears in the shop until
-            KRISHOE publishes it. A signed-in buyer whose order arrived gets the
-            Verified-purchase badge; anyone else may still write, and is gently
-            offered sign-in to earn the badge. */}
-        <div className="mt-8 border-t border-black/10 pt-8">
-          <ReviewForm productId={product.id} verifiedBuyer={reviewAccess.canReview} />
-          {!reviewAccess.isLoggedIn ? (
-            <p className="mt-4 max-w-lg text-sm leading-6 text-brand-muted">
-              {text("Bought this pair? ", "यो जोडी किन्नुभयो? ")}
-              <Link
-                href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
-                className="font-bold text-brand-green underline"
-              >
-                {text("Sign in", "साइन इन")}
-              </Link>
-              {text(
-                " to add a Verified-purchase badge to your review.",
-                " गरे समीक्षामा “किनेको पुष्टि” छाप थपिन्छ।",
-              )}
-            </p>
-          ) : null}
-        </div>
-
         {totalReviews > 0 ? (
-          <p className="mt-12 text-sm font-black uppercase tracking-wide text-brand-muted">
+          <p className="mt-8 text-sm font-black uppercase tracking-wide text-brand-muted">
             {text("What buyers say", "ग्राहकहरू के भन्छन्")}
           </p>
         ) : null}
@@ -300,6 +281,45 @@ export default function ProductReviews({
                 "अझै कुनै समीक्षा छैन। पहिलो समीक्षा तपाईंले लेख्नुहोस्!",
               )}
             </p>
+          )}
+        </div>
+
+        {/* What buyers said first, then the form behind "Write a review"
+            (owner's phone sample 6, 2026-10-24): the form came first and
+            pushed the reviews down. It opens by itself when there are no
+            reviews yet, and when a link asks for it (#write-review — the
+            "review your pairs" button on a closed order). Nothing appears in
+            the shop until KRISHOE publishes it; a signed-in buyer whose order
+            arrived gets the Verified-purchase badge. */}
+        <div id="write-review" className="mt-10 scroll-mt-24 border-t border-black/10 pt-8">
+          {writeOpen ? (
+            <>
+              <ReviewForm productId={product.id} verifiedBuyer={reviewAccess.canReview} />
+              {!reviewAccess.isLoggedIn ? (
+                <p className="mt-4 max-w-lg text-sm leading-6 text-brand-muted">
+                  {text("Bought this pair? ", "यो जोडी किन्नुभयो? ")}
+                  <Link
+                    href={`/account/login?next=${encodeURIComponent(`/product/${product.id}`)}`}
+                    className="font-bold text-brand-green underline"
+                  >
+                    {text("Sign in", "साइन इन")}
+                  </Link>
+                  {text(
+                    " to add a Verified-purchase badge to your review.",
+                    " गरे समीक्षामा “किनेको पुष्टि” छाप थपिन्छ।",
+                  )}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setWriteOpen(true)}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-brand-green px-6 text-sm font-black text-brand-green transition hover:bg-brand-green hover:text-white sm:w-auto"
+            >
+              <StarIcon className="h-4 w-4" />
+              {text("Write a review", "समीक्षा लेख्ने")}
+            </button>
           )}
         </div>
       </div>

@@ -75,18 +75,21 @@ export default async function CheckoutPage() {
       <Navbar isLoggedIn={Boolean(user)} />
       <section className="group mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-16">
         {/* Hidden while the cart is empty: the empty card says so first. */}
-        <div className="mb-8 group-has-[[data-empty-checkout]]:hidden">
+        <div className="mb-4 group-has-[[data-empty-checkout]]:hidden md:mb-8">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Premium checkout" ne="प्रिमियम चेकआउट" />
           </p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-brand-green-ink md:text-6xl">
             <T en="Confirm your order." ne="आफ्नो अर्डर पक्का गर्नुहोस्।" />
           </h1>
-          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          {/* One line of ticks on a phone, the three pills from a tablet up
+              (owner's phone sample 2, 2026-10-24): three 48px pills pushed
+              the form below the first screen. */}
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 sm:mt-5 sm:grid sm:grid-cols-3 sm:gap-2">
             {trustItems.map((item) => (
               <div
                 key={item.en}
-                className="flex min-h-12 items-center gap-2 rounded-full border border-brand-green/20 bg-brand-paper px-4 text-sm font-bold text-brand-green-ink"
+                className="flex items-center gap-1 text-[0.8125rem] font-bold text-brand-green-ink sm:min-h-12 sm:gap-2 sm:rounded-full sm:border sm:border-brand-green/20 sm:bg-brand-paper sm:px-4 sm:text-sm"
               >
                 <CheckIcon className="h-4 w-4 shrink-0 text-brand-green" />
                 <T en={item.en} ne={item.ne} />

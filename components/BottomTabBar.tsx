@@ -20,7 +20,9 @@ export default function BottomTabBar() {
   const { text } = useLanguage();
   const keyboardOpen = useKeyboardOpen();
 
-  if (pathname.startsWith("/admin")) {
+  // Checkout holds its own bar at the foot — the total and the next step
+  // (owner's phone sample 2, 2026-10-24) — so the tabs step aside there.
+  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) {
     return null;
   }
 

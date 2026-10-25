@@ -13,6 +13,7 @@ import type { SafeUser } from "@/lib/user-store";
 import { ArrowRightIcon, CheckIcon } from "@/components/Icons";
 import OrderSummary from "@/components/OrderSummary";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import OtherPairs from "@/components/OtherPairs";
 import PaymentInstructions, { type BankDetails } from "@/components/PaymentInstructions";
 import SubmitButton from "@/components/SubmitButton";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
@@ -20,6 +21,8 @@ import { rememberCheckoutAttemptAction } from "@/app/checkout/actions";
 import { previewCouponAction, type CouponPreview } from "@/app/coupon-actions";
 import { trackCommerceEvent } from "@/lib/analytics-events";
 import { shopHours } from "@/lib/shop-hours";
+import { useKeyboardOpen } from "@/lib/use-keyboard-open";
+import { colourLabel } from "@/lib/colour-name";
 import {
   deliveryChargeFor,
   STORE_PICKUP,
@@ -140,6 +143,7 @@ function CheckoutForm({
   // away — so the order the server receives is the same as before.
   const steps = [text("Delivery", "डेलिभरी"), text("Payment", "भुक्तानी")];
   const [step, setStep] = useState<1 | 2>(1);
+  const keyboardOpen = useKeyboardOpen();
   const [details, setDetails] = useState({ name: "", phone: "", address: "" });
   const formRef = useRef<HTMLFormElement>(null);
   const detailsRef = useRef<HTMLDivElement>(null);
@@ -193,6 +197,25 @@ function CheckoutForm({
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
+      {/* The total and the next step, held at the foot of a phone (owner's
+          phone sample 2, 2026-10-24): the total was only at the end of the
+          page. The tab bar steps aside on checkout; this goes while typing. */}
+      <div aria-hidden="true" className="h-20 md:hidden" />
+      <div data-checkout-bar className={`fixed inset-x-3 bottom-[calc(0.65rem+env(safe-area-inset-bottom))] z-40 flex items-center gap-3 rounded-2xl border border-white/80 bg-brand-paper/95 p-2 pl-4 shadow-[0_14px_40px_rgba(16,35,29,0.22)] backdrop-blur transition-transform duration-200 md:hidden ${keyboardOpen ? "translate-y-[150%]" : ""}`}>
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block text-xs font-semibold text-brand-muted">{text("Total · delivery on the call", "जम्मा · डेलिभरी फोनमा")}</span>
+          <span className="block text-lg font-black tabular-nums text-brand-green-ink">{estimatedTotalLabel}</span>
+        </span>
+        {step === 1 ? (
+          <button type="button" onClick={goToPayment} className="inline-flex h-12 shrink-0 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white">
+            {text("Continue →", "अगाडि →")}
+          </button>
+        ) : (
+          <button type="submit" disabled={isPending || stockShortfalls.length > 0} className="inline-flex h-12 shrink-0 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white disabled:opacity-60">
+            {isPending ? text("Sending…", "पठाइँदै…") : text("Send order", "अर्डर पठाउने")}
+          </button>
+        )}
+      </div>
       <div className="rounded-lg border border-black/10 bg-brand-paper p-6 shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
         <input type="hidden" name="order" value={orderItemsForDb} />
         <input type="hidden" name="total" value={subtotalLabel} />
@@ -229,24 +252,6 @@ function CheckoutForm({
               </li>
             ))}
           </ol>
-        </div>
-
-        <div
-          className={`mt-5 rounded-lg border p-4 text-sm font-semibold ${
-            user
-              ? "border-brand-green/20 bg-brand-green-mist text-brand-green"
-              : "border-brand-gold-bright/40 bg-brand-cream-soft text-brand-gold-ink"
-          }`}
-        >
-          {user
-            ? text(
-                "Signed in. Saved details are filled where available.",
-                "साइन इन हुनुभएको छ। सुरक्षित विवरण आफै भरिएको छ।",
-              )
-            : text(
-                "Sign in or create an account after ordering to save details for next time.",
-                "अर्डरपछि खाता बनाउनुहोस् — अर्को पटक विवरण आफै भरिन्छ।",
-              )}
         </div>
 
         {/* Step 1: who and where. */}
@@ -408,10 +413,30 @@ function CheckoutForm({
             </div>
           </div>
 
+          {/* Under the boxes rather than over them (owner's phone sample 2,
+              2026-10-24): above, it pushed the first box below the fold. */}
+          <div
+            className={`mt-6 rounded-lg border p-3 text-sm font-semibold ${
+              user
+                ? "border-brand-green/20 bg-brand-green-mist text-brand-green"
+                : "border-brand-gold-bright/40 bg-brand-cream-soft text-brand-gold-ink"
+            }`}
+          >
+            {user
+              ? text(
+                  "Signed in. Saved details are filled where available.",
+                  "साइन इन हुनुभएको छ। सुरक्षित विवरण आफै भरिएको छ।",
+                )
+              : text(
+                  "Sign in or create an account after ordering to save details for next time.",
+                  "अर्डरपछि खाता बनाउनुहोस् — अर्को पटक विवरण आफै भरिन्छ।",
+                )}
+          </div>
+
           <button
             type="button"
             onClick={goToPayment}
-            className="mt-8 inline-flex h-14 w-full items-center justify-center rounded-full bg-brand-green px-6 text-base font-black text-white transition hover:bg-brand-green-ink"
+            className="mt-4 inline-flex h-14 w-full items-center justify-center rounded-full bg-brand-green px-6 text-base font-black text-white transition hover:bg-brand-green-ink"
           >
             {text("Continue to payment →", "भुक्तानीतिर जाने →")}
           </button>
@@ -681,7 +706,7 @@ type CheckoutClientProps = {
 
 export default function CheckoutClient({ user = null, bank, deliveryPricing }: CheckoutClientProps) {
   const { text } = useLanguage();
-  const { cartItems, subtotal, subtotalLabel, clearCart, stockShortfalls } = useCommerce();
+  const { cartItems, subtotal, subtotalLabel, clearCart, stockShortfalls, products } = useCommerce();
   const [state, setState] = useState<FormState>(initialState);
   const [isPending, setIsPending] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(null);
@@ -828,13 +853,31 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
             ))}
           </div>
         </div>
+        {/* The shoes themselves, for someone who has not looked at any yet
+            (owner's phone sample 7, 2026-10-24). */}
+        <OtherPairs products={products} exclude={[]} title={text("Pick a pair", "जोडी छान्नुहोस्")} />
         <RecentlyViewed />
       </div>
     );
   }
 
+  const pairs = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const first = cartItems[0];
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
+      {/* The shoe and the total first, on a phone (owner's phone sample 2,
+          2026-10-24): they were only at the very end, under the form. */}
+      <a href="#order-review" data-checkout-strip className="flex items-center gap-3 rounded-2xl bg-brand-green-ink p-3 text-white shadow-md lg:hidden">
+        <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white/10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={first.image} alt="" className="h-full w-full object-cover" />
+        </span>
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block truncate text-sm font-black">{first.name}{cartItems.length > 1 ? text(` + ${cartItems.length - 1} more`, ` + ${cartItems.length - 1} अरू`) : ""}</span>
+          <span className="block text-xs text-white/80">{first.size} · {colourLabel(first.color)} · {text(`${pairs} pair${pairs === 1 ? "" : "s"}`, `${pairs} जोडी`)} · {text("see order ↓", "अर्डर हेर्ने ↓")}</span>
+        </span>
+        <span className="shrink-0 text-lg font-black tabular-nums text-brand-gold-bright">{estimatedTotalLabel}</span>
+      </a>
       <div className="space-y-8">
         <CheckoutForm
           user={user}
@@ -859,11 +902,13 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
         />
         <PaymentInstructions bank={bank} />
       </div>
-      <OrderSummary
-        discountPaisa={discountPaisa}
-        deliveryCharge={deliveryCharge}
-        totalLabel={estimatedTotalLabel}
-      />
+      <div id="order-review" className="scroll-mt-4">
+        <OrderSummary
+          discountPaisa={discountPaisa}
+          deliveryCharge={deliveryCharge}
+          totalLabel={estimatedTotalLabel}
+        />
+      </div>
     </div>
   );
 }

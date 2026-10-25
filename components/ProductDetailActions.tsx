@@ -160,7 +160,10 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
             type="button"
             onClick={addSelectedItem}
             disabled={blockPurchase}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border-2 border-brand-green bg-transparent px-6 text-sm font-bold text-brand-green transition hover:bg-brand-green hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
+            // A row of its own on a phone (owner's phone sample 4, 2026-10-24):
+            // squeezed between −/+ and ♡ it broke into "Add / to / cart" and
+            // spilled out of its outline.
+            className="order-last inline-flex h-12 basis-full items-center justify-center gap-2 whitespace-nowrap rounded-full border-2 border-brand-green bg-transparent px-6 text-sm font-bold text-brand-green sm:order-none sm:basis-0 sm:flex-1 transition hover:bg-brand-green hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
           >
             <ShoppingBagIcon className="h-4 w-4" />
             {outOfStock
@@ -178,7 +181,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
                 : text("Add to wishlist", "मनपर्नेमा राख्नुहोस्")
             }
             onClick={() => toggleWishlist(product.id)}
-            className={`grid h-12 w-12 place-items-center rounded-full border transition ${
+            className={`ml-auto grid h-12 w-12 place-items-center rounded-full border transition sm:ml-0 ${
               wished
                 ? "border-brand-gold-bright bg-brand-cream text-brand-gold-dark"
                 : "border-black/10 text-brand-green hover:border-brand-green"

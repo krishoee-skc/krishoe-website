@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/products";
+import OtherPairs from "@/components/OtherPairs";
+import { colourLabel } from "@/lib/colour-name";
 import { describeStockShortfalls } from "@/lib/order-stock";
 import { MinusIcon, PlusIcon, TrashIcon } from "@/components/Icons";
 import { useCommerce } from "@/components/commerce/CommerceProvider";
@@ -34,11 +36,11 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
 
   if (cartItems.length === 0) {
     return (
-      <div className="rounded-lg border border-black/10 bg-brand-paper p-10 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)]">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-5 text-center shadow-[0_24px_70px_rgba(16,35,29,0.08)] sm:p-10">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">
           {text("Your cart", "तपाईंको कार्ट")}
         </p>
-        <h2 className="mt-3 text-4xl font-black text-brand-green-ink">
+        <h2 className="mt-3 text-2xl font-black text-brand-green-ink sm:text-4xl">
           {text("Cart is waiting for a good pair.", "कार्टले राम्रो जोडी पर्खिरहेको छ।")}
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-brand-muted">
@@ -53,6 +55,7 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
         >
           {text("Browse collection", "सङ्ग्रह हेर्नुहोस्")}
         </Link>
+        <OtherPairs products={products} exclude={[]} title={text("Pick a pair", "जोडी छान्नुहोस्")} />
       </div>
     );
   }
@@ -61,15 +64,15 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-4">
         {cartItems.map((item) => (
-          <article key={item.key} className="krishoe-rise grid gap-5 rounded-lg border border-black/10 bg-brand-paper p-4 shadow-sm sm:grid-cols-[140px_1fr]">
-            <Link href={`/product/${item.productId}`} className="relative aspect-square overflow-hidden rounded-lg bg-brand-mist">
+          <article key={item.key} className="krishoe-rise grid grid-cols-[68px_minmax(0,1fr)] gap-3 rounded-lg border border-black/10 bg-brand-paper p-3 shadow-sm sm:grid-cols-[140px_1fr] sm:gap-5 sm:p-4">
+            <Link href={`/product/${item.productId}`} className="relative aspect-square self-start overflow-hidden rounded-lg bg-brand-mist">
               <Image src={item.image} alt={item.name} fill sizes="140px" className="object-cover" />
             </Link>
-            <div className="flex flex-col justify-between gap-5">
+            <div className="flex min-w-0 flex-col justify-between gap-3 sm:gap-5">
               <div className="flex flex-col justify-between gap-3 sm:flex-row">
                 <div>
                   <Link href={`/product/${item.productId}`}>
-                    <h2 className="text-xl font-black text-brand-green-ink hover:text-brand-green">{item.name}</h2>
+                    <h2 className="text-lg font-black text-brand-green-ink hover:text-brand-green sm:text-xl">{item.name}</h2>
                   </Link>
                   {/* The size can be changed right here (owner, 2026-10-02): a
                       pair added in the wrong size used to mean removing it and
@@ -101,7 +104,7 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
                             {text("Size", "साइज")} {item.size}
                           </span>
                         )}
-                        <span>/ {item.color}</span>
+                        <span>/ {colourLabel(item.color)}</span>
                         {moved && moved.productId === item.productId && moved.color === item.color && moved.size === item.size ? (
                           <span role="status" className="font-bold text-brand-green">
                             {text(`Size changed to ${item.size}`, `साइज ${item.size} मा फेरियो`)}
@@ -121,7 +124,7 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
                     </p>
                   ) : null}
                 </div>
-                <p className="text-xl font-black text-brand-green">{formatPrice(item.lineTotal)}</p>
+                <p className="text-lg font-black text-brand-green sm:text-xl">{formatPrice(item.lineTotal)}</p>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -157,6 +160,7 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
             </div>
           </article>
         ))}
+        <OtherPairs products={products} exclude={cartItems.map((item) => item.productId)} title={text("Add another pair", "अर्को जोडी थप्ने")} />
       </div>
 
       <aside className="h-fit rounded-lg border border-black/10 bg-brand-green-ink p-6 text-white shadow-[0_24px_70px_rgba(16,35,29,0.20)]">
@@ -230,6 +234,25 @@ export default function CartClient({ freeOverPaisa = 0 }: { freeOverPaisa?: numb
           {text("Keep shopping", "किनमेल जारी राख्नुहोस्")}
         </Link>
       </aside>
+
+      {/* The total and Checkout, held above the tab bar on a phone (owner's
+          phone sample 3, 2026-10-24): with a pair or two in the cart they sat
+          below the fold. The summary beside the lines stays as it is. */}
+      {canCheckout ? (
+        <>
+          <div aria-hidden="true" className="h-20 md:hidden" />
+          <div data-cart-bar className="fixed inset-x-3 bottom-[calc(5.9rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-3 rounded-2xl border border-white/80 bg-brand-paper/95 p-2 pl-4 shadow-[0_14px_40px_rgba(16,35,29,0.22)] backdrop-blur md:hidden">
+            <span className="min-w-0 flex-1 leading-tight">
+              <span className="block text-xs font-semibold text-brand-muted">{text("Estimated total", "अनुमानित कुल")}</span>
+              <span className="block text-lg font-black tabular-nums text-brand-green-ink">{subtotalLabel}</span>
+            </span>
+            <Link href="/checkout" className="inline-flex h-12 shrink-0 items-center rounded-full bg-brand-green px-5 text-sm font-black text-white">
+              {text("Checkout →", "अर्डर गर्ने →")}
+            </Link>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
+

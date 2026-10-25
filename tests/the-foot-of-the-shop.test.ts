@@ -224,7 +224,10 @@ describe("the foot of the shop tells the truth (owner's sample 9, 2026-10-14)", 
   it("shows Bank only once there is an account, and only the shelves with shoes", async () => {
     const footer = await readFile(FOOTER, "utf8");
     expect(footer).toContain('const payments = bank ? ["COD", "eSewa", "Khalti", "Bank"] : ["COD", "eSewa", "Khalti"];');
-    expect(footer).toContain("{payments.map((method) => (");
+    expect(footer).toContain("{payments.map((method) =>");
+    // What is not live yet stays on show, marked "soon" (owner's phone sample 1, 2026-10-24).
+    expect(footer).toContain('method === "eSewa" ? getGatewayConfig("esewa").liveReady');
+    expect(footer).toContain('<T en="soon" ne="छिट्टै" />');
     const { shelfCounts, shelfSlugOf } = await import("@/lib/shop-shelves");
     expect(shelfSlugOf("/shop/ladies-sandals")).toBe("ladies-sandals");
     expect(shelfSlugOf("/wholesale")).toBe("");
