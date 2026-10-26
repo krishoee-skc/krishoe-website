@@ -318,6 +318,34 @@ export default async function AdminPosPage({
       });
     }
   }
+  // Pairs each shoe sold at the counter in the last 30 days, so the shelf can
+  // put what sells first (owner, from the app audit, 2026-10-27).
+  const monthAgo = new Date().getTime() - 30 * 86_400_000;
+  const soldRecently = new Map<string, number>();
+  // And each phone's history, for the line under the phone box: how many
+  // bills, and the last shoe taken.
+  const customerHistory: Record<string, { bills: number; lastDesign: string; lastAt: string }> = {};
+  for (const invoice of pos.invoices) {
+    if (invoice.status === "Voided" || invoice.kind !== "Sale") continue;
+    if (Date.parse(invoice.createdAt) >= monthAgo) {
+      for (const item of invoice.items) {
+        soldRecently.set(item.design, (soldRecently.get(item.design) ?? 0) + (Number(item.quantity) || 0));
+      }
+    }
+    const phoneKey = String(invoice.phone ?? "").replace(/[^0-9]/g, "").slice(-10);
+    if (phoneKey.length < 7) continue;
+    const known = customerHistory[phoneKey];
+    const lastDesign = invoice.items[0]?.design ?? "";
+    if (!known) customerHistory[phoneKey] = { bills: 1, lastDesign, lastAt: invoice.createdAt };
+    else {
+      known.bills += 1;
+      if (invoice.createdAt > known.lastAt) {
+        known.lastAt = invoice.createdAt;
+        known.lastDesign = lastDesign;
+      }
+    }
+  }
+  for (const item of sellableByDesign.values()) item.soldRecently = soldRecently.get(item.design) ?? 0;
   const catalog = [...sellableByDesign.values()].sort(
     (a, b) => b.stock - a.stock || a.design.localeCompare(b.design),
   );
@@ -463,6 +491,7 @@ export default async function AdminPosPage({
           }))}
           catalog={catalog}
           knownCustomers={knownCustomers}
+          customerHistory={customerHistory}
           counterReady={counterReady}
           isOwner={isOwner}
           lastBill={lastBill}

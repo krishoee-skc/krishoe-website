@@ -117,7 +117,9 @@ export default function PosProductPicker({
     return matching.sort((a, b) => {
       const aLeft = pairsLeft(a, cart) > 0 ? 0 : 1;
       const bLeft = pairsLeft(b, cart) > 0 ? 0 : 1;
-      return aLeft - bLeft || a.design.localeCompare(b.design);
+      // What sells most this month next, so the shoe asked for daily is at
+      // the top (owner, from the app audit, 2026-10-27).
+      return aLeft - bLeft || (b.soldRecently ?? 0) - (a.soldRecently ?? 0) || a.design.localeCompare(b.design);
     });
   }, [catalog, category, query, cart, returning, sizeQuery]);
   const foldSoldOut = !returning && !query.trim();
@@ -191,7 +193,8 @@ export default function PosProductPicker({
 
         {sizeButtons.length > 0 ? (
           <div
-            className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]"
+            // Wrapping on a computer, where the row was cut at the edge ("4…").
+            className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible"
             role="group"
             aria-label={text("Size", "साइज")}
           >
@@ -280,9 +283,12 @@ export default function PosProductPicker({
                       : "border-brand-green-line bg-brand-paper hover:border-brand-green"
                 }`}
               >
-                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-brand-paper-deep">
+                {/* A bigger photo and the whole name, on two lines if it
+                    needs them (audit, 2026-10-27): "Signature L…" was read as
+                    a guess. Still a list, as the owner chose (2026-10-04). */}
+                <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-brand-paper-deep">
                   {item.image && !hasNoPhoto(item.image) ? (
-                    <SafeImage src={item.image} alt="" fill sizes="44px" className="object-cover" />
+                    <SafeImage src={item.image} alt="" fill sizes="56px" className="object-cover" />
                   ) : (
                     <span className="grid h-full place-items-center text-lg text-brand-green-line" aria-hidden="true">
                       👟
@@ -290,7 +296,7 @@ export default function PosProductPicker({
                   )}
                 </span>
                 <span className="min-w-0 flex-1 leading-tight">
-                  <span className="block truncate text-base font-black text-brand-green-ink">{item.design}</span>
+                  <span className="line-clamp-2 block break-words text-base font-black text-brand-green-ink">{item.design}</span>
                   <span className="block truncate text-sm font-medium text-brand-muted">
                     {item.sku ? <span className="font-mono">{item.sku}</span> : null}
                     {index === 0 && query.trim() ? (

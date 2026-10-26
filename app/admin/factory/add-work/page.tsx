@@ -14,6 +14,8 @@ import { colourKey } from "@/lib/colour-name";
 import { sizeRunKey } from "@/lib/shoe-sizes";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
+import { getAdminSession } from "@/lib/admin-auth";
+import { getSessionAdminRole } from "@/lib/admin-role-permissions";
 
 export const metadata: Metadata = {
   title: "Add work | KRISHOE Admin",
@@ -174,7 +176,10 @@ async function loadEntryScreen(): Promise<Loaded> {
 }
 
 export default async function FactoryAddWorkPage() {
-  const loaded = await loadEntryScreen();
+  const [loaded, session] = await Promise.all([loadEntryScreen(), getAdminSession()]);
+  // Fixing or taking back a saved entry changes a wage: the owner only, the
+  // same rule as the piece ledger's ✏️.
+  const canFix = Boolean(session) && getSessionAdminRole(session!) === "Owner";
 
   if (!loaded.workers) {
     return (
@@ -191,6 +196,7 @@ export default async function FactoryAddWorkPage() {
       initialWorkers={loaded.workers}
       initialItems={loaded.items}
       initialRates={loaded.rates}
+      canFix={canFix}
     />
   );
 }

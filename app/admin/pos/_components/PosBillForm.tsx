@@ -60,6 +60,8 @@ type PosBillFormProps = {
   catalog: SellableItem[];
   /** Customers already billed or given an account, for "is it one of these?". */
   knownCustomers?: KnownCustomer[];
+  /** By the last ten digits of a phone: bills, and the last shoe taken. */
+  customerHistory?: Record<string, { bills: number; lastDesign: string; lastAt: string }>;
   /** Whether the database takes goods added from the counter (Owner's Settings button). */
   counterReady?: boolean;
   /** Only the Owner is sent to Settings to prepare it. */
@@ -215,6 +217,7 @@ export default function PosBillForm({
   ledgers,
   catalog: serverCatalog,
   knownCustomers = [],
+  customerHistory = {},
   counterReady = false,
   isOwner = false,
   lastBill,
@@ -425,6 +428,10 @@ export default function PosBillForm({
   // reads like the one typed, and whoever an earlier bill gave this phone.
   const nameSuggestions = customerSuggestions(customerName, phone, knownCustomers);
   const phoneCustomer = !customerName.trim() && !phoneAccount ? customerForPhone(phone, knownCustomers) : null;
+  // This phone's bills before, once ten digits are in (owner, from the app
+  // audit, 2026-10-27): how often, and what they took last.
+  const phoneDigits = phone.replace(/[^0-9]/g, "");
+  const phoneHistory = phoneDigits.length >= 10 ? customerHistory[phoneDigits.slice(-10)] ?? null : null;
   const accountId = ledgerId || phoneAccount?.id || "";
   const account = ledgerOptions.find((ledger) => ledger.id === accountId);
 
@@ -1529,6 +1536,14 @@ export default function PosBillForm({
               {phoneWarning ? (
                 <p className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-deep">
                   ⚠ {text(phoneWarning.en, phoneWarning.ne)}
+                </p>
+              ) : null}
+              {phoneHistory ? (
+                <p className="rounded-xl bg-brand-green-wash px-3 py-2 text-sm text-brand-green-ink">
+                  {text(
+                    `Bought ${phoneHistory.bills} ${phoneHistory.bills === 1 ? "time" : "times"} before${phoneHistory.lastDesign ? ` · last: ${phoneHistory.lastDesign}` : ""}`,
+                    `पहिले ${phoneHistory.bills} पटक किनेको${phoneHistory.lastDesign ? ` · पछिल्लो: ${phoneHistory.lastDesign}` : ""}`,
+                  )}
                 </p>
               ) : null}
               {phoneCustomer ? (

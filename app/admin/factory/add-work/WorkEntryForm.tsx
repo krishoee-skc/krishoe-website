@@ -90,10 +90,13 @@ export default function WorkEntryForm({
   initialWorkers,
   initialItems,
   initialRates,
+  canFix = false,
 }: {
   initialWorkers: Worker[];
   initialItems: Item[];
   initialRates: FactoryRate[];
+  /** The owner may fix or take back a saved entry from the day's list. */
+  canFix?: boolean;
 }) {
   const { text, language } = useLanguage();
   const toast = useToast();
@@ -265,15 +268,37 @@ export default function WorkEntryForm({
     );
   };
 
-  const handleWorkerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const workerId = e.target.value;
+  const handleWorkerChange = (e: React.ChangeEvent<HTMLSelectElement>) => chooseWorker(e.target.value);
+
+  /** One worker chosen, from the list or from a quick button. */
+  function chooseWorker(workerId: string) {
     // Default the stage to the chosen worker's category — the common case — but
     // leave it changeable, since fiber silai can be done by an Upper man too.
     const worker = workers.find((w) => w.id === workerId);
     const stage = worker?.category ?? "";
     setFormData((prev) => ({ ...prev, worker_id: workerId, stage }));
     applyQuote(workerId, formData.item_id, stage, formData.pairs_count);
-  };
+  }
+
+  // The workers to offer as one-tap buttons over the list (owner, from the app
+  // audit, 2026-10-27): whoever has work on the day already, newest first,
+  // then the rest of the team, six in all. The list stays for everyone.
+  const quickWorkers = (() => {
+    const seen = new Set<string>();
+    const order: string[] = [];
+    for (const entry of [...(dayEntries ?? [])].reverse()) {
+      if (entry.status === "reversed" || seen.has(entry.worker_id)) continue;
+      seen.add(entry.worker_id);
+      order.push(entry.worker_id);
+    }
+    for (const worker of workers) {
+      if (!seen.has(worker.id)) order.push(worker.id);
+    }
+    return order
+      .map((id) => workers.find((worker) => worker.id === id))
+      .filter((worker): worker is Worker => Boolean(worker))
+      .slice(0, 6);
+  })();
 
   const handleStageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const stage = e.target.value;
@@ -1055,6 +1080,29 @@ export default function WorkEntryForm({
             {/* Worker */}
             <div className="min-w-0">
               <label htmlFor="work-worker" className={LABEL}>👤 {text("Worker", "कामदार")}</label>
+              {quickWorkers.length > 1 ? (
+                <div className="mb-1.5 flex flex-wrap gap-1" role="group" aria-label={text("Quick pick", "छिटो छान्ने")}>
+                  {quickWorkers.map((worker) => (
+                    <button
+                      key={worker.id}
+                      type="button"
+                      tabIndex={-1}
+                      aria-pressed={formData.worker_id === worker.id}
+                      onClick={() => {
+                        chooseWorker(worker.id);
+                        pendingFocus.current = "stage";
+                      }}
+                      className={`min-h-11 max-w-[10rem] truncate rounded-full border px-3 text-sm font-bold transition ${
+                        formData.worker_id === worker.id
+                          ? "border-brand-green bg-brand-green text-white"
+                          : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
+                      }`}
+                    >
+                      {worker.name}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <select
                 id="work-worker"
                 ref={(element) => {
@@ -1252,6 +1300,9 @@ export default function WorkEntryForm({
                     <button
                       key={chip.key}
                       type="button"
+                      // Tab goes box to box; the chips are for a finger or the
+                      // mouse, and the box takes "cr" for Cream (audit, 2026-10-27).
+                      tabIndex={-1}
                       onClick={() => {
                         setFormData((prev) => ({ ...prev, color: chip.value }));
                         // On to Size, so the next Enter carries on down the
@@ -1304,6 +1355,7 @@ export default function WorkEntryForm({
                     <button
                       key={`${chip.star ? "star" : "run"}:${sizeRunKey(chip.value)}`}
                       type="button"
+                      tabIndex={-1}
                       onClick={() => {
                         setFormData((prev) => ({ ...prev, size: chip.value }));
                         // A whole run is the size: on to Rejected. With the
@@ -1334,6 +1386,7 @@ export default function WorkEntryForm({
                       <button
                         key={size}
                         type="button"
+                        tabIndex={-1}
                         onClick={() => setFormData((prev) => ({ ...prev, size: toggleSize(prev.size, size) }))}
                         className={`press-dip grid h-11 min-w-11 place-items-center rounded-md border px-1 text-sm font-black transition ${
                           active
@@ -1526,6 +1579,10 @@ export default function WorkEntryForm({
           }
           looksLikeForm={looksLikeForm}
           fresh={savedCard && !savedCard.pending ? { workerId: savedCard.workerId, pairs: Number(savedCard.pairs) } : null}
+          canFix={canFix}
+          workers={workers.map((worker) => ({ id: worker.id, name: worker.name }))}
+          items={items.map((item) => ({ id: item.id, name: item.name }))}
+          onChanged={() => void loadDay(formData.date)}
         />
       </div>
 

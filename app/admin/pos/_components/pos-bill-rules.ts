@@ -51,6 +51,8 @@ export type SellableItem = {
   colors?: string[];
   /** What one pair cost the shop; 0 when costing has no figure for it. */
   costPerPair?: number;
+  /** Pairs of it sold at the counter in the last 30 days, for "sells most first". */
+  soldRecently?: number;
   /** The fewest pairs of this shoe a wholesale bill may carry (1 = no minimum). */
   minWholesaleQty?: number;
 };

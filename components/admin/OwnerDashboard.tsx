@@ -364,6 +364,15 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
                 <kbd className="hidden rounded border border-brand-green-line px-1 text-xs font-bold text-brand-muted sm:inline">{action.key}</kbd>
               </Link>
             ))}
+            {/* The week against the week before, in one place: bills, pairs
+                made, purchases, online orders, stock in and out (owner, from
+                the app audit, 2026-10-27). The report already counts them. */}
+            <Link
+              href="/admin/reports?period=week"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/40 px-4 text-[0.9375rem] font-black text-white transition hover:bg-white/10"
+            >
+              {text("📊 This week vs last", "📊 यो हप्ता र अघिल्लो")}
+            </Link>
           </div>
         </div>
 
