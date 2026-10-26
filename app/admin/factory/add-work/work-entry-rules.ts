@@ -95,6 +95,34 @@ export const WORK_WALK = ["worker", "stage", "item", "pairs", "colour", "size", 
 export type WorkField = (typeof WORK_WALK)[number];
 
 /**
+ * The colour a few typed letters stand for: "cr" and Enter is Cream, "bl" is
+ * Black (owner, 2026-10-26), so a colour can be entered without the mouse.
+ *
+ * Matched on the start of a chip's English or Nepali name. When the letters
+ * start more than one ("c": Cream, Cherry) the shoe's usual colour (★) wins if
+ * it is one of them; otherwise nothing is guessed and what was typed stays. A
+ * whole name in other letters ("cream") becomes the chip's own spelling; a
+ * colour no chip has ("Maroon") stays exactly as typed.
+ */
+export function completeColour(
+  typed: string,
+  chips: ReadonlyArray<{ value: string; names: ReadonlyArray<string>; star?: boolean }>,
+): string | null {
+  const key = typed.trim().toLowerCase();
+  if (!key) return null;
+  const named = (chip: { names: ReadonlyArray<string> }, match: (name: string) => boolean) =>
+    chip.names.some((name) => match(name.trim().toLowerCase()));
+
+  const whole = chips.find((chip) => named(chip, (name) => name === key));
+  if (whole) return whole.value === typed ? null : whole.value;
+
+  const hits = chips.filter((chip) => named(chip, (name) => name.startsWith(key)));
+  if (hits.length === 1) return hits[0].value;
+  const starred = hits.filter((chip) => chip.star);
+  return starred.length === 1 ? starred[0].value : null;
+}
+
+/**
  * The colour and size to open the boxes with, given what is waiting.
  *
  * The option says "bachha sandil — 60 Black · 25-30" and then the boxes below

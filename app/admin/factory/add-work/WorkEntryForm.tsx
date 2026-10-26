@@ -37,6 +37,7 @@ import {
   PAIRS_STEP,
   WORK_SIZE_RUNS,
   WORK_WALK,
+  completeColour,
   fillFromWaitingRun,
   waitingCounts,
   type Item,
@@ -444,12 +445,13 @@ export default function WorkEntryForm({
       hex: c.hex as string,
       star: Boolean(lastColour) && (colourKey(lastColour) === colourKey(c.en) || colourKey(lastColour) === colourKey(c.ne)),
       matches: [colourKey(c.en), colourKey(c.ne)],
+      names: [c.en, c.ne] as string[],
     }));
     if (!lastColour) return chips;
     const starred = chips.filter((chip) => chip.star);
     if (starred.length > 0) return [...starred, ...chips.filter((chip) => !chip.star)];
     return [
-      { key: `last:${lastColour}`, value: lastColour, label: lastColour, hex: "transparent", star: true, matches: [colourKey(lastColour)] },
+      { key: `last:${lastColour}`, value: lastColour, label: lastColour, hex: "transparent", star: true, matches: [colourKey(lastColour)], names: [lastColour] },
       ...chips,
     ];
   })();
@@ -604,6 +606,13 @@ export default function WorkEntryForm({
         return;
       }
     }
+  }
+
+  /** "cr" and Enter is Cream: the letters become the colour they start, then Enter moves on as usual. */
+  function completeColourOnEnter(event: React.KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    const whole = completeColour(formData.color, colourChips);
+    if (whole) setFormData((prev) => ({ ...prev, color: whole }));
   }
 
   /** Fill the form with what was saved last, leaving the pairs to type. */
@@ -1200,7 +1209,10 @@ export default function WorkEntryForm({
                   walkRefs.current.set("colour", element);
                 }}
                 enterKeyHint="next"
-                onKeyDown={(event) => handleFieldWalk(event, "colour")}
+                onKeyDown={(event) => {
+                  completeColourOnEnter(event);
+                  handleFieldWalk(event, "colour");
+                }}
                 type="text"
                 value={formData.color}
                 onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
@@ -1214,7 +1226,13 @@ export default function WorkEntryForm({
                     <button
                       key={chip.key}
                       type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, color: chip.value }))}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, color: chip.value }));
+                        // On to Size, so the next Enter carries on down the
+                        // form; the cursor left on the chip made Enter press
+                        // the chip again (owner, 2026-10-26).
+                        pendingFocus.current = "size";
+                      }}
                       className={`press-dip inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-bold transition ${
                         active
                           ? "border-brand-green bg-brand-green text-white"
@@ -1260,7 +1278,12 @@ export default function WorkEntryForm({
                     <button
                       key={`${chip.star ? "star" : "run"}:${sizeRunKey(chip.value)}`}
                       type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, size: chip.value }))}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, size: chip.value }));
+                        // A whole run is the size: on to Rejected. With the
+                        // per-size counts open, the cursor stays for them.
+                        if (!showSizeCounts) pendingFocus.current = "rejected";
+                      }}
                       className={`press-dip inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-black tabular-nums transition ${
                         active
                           ? "border-brand-green bg-brand-green text-white"
