@@ -40,6 +40,7 @@ const PUBLIC: Record<string, string> = {
   "/api/deployment-info": "The same, plus whether the database answers.",
   "/api/monitoring/vitals": "Where a shopper's browser posts how fast the page felt. They are signed in to nothing.",
   "/api/csp-report": "Where the browser reports a blocked script. It posts without a session by design; only the directive and blocked address are kept.",
+  "/api/monitoring/client-error": "Where a visitor's browser reports an error the page hit. No session by design; checked in lib/client-error-report.ts, repeats and a minute's flood are dropped.",
   "/api/assistant": "The shop assistant a signed-out shopper asks about products. Rate-limited, and it only ever sees public catalog copy.",
   "/api/images/[id]": "Product photographs. They are on the storefront already.",
   "/api/payments/[provider]/callback": "The payment gateway calling back. It carries its own signature.",

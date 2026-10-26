@@ -6,6 +6,7 @@ import { StructuredData } from "@/components/commerce/StructuredData";
 import SkipToContent from "@/components/SkipToContent";
 import { themeBootScript } from "@/lib/theme-boot";
 import VersionWatcher from "@/components/VersionWatcher";
+import ClientErrorReporter from "@/components/ClientErrorReporter";
 import LanguageProvider from "@/components/LanguageProvider";
 import StorefrontEnhancements from "@/components/StorefrontEnhancements";
 import OfflineNotice from "@/components/OfflineNotice";
@@ -243,6 +244,9 @@ export default async function RootLayout({
               layout, which is also why it can sit inside the language context
               and say one thing rather than two. */}
           <VersionWatcher version={process.env.VERCEL_GIT_COMMIT_SHA ?? ""} />
+          {/* A page that breaks in someone's browser now reaches Admin →
+              Monitoring, not only the server's own errors (owner, 2026-10-26). */}
+          <ClientErrorReporter />
         </LanguageProvider>
       </body>
     </html>
