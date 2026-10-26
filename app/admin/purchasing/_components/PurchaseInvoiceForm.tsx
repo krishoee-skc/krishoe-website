@@ -971,13 +971,20 @@ export default function PurchaseInvoiceForm({
           {text("Purchase", "किनमेल")}
         </h2>
         {/* Not on a phone: four lines of explanation stood between the title
-            and the supplier box, which then sat behind the Save bar. */}
-        <p className="mt-2 hidden max-w-2xl text-base leading-6 text-brand-muted sm:block">
-          {text(
-            "One supplier bill, however many items it lists — the supplier, what came in, and what was paid, in one place. Raw material goes to the factory store; shoes and slippers go straight to the stock you sell from. A bill can carry both.",
-            "एउटै साहुको बिल, जति सामान भए पनि — साहु, आएको माल, र तिरेको पैसा, सबै एकै ठाउँ। कच्चा माल कारखानाको स्टोरमा, जुत्ता/चप्पल सिधै बेच्ने स्टकमा। एउटै बिलमा दुवै मिल्छ।",
-          )}
-        </p>
+            and the supplier box, which then sat behind the Save bar. On a
+            computer one line now, the rest a press away (owner, from the app
+            audit, 2026-10-27): it was read once and then scrolled past daily. */}
+        <details className="mt-1 hidden max-w-2xl text-base leading-6 text-brand-muted sm:block">
+          <summary className="cursor-pointer list-none font-semibold">
+            {text("One bill: who it came from, what came in, how it was paid. ⓘ", "एउटै बिल: कसबाट, के आयो, कसरी तिरियो। ⓘ")}
+          </summary>
+          <p className="mt-1">
+            {text(
+              "One supplier bill, however many items it lists — the supplier, what came in, and what was paid, in one place. Raw material goes to the factory store; shoes and slippers go straight to the stock you sell from. A bill can carry both.",
+              "एउटै साहुको बिल, जति सामान भए पनि — साहु, आएको माल, र तिरेको पैसा, सबै एकै ठाउँ। कच्चा माल कारखानाको स्टोरमा, जुत्ता/चप्पल सिधै बेच्ने स्टकमा। एउटै बिलमा दुवै मिल्छ।",
+            )}
+          </p>
+        </details>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
