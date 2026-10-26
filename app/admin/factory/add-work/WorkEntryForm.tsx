@@ -83,6 +83,9 @@ type LastEntry = {
   size: string;
 };
 
+/** How long "✓ Saved" stays above the form before stepping aside. */
+const SAVED_CARD_SECONDS = 5;
+
 export default function WorkEntryForm({
   initialWorkers,
   initialItems,
@@ -182,7 +185,19 @@ export default function WorkEntryForm({
     workerId: string; workerName: string; itemName: string; color: string; size: string; pairs: string; amount: number; pending: boolean;
     /** Kept on this phone for want of the internet (rule 4). */
     kept?: boolean;
+    /** Stepped aside after a few seconds; the day's list still marks the row. */
+    hidden?: boolean;
   } | null>(null);
+  // A pointer or the cursor on the strip holds it there.
+  const [cardHeld, setCardHeld] = useState(false);
+  // "✓ Saved" steps aside after five seconds, so the form comes back up
+  // (owner's sample ग, 2026-10-26). Not while it is still saving, and never
+  // "Kept on this phone": that one has to be seen until the internet is back.
+  useEffect(() => {
+    if (!savedCard || savedCard.pending || savedCard.kept || savedCard.hidden || cardHeld) return;
+    const timer = window.setTimeout(() => setSavedCard((card) => (card ? { ...card, hidden: true } : card)), SAVED_CARD_SECONDS * 1000);
+    return () => window.clearTimeout(timer);
+  }, [savedCard, cardHeld]);
   // The question Save asks before writing: always after Enter, and after a
   // click when the same work is already on the day's list.
   const [confirming, setConfirming] = useState<{ duplicate: boolean } | null>(null);
@@ -877,19 +892,28 @@ export default function WorkEntryForm({
           {/* What was just saved, in full, until the next entry is begun
               (owner, 2026-10-04: after a save the form showed "Save 60 pairs ·
               Rs. 2,400" again, and it read as not saved). */}
-          {savedCard ? (
-            <div role="status" className="grid gap-2 rounded-2xl border-2 border-brand-green bg-brand-green-wash p-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-lg font-black text-brand-green">
-                  {savedCard.pending
-                    ? text("⏳ Saving…", "⏳ टिप्दै…")
-                    : savedCard.kept
-                      ? text("📴 Kept on this phone", "📴 फोनमा राखियो")
-                      : text("✓ Saved", "✓ टिपियो")}
-                </p>
-                <p className="text-xs font-bold text-brand-muted">{text("just now", "भर्खर")}</p>
-              </div>
-              <p className="flex flex-wrap items-center gap-x-1.5 text-sm font-bold text-brand-green-ink">
+          {savedCard && !savedCard.hidden ? (
+            // One strip, not a card (owner's sample क, 2026-10-26): the card
+            // pushed the form about 170px down and said again what the day's
+            // list beside it already says. Everything on the card is still here.
+            <div
+              role="status"
+              onMouseEnter={() => setCardHeld(true)}
+              onMouseLeave={() => setCardHeld(false)}
+              onFocus={() => setCardHeld(true)}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setCardHeld(false);
+              }}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border-2 border-brand-green bg-brand-green-wash px-3 py-2"
+            >
+              <p className="font-black text-brand-green">
+                {savedCard.pending
+                  ? text("⏳ Saving…", "⏳ टिप्दै…")
+                  : savedCard.kept
+                    ? text("📴 Kept on this phone", "📴 फोनमा राखियो")
+                    : text("✓ Saved", "✓ टिपियो")}
+              </p>
+              <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm font-bold text-brand-green-ink">
                 <span>{savedCard.workerName}</span>
                 <span aria-hidden="true">·</span>
                 <span>{savedCard.itemName}</span>
@@ -911,20 +935,22 @@ export default function WorkEntryForm({
                   </>
                 ) : null}
               </p>
-              <p className="text-2xl font-black tabular-nums text-brand-green">
+              <p className="text-sm font-black tabular-nums text-brand-green">
                 {text(`${savedCard.pairs} pairs`, `${savedCard.pairs} जोडी`)}
                 {savedCard.amount > 0 ? ` · ${money(savedCard.amount)}` : ""}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-xs font-bold text-brand-muted">{text("just now", "भर्खर")}</p>
+              <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
                 <button
                   type="button"
+                  title={text("Next entry · same worker", "अर्को entry · उही कामदार")}
                   onClick={() => {
                     setSavedCard(null);
                     walkRefs.current.get("pairs")?.focus();
                   }}
-                  className="min-h-11 rounded-full bg-brand-green px-4 text-sm font-black text-white"
+                  className="min-h-10 rounded-full bg-brand-green px-3 text-xs font-black text-white"
                 >
-                  ➕ {text("Next entry · same worker", "अर्को entry · उही कामदार")}
+                  ➕ {text("Next entry", "अर्को entry")}
                 </button>
                 <button
                   type="button"
@@ -934,13 +960,13 @@ export default function WorkEntryForm({
                     setCalculatedAmount(0);
                     walkRefs.current.get("worker")?.focus();
                   }}
-                  className="min-h-11 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink"
+                  className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-black text-brand-green-ink"
                 >
                   👤 {text("Another worker", "अर्को कामदार")}
                 </button>
                 <Link
                   href={`/admin/factory/ledger?workerId=${savedCard.workerId}`}
-                  className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-bold text-brand-green underline underline-offset-4"
+                  className="inline-flex min-h-10 items-center rounded-full px-2 text-xs font-bold text-brand-green underline underline-offset-4"
                 >
                   ✏️ {text("Wrong? Fix it", "गल्ती? सच्याउने")}
                 </Link>
