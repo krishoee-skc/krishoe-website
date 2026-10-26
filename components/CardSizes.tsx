@@ -30,7 +30,9 @@ export default function CardSizes({ product }: { product: Pick<Product, "id" | "
   const more = ordered.length - shown.length;
 
   return (
-    <p className="mt-1 flex items-center gap-1 overflow-hidden whitespace-nowrap">
+    // Small enough that five sizes fit a phone card whole (owner's shop
+    // sample, 2, 2026-10-26): at 13px the fifth was cut to "4(".
+    <p className="mt-1 flex items-center gap-0.5 overflow-hidden whitespace-nowrap md:gap-1">
       {/* Read aloud as words: a label on a <p> is not allowed, and screen
           readers skip it (accessibility check, 2026-10-07). */}
       <span className="sr-only">
@@ -43,7 +45,7 @@ export default function CardSizes({ product }: { product: Pick<Product, "id" | "
         <span
           key={choice.size}
           aria-hidden="true"
-          className={`rounded-md border px-1 text-[13px] font-bold tabular-nums leading-5 ${
+          className={`rounded-md border px-[3px] text-[11.5px] font-bold tabular-nums leading-[18px] md:px-1 md:text-[13px] md:leading-5 ${
             choice.soldOut
               ? "border-brand-green-line text-brand-muted line-through"
               : "border-brand-green/40 text-brand-green"
@@ -53,7 +55,7 @@ export default function CardSizes({ product }: { product: Pick<Product, "id" | "
         </span>
       ))}
       {more > 0 ? (
-        <span aria-hidden="true" className="text-[13px] font-bold text-brand-muted">
+        <span aria-hidden="true" className="text-[11.5px] font-bold text-brand-muted md:text-[13px]">
           +{more}
         </span>
       ) : null}

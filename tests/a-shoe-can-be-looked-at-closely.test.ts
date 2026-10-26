@@ -101,7 +101,7 @@ describe("looking closer", () => {
   it("starts every photo whole, never part-way into a corner", async () => {
     const source = await readFile(GALLERY, "utf8");
     const start = source.indexOf("function showImage");
-    const end = source.indexOf("<div className=\"flex flex-col gap-4\">", start);
+    const end = source.indexOf("<div className=\"flex flex-col gap-2.5 md:gap-4\">", start);
     const reset = source.slice(start, end);
 
     // Both ends asserted, so a moved boundary cannot quietly return the whole

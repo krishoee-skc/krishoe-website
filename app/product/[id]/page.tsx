@@ -158,6 +158,21 @@ export default async function ProductPage({ params }: Props) {
       <div className="pb-32 lg:pb-0">
       <main className="bg-brand-paper">
         <section className="mx-auto max-w-7xl px-5 py-6 md:px-8 md:py-16">
+          {/* Where this shoe sits in the shop, a tap back to its shelf
+              (owner's shop sample, 3, 2026-10-26 — Novo's "Home / Sassie"). */}
+          <nav aria-label="Breadcrumb" className="-mt-2 mb-3 flex min-w-0 items-center gap-1.5 text-xs font-semibold text-brand-muted md:mt-0 md:mb-6">
+            <Link href="/shop" className="inline-flex min-h-8 items-center text-xs hover:text-brand-green">
+              <T en="Shop" ne="पसल" />
+            </Link>
+            <span aria-hidden="true">/</span>
+            <Link href={`/shop/${product.categorySlug}`} className="inline-flex min-h-8 items-center whitespace-nowrap text-xs hover:text-brand-green">
+              {product.category}
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="truncate text-brand-green-ink" aria-current="page">
+              <ProductText en={product.name} ne={product.nameNe} />
+            </span>
+          </nav>
           {/* Closer on a phone, so the name and price follow the photo on the
               first screen (owner, 2026-10-21). */}
           <div className="grid gap-5 md:gap-12 lg:grid-cols-2 lg:gap-16">

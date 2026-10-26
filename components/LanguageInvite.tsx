@@ -17,7 +17,7 @@ import { useLanguage } from "@/components/LanguageProvider";
  * because a question is never wrong the way a guess can be.
  *
  * It asks once. A choice — or a dismissal — is remembered, and the card never
- * appears again. It waits a few seconds first and sits over the delivery strip, so it
+ * appears again. It waits a few seconds first and hangs under the header, so it
  * interrupts nobody who is already reading, and it is not a modal: a shopper
  * who ignores it can carry on shopping in English, which is what a foreign or
  * wholesale visitor will want anyway.
@@ -32,6 +32,8 @@ const DELAY_MS = 2500;
 export default function LanguageInvite() {
   const { setLanguage } = useLanguage();
   const [show, setShow] = useState(false);
+  const [top, setTop] = useState(64);
+  const [arrow, setArrow] = useState(72);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -40,7 +42,23 @@ export default function LanguageInvite() {
       // Already answered, or already chose a language some other way.
       if (window.localStorage.getItem(ASKED_KEY)) return;
       if (window.localStorage.getItem(SAVED_KEY)) return;
-      timer = window.setTimeout(() => setShow(true), DELAY_MS);
+      timer = window.setTimeout(() => {
+        // Just under the header, wherever its height has settled.
+        const header = document.querySelector(".krs-header");
+        // Below the phone's search box too, where the home page has one.
+        const search = document.querySelector<HTMLElement>("[data-phone-search]");
+        const above = search && search.offsetParent !== null ? search : header;
+        setTop(Math.round((above?.getBoundingClientRect().bottom ?? 56) + 8));
+        // The arrow points at whichever language switch the header is showing.
+        const edge = window.innerWidth >= 1024 ? 24 : 8;
+        const switches = Array.from(document.querySelectorAll<HTMLElement>('.krs-header [role="group"]'));
+        const shown = switches.find((element) => element.offsetParent !== null);
+        if (shown) {
+          const box = shown.getBoundingClientRect();
+          setArrow(Math.max(12, Math.round(window.innerWidth - (box.left + box.width / 2) - edge - 6)));
+        }
+        setShow(true);
+      }, DELAY_MS);
     } catch {
       // A browser with storage blocked is not worth a broken page; it simply
       // never sees the card.
@@ -63,20 +81,18 @@ export default function LanguageInvite() {
     setShow(false);
   };
 
-  // One slim line, not a card (owner, 2026-10-07): the card covered the first
-  // shoes on a phone and the hero's buttons on a laptop. Same question, a third
-  // of the height. Up top on a phone and tablet (owner, 2026-10-21, the website
-  // sample, 3): at the foot it sat on the tab bar and with it hid a quarter of
-  // the first screen, the "Cash on delivery" cards with it. Up top it covers
-  // the delivery strip and the header's own top padding — 44px, the height of
-  // a phone's buttons (globals.css), with a shadow for its edge so a border
-  // adds nothing — not the logo; from a laptop up it stays at the foot on the
-  // right.
+  // A small bubble hanging from the header, under the language switch, on a
+  // phone and a laptop alike (owner's shop sample, 5, 2026-10-26). As a strip
+  // across the top it covered the logo on a phone, and at the foot on a laptop
+  // it covered the "Cash on delivery" card. Here it covers only the top right
+  // corner of the page below, points at the switch it is asking about, and the
+  // question, the answers and the once-only memory are all as before.
   return (
     <div
       role="region"
       aria-label="भाषा छान्नुहोस् · Choose language"
-      className="fixed inset-x-0 top-0 z-[60] flex items-center gap-2 bg-brand-paper pl-3 pr-1.5 pt-[env(safe-area-inset-top)] shadow-[0_1px_0_rgba(201,162,75,0.45),0_4px_12px_rgba(11,77,59,0.12)] lg:inset-x-auto lg:bottom-6 lg:right-6 lg:top-auto lg:max-w-md lg:rounded-full lg:border lg:border-brand-gold/40 lg:py-1.5 lg:shadow-[0_10px_30px_rgba(11,77,59,0.18)]"
+      style={{ top, ["--arrow" as string]: `${arrow}px` }}
+      className="fixed right-2 z-[60] flex max-w-[calc(100vw-1rem)] items-center gap-1.5 rounded-2xl border border-brand-gold/50 bg-brand-paper py-1 pl-3 pr-1 shadow-[0_10px_30px_rgba(11,77,59,0.18)] before:absolute before:-top-1.5 before:right-[var(--arrow)] before:h-3 before:w-3 before:rotate-45 before:border-l before:border-t before:border-brand-gold/50 before:bg-brand-paper lg:right-6"
     >
       <span className="text-lg leading-none" aria-hidden="true">
         🇳🇵

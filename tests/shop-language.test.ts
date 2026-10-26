@@ -230,11 +230,12 @@ describe("finding the Nepali", () => {
     // Not a modal. A foreign or wholesale visitor ignores it and keeps
     // shopping in English, which is what they wanted anyway.
     expect(invite).toContain("const DELAY_MS = 2500");
-    // Over the delivery strip at the top on a phone and tablet (owner,
-    // 2026-10-21): at the foot it hid a quarter of the first screen with the
-    // tab bar. From a laptop up, at the foot on the right.
-    expect(invite).toContain("fixed inset-x-0 top-0 z-[60]");
-    expect(invite).toContain("lg:bottom-6 lg:right-6 lg:top-auto");
+    // Hanging under the header on every screen (owner's shop sample, 5,
+    // 2026-10-26): up top it covered the logo, at the foot the "Cash on
+    // delivery" card. It points at the language switch it is asking about.
+    expect(invite).toContain("fixed right-2 z-[60]");
+    expect(invite).toContain('document.querySelector(".krs-header")');
+    expect(invite).toContain("before:right-[var(--arrow)]");
   });
 
   it("survives a browser that refuses to store anything", async () => {

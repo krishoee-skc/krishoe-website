@@ -79,24 +79,24 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
 
   if (images.length === 0) {
     return (
-      <div className="relative mx-auto aspect-[4/5] w-full max-w-[80%] overflow-hidden rounded-lg md:max-w-none">
+      <div className="relative -mx-5 aspect-[4/5] overflow-hidden md:mx-0 md:rounded-lg">
         <NoPhotoYet name={name} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2.5 md:gap-4">
       {/* The photo opens the big view. A shoe is bought on its stitching, its
           sole and the shade of its colour, and none of that is legible in a
-          square thumbnail on a phone.
-          Narrower on a phone (owner, 2026-10-21, the website sample, 2): the
-          full-width photo and the row of thumbnails filled the first screen,
-          and the shoe's name, price and stock came only after a scroll. Still
-          4:5, the frame the owner sets each photo in (2026-10-02) — a square
-          would cut off what he framed — at 80% of the width, as tall as a
-          square would be. The other photos are a swipe or a dot away. */}
-      <div className="relative">
+          square thumbnail on a phone. Still 4:5, the frame the owner sets
+          each photo in (2026-10-02).
+          Edge to edge on a phone (owner's shop sample, 3, 2026-10-26: "the
+          shoe big"), replacing the 80% width of 2026-10-21: the page's side
+          padding is undone here, so the photo is the whole width of the
+          screen, square-cornered like Novo's, with the other photos as small
+          pictures under it. */}
+      <div className="relative -mx-5 md:mx-0">
       <button
         type="button"
         onClick={() => {
@@ -124,7 +124,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           }
         }}
         aria-label={text(`See ${name} larger`, `${name} ठूलो पारेर हेर्ने`)}
-        className="group relative mx-auto block aspect-[4/5] w-full max-w-[80%] cursor-zoom-in overflow-hidden rounded-lg bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 md:max-w-none"
+        className="group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden bg-brand-mist focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-gold md:rounded-lg"
       >
         <SafeImage
           src={selectedImage}
@@ -141,6 +141,12 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
           </svg>
           {text("Tap to enlarge", "ठूलो पार्न थिच्नुहोस्")}
         </span>
+        {images.length > 1 ? (
+          // Which photo of how many, as Novo counts them.
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-bold tabular-nums text-white backdrop-blur-sm">
+            {Math.max(0, images.indexOf(selectedImage)) + 1} / {images.length}
+          </span>
+        ) : null}
         {images.length > 1 ? (
           <span aria-hidden="true" className="pointer-events-none absolute bottom-4 left-1/2 hidden -translate-x-1/2 gap-1.5 md:flex">
             {images.map((src) => (
@@ -170,8 +176,10 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
       </div>
 
       {images.length > 1 ? (
-        <div className="hidden grid-cols-4 gap-3 md:grid">
-          {images.slice(0, 4).map((imgUrl, index) => {
+        // Under the photo on a phone too (owner's shop sample, 3): the other
+        // photos are seen, not guessed at from dots.
+        <div className="grid grid-cols-5 gap-2 md:grid-cols-4 md:gap-3">
+          {images.slice(0, 5).map((imgUrl, index) => {
             const isSelected = selectedImage === imgUrl;
 
             return (
@@ -181,7 +189,7 @@ export default function ProductGallery({ name, image, gallery }: ProductGalleryP
                 aria-label={`View ${name} image ${index + 1}`}
                 aria-pressed={isSelected}
                 onClick={() => showImage(imgUrl)}
-                className={`relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-brand-mist transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 ${
+                className={`relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-brand-mist transition md:[&:nth-child(5)]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 ${
                   isSelected ? "ring-2 ring-brand-green ring-offset-2" : "hover:opacity-85"
                 }`}
               >

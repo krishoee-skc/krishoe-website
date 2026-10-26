@@ -5,16 +5,20 @@ const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\
 
 /** Owner, 2026-10-21, the website sample: 2 and 3 garau. */
 describe("2 · a shoe's name, price and stock on the first screen of a phone", () => {
-  it("shows the photo narrower on a phone, still in the 4:5 frame it was set in", async () => {
+  // Replaced by the shop sample, 3 (2026-10-26): edge to edge on a phone,
+  // still in the 4:5 frame it was set in, with a "1 / n" count.
+  it("shows the photo the whole width of a phone, still in the 4:5 frame it was set in", async () => {
     const gallery = await read("components/ProductGallery.tsx");
-    expect(gallery).toContain("mx-auto block aspect-[4/5] w-full max-w-[80%] cursor-zoom-in");
-    expect(gallery).toContain("md:max-w-none");
+    expect(gallery).toContain('<div className="relative -mx-5 md:mx-0">');
+    expect(gallery).toContain("relative block aspect-[4/5] w-full cursor-zoom-in");
+    expect(gallery).not.toContain("max-w-[80%]");
     expect(gallery).not.toContain("aspect-square");
+    expect(gallery).toContain("{Math.max(0, images.indexOf(selectedImage)) + 1} / {images.length}");
   });
 
-  it("puts the other photos a dot away on a phone, and keeps the thumbnails from a tablet up", async () => {
+  it("shows the other photos as small pictures under it, a phone included, and keeps the dots", async () => {
     const gallery = await read("components/ProductGallery.tsx");
-    expect(gallery).toContain('<div className="hidden grid-cols-4 gap-3 md:grid">');
+    expect(gallery).toContain('<div className="grid grid-cols-5 gap-2 md:grid-cols-4 md:gap-3">');
     expect(gallery).toContain("onClick={() => showImage(src)}");
     expect(gallery).toContain('className="grid h-9 w-9 place-items-center"');
     expect(gallery).toContain('<span className="absolute bottom-2 left-1/2 flex -translate-x-1/2 md:hidden">');
@@ -27,10 +31,14 @@ describe("2 · a shoe's name, price and stock on the first screen of a phone", (
 });
 
 describe("3 · the language question does not cover the first screen", () => {
-  it("sits over the delivery strip, 44px, on a phone and tablet; at the foot from a laptop up", async () => {
+  // Since the shop sample, 5 (2026-10-26): a small bubble under the header
+  // on every screen, pointing at the switch — not over the logo, not over
+  // the "Cash on delivery" card.
+  it("hangs under the header, beside the switch, on a phone and a laptop", async () => {
     const invite = await read("components/LanguageInvite.tsx");
-    expect(invite).toContain("fixed inset-x-0 top-0 z-[60]");
-    expect(invite).toContain("pt-[env(safe-area-inset-top)]");
+    expect(invite).toContain("fixed right-2 z-[60]");
+    expect(invite).not.toContain("fixed inset-x-0 top-0");
+    expect(invite).not.toContain("lg:bottom-6");
     expect(invite).not.toContain("bottom-[calc(6.25rem");
     expect(invite).toContain('className="min-h-9 flex-none rounded-full lg:min-h-10');
   });

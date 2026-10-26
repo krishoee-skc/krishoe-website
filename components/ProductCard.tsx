@@ -9,6 +9,7 @@ import ProductCardActions, { WishlistHeart } from "@/components/ProductCardActio
 import SafeImage from "@/components/SafeImage";
 import CardSizes from "@/components/CardSizes";
 import { stockLevel } from "@/lib/stock-thresholds";
+import { colourSwatch } from "@/lib/shoe-colour";
 import T from "@/components/T";
 
 type ProductCardProps = {
@@ -36,6 +37,9 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
   // The star comes from real published reviews, not the manual rating field.
   // No reviews yet means a "New" tag, never an invented score.
   const reviewStats = productReviewStats(product.reviews);
+  // Up to four colours the shop can draw; a colour it has no swatch for is
+  // simply not dotted, and still named on the shoe's page.
+  const swatches = [...new Set(product.colors.map((colour) => colourSwatch(colour)).filter((swatch): swatch is string => Boolean(swatch)))].slice(0, 4);
 
   return (
     <article
@@ -75,6 +79,12 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
             <span className="rounded-full bg-brand-paper/95 px-2.5 py-0.5 text-[11px] font-bold text-brand-green shadow-sm">
               {product.badge}
             </span>
+          ) : product.newArrival ? (
+            // A shoe the shop marks as a new arrival says so on its photo
+            // (owner's shop sample, 8, 2026-10-26), the way Novo's cards do.
+            <span className="rounded bg-brand-paper/95 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-brand-green-ink shadow-sm">
+              <T en="New" ne="नयाँ" />
+            </span>
           ) : null}
           {outOfStock ? (
             /* Deep green, not red. Red is the colour this shop uses for a
@@ -91,7 +101,9 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
         <WishlistHeart product={product} />
       </div>
 
-      <div className="flex flex-1 flex-col p-3 md:p-4">
+      {/* Tighter under the photo on a phone (owner's shop sample, 1,
+          2026-10-26): the writing took nearly half the card. */}
+      <div className="flex flex-1 flex-col px-2.5 pb-2.5 pt-2 md:p-4">
         {/* The name and the stars are one link. On a phone every link is held
             to a 44px tap height; the name alone in one left a gap the height
             of another line under it (rechecked on an iPhone, 2026-10-02). */}
@@ -102,6 +114,15 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
             <ProductText en={product.name} ne={product.nameNe} />
           </h3>
         <span className="mt-0.5 flex items-center gap-1 text-xs text-brand-muted">
+          {/* The colours as dots, before the stars (owner's shop sample, 6):
+              a dot is read faster than the word "cherry". */}
+          {swatches.length > 0 ? (
+            <span className="mr-1 flex items-center gap-0.5" aria-hidden="true">
+              {swatches.map((swatch) => (
+                <span key={swatch} className="h-2.5 w-2.5 rounded-full ring-1 ring-black/20" style={{ background: swatch }} />
+              ))}
+            </span>
+          ) : null}
           {reviewStats.count > 0 ? (
             <>
               <StarIcon className="h-3.5 w-3.5 text-brand-gold" />
@@ -120,7 +141,7 @@ export default function ProductCard({ product, eager = false }: ProductCardProps
         {/* Which sizes there are, before opening the shoe (owner, 2026-10-07). */}
         {!outOfStock ? <CardSizes product={product} /> : null}
 
-        <div className="mt-auto flex items-center justify-between gap-1.5 pt-2">
+        <div className="mt-auto flex items-center justify-between gap-1.5 pt-1.5 md:pt-2">
           {/* The price in the body face, bold and on one line. Set in the
               display face at 30px it broke into "Rs." over "950" on a phone.
               "Per pair" stays on a wider screen — this shop sells wholesale

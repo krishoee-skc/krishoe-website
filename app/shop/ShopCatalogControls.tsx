@@ -7,6 +7,8 @@ import { SearchIcon, XIcon } from "@/components/Icons";
 import { categories, productReviewStats, type Category, type Product } from "@/lib/products";
 import { stockLevel } from "@/lib/stock-thresholds";
 import { useLanguage } from "@/components/LanguageProvider";
+import { colourKey, colourLabel } from "@/lib/colour-name";
+import { colourSwatch } from "@/lib/shoe-colour";
 import { businessContact } from "@/lib/seo";
 
 /**
@@ -77,6 +79,27 @@ function sortProducts(products: Product[], sortMode: SortMode) {
   });
 }
 
+/** The sizes the shoes on show come in, smallest first. */
+function sizesOffered(products: Product[]) {
+  return [...new Set(products.flatMap((product) => product.sizes))].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
+}
+
+/** The colours the shoes on show come in, once each, as the shop spells them. */
+function coloursOffered(products: Product[]) {
+  const byKey = new Map<string, string>();
+  for (const colour of products.flatMap((product) => product.colors)) {
+    const key = colourKey(colour);
+    if (key && !byKey.has(key)) byKey.set(key, colour);
+  }
+  return [...byKey.values()];
+}
+
+/** A size the shoe is made in and, when its shelf is kept size by size, has. */
+function hasSize(product: Product, size: string) {
+  if (!product.sizes.includes(size)) return false;
+  return !product.sizeStock || (product.sizeStock[size] ?? 0) > 0;
+}
+
 function availabilityLabel(filter: AvailabilityFilter, products: Product[]) {
   if (filter === "ready") return `${products.filter((product) => product.stock > 0).length} ready`;
   if (filter === "low") return `${products.filter((product) => stockLevel(product.stock) === "low").length} low`;
@@ -112,6 +135,12 @@ export default function ShopCatalogControls({
   const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState<AvailabilityFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("featured");
+  // One size and one colour at a time, chosen from chips (owner's shop
+  // sample, 7, 2026-10-26): "is there a 38?" is one tap.
+  const [sizeChoice, setSizeChoice] = useState("");
+  const [colourChoice, setColourChoice] = useState("");
+  const sizes = useMemo(() => sizesOffered(products), [products]);
+  const colours = useMemo(() => coloursOffered(products), [products]);
   // A phone shows the search box and one ⚙ Filter button; the shelves, the
   // order and Ready/Low open behind it (owner, 2026-10-20, rule 2). From a
   // tablet up they stay open, beside the shoes.
@@ -130,22 +159,26 @@ export default function ShopCatalogControls({
     const filtered = products.filter((product) => {
       const level = stockLevel(product.stock);
       const matchesQuery = !cleanQuery || searchText(product).includes(cleanQuery);
+      const matchesSize = !sizeChoice || hasSize(product, sizeChoice);
+      const matchesColour = !colourChoice || product.colors.some((colour) => colourKey(colour) === colourKey(colourChoice));
       const matchesAvailability =
         availability === "all" ||
         (availability === "ready" && level !== "out") ||
         (availability === "low" && level === "low");
 
-      return matchesQuery && matchesAvailability;
+      return matchesQuery && matchesAvailability && matchesSize && matchesColour;
     });
 
     return sortProducts(filtered, sortMode);
-  }, [availability, cleanQuery, products, sortMode]);
-  const hasLocalFilters = Boolean(cleanQuery || availability !== "all" || sortMode !== "featured");
+  }, [availability, cleanQuery, colourChoice, products, sizeChoice, sortMode]);
+  const hasLocalFilters = Boolean(cleanQuery || availability !== "all" || sortMode !== "featured" || sizeChoice || colourChoice);
 
   function clearFilters() {
     setQuery("");
     setAvailability("all");
     setSortMode("featured");
+    setSizeChoice("");
+    setColourChoice("");
   }
 
   return (
@@ -227,22 +260,72 @@ export default function ShopCatalogControls({
           </label>
 
           <div className={`flex flex-wrap gap-2 ${onPhone}`}>
-            {(["all", "ready", "low"] as AvailabilityFilter[]).map((filter) => (
+            {/* All and Ready now. "Low" (few pairs left) is the shop's own
+                worry, kept in admin, not a shopper's filter (owner's shop
+                sample, 7, 2026-10-26). */}
+            {(["all", "ready"] as AvailabilityFilter[]).map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => setAvailability(filter)}
-                className={`min-h-12 rounded-full border px-4 text-sm font-bold capitalize transition ${
+                className={`min-h-12 rounded-full border px-4 text-sm font-bold transition ${
                   availability === filter
                     ? "border-brand-green bg-brand-green text-white"
                     : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
                 }`}
               >
-                {filter}
+                {filter === "ready" ? text("Ready now", "अहिले तयार") : text("All", "सबै")}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Size and colour, always in view, a phone included (owner's shop
+            sample, 7). A second tap on the chosen one lets it go. */}
+        {sizes.length > 1 || colours.length > 1 ? (
+          <div className="-mx-3 mt-3 flex gap-1.5 overflow-x-auto px-3 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+            {sizes.length > 1
+              ? sizes.map((size) => (
+                  <button
+                    key={`size-${size}`}
+                    type="button"
+                    onClick={() => setSizeChoice((current) => (current === size ? "" : size))}
+                    aria-pressed={sizeChoice === size}
+                    aria-label={text(`Size ${size}`, `साइज ${size}`)}
+                    className={`inline-flex min-h-10 min-w-10 shrink-0 items-center justify-center rounded-full border px-2.5 text-sm font-bold tabular-nums transition ${
+                      sizeChoice === size
+                        ? "border-brand-green bg-brand-green text-white"
+                        : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))
+              : null}
+            {colours.length > 1
+              ? colours.map((colour) => {
+                  const swatch = colourSwatch(colour);
+                  const chosen = colourKey(colourChoice) === colourKey(colour);
+                  return (
+                    <button
+                      key={`colour-${colourKey(colour)}`}
+                      type="button"
+                      onClick={() => setColourChoice((current) => (colourKey(current) === colourKey(colour) ? "" : colour))}
+                      aria-pressed={chosen}
+                      className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-bold transition ${
+                        chosen
+                          ? "border-brand-green bg-brand-green text-white"
+                          : "border-black/10 bg-brand-paper text-brand-green-ink hover:border-brand-green"
+                      }`}
+                    >
+                      {swatch ? <span aria-hidden="true" className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: swatch }} /> : null}
+                      {colourLabel(colour)}
+                    </button>
+                  );
+                })
+              : null}
+          </div>
+        ) : null}
 
         <div className={`mt-4 flex flex-wrap items-center justify-between gap-3 text-sm ${hasLocalFilters ? "" : onPhone}`}>
           <p className="font-bold text-brand-green-ink">

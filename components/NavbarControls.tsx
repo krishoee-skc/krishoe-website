@@ -91,6 +91,11 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
           a single "ने" here — two letters, and the reader who needs them most
           is the one who cannot read them. */}
       <LanguageSwitch className="hidden lg:inline-flex" compact />
+      {/* On a phone and tablet, a small one in the bar itself (owner's shop
+          sample, 5, 2026-10-26): the question that used to be asked in a strip
+          over the logo now points here, and the switch is always one tap away. */}
+      <LanguageSwitch className="!h-8 lg:hidden [&>button]:!min-h-0 [&>button]:!min-w-0 [&>button]:px-2 [&>button]:text-[11px] [&_svg]:hidden" compact />
+
 
       <span className="hidden lg:block">
         <ThemeToggle />

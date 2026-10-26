@@ -1,3 +1,6 @@
+import { colourSwatch } from "@/lib/shoe-colour";
+import { colourLabel } from "@/lib/colour-name";
+
 type ProductOptionSelectorProps = {
   title: string;
   options: string[];
@@ -35,7 +38,9 @@ const COLOR_SWATCHES: Record<string, string> = {
 };
 
 function swatchColor(name: string) {
-  return COLOR_SWATCHES[name.trim().toLowerCase()] ?? null;
+  // The shop's own colour words too ("cherry"), from the one list the cards
+  // and the factory use (owner's shop sample, 6, 2026-10-26).
+  return COLOR_SWATCHES[name.trim().toLowerCase()] ?? colourSwatch(name);
 }
 
 export default function ProductOptionSelector({
@@ -59,7 +64,7 @@ export default function ProductOptionSelector({
                 style={{ backgroundColor: swatchColor(selectedValue) as string }}
               />
             ) : null}
-            {selectedValue}
+            {variant === "color" ? colourLabel(selectedValue) : selectedValue}
           </span>
         ) : null}
       </div>
@@ -94,7 +99,7 @@ export default function ProductOptionSelector({
                   style={{ backgroundColor: color }}
                 />
               ) : null}
-              {item}
+              {variant === "color" ? colourLabel(item) : item}
             </button>
           );
         })}

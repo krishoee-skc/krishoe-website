@@ -31,7 +31,9 @@ describe("shop by style", () => {
     expect(source).toContain("const DECAGON =");
     expect(source).toContain("style={{ clipPath: DECAGON }}");
     expect(source).toContain("Object.values(shoeCounts).some((count) => count > 0)");
-    expect(source).toContain(".filter((item) => !hideEmpty || (shoeCounts?.[item.slug] ?? 0) > 0)");
+    expect(source).toContain(".filter((item) => !hideEmpty || (shoeCounts?.[item.slug] ?? 0) > 0 || SHOWN_WHILE_COMING.includes(item.slug))");
+    // Three still to come stay in the row (owner's shop sample, 11, 2026-10-26).
+    expect(source).toContain('const SHOWN_WHILE_COMING = ["ladies-slippers", "mens-collection", "kids-collection"];');
     expect(source).not.toContain("rounded-full shadow-sm ring-2");
   });
 

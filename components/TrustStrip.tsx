@@ -51,17 +51,19 @@ export default function TrustStrip() {
   ];
 
   return (
-    <ul className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+    // Four in one row on a phone too, smaller (owner's shop sample, 2026-10-26):
+    // two by two they were taller than the buying box.
+    <ul className="mt-5 grid grid-cols-4 gap-1.5 sm:mt-6 sm:gap-2">
       {items.map((item) => (
         <li
           key={item.value}
-          className="rounded-xl border border-brand-green-line bg-brand-mist px-3 py-3 text-center"
+          className="rounded-xl border border-brand-green-line bg-brand-mist px-1 py-2 text-center sm:px-3 sm:py-3"
         >
-          <span aria-hidden="true" className="mx-auto grid h-9 w-9 place-items-center rounded-xl bg-brand-green-wash text-brand-green">
+          <span aria-hidden="true" className="mx-auto grid h-7 w-7 place-items-center rounded-lg bg-brand-green-wash text-brand-green sm:h-9 sm:w-9 sm:rounded-xl">
             <item.Icon className="h-5 w-5" />
           </span>
-          <p className="mt-1.5 text-sm font-black leading-tight text-brand-green-ink">{item.value}</p>
-          <p className="mt-0.5 text-[13px] leading-[1.15rem] text-brand-muted">{item.label}</p>
+          <p className="mt-1 text-[11.5px] font-black leading-tight text-brand-green-ink sm:mt-1.5 sm:text-sm">{item.value}</p>
+          <p className="mt-0.5 text-[10.5px] leading-[0.85rem] text-brand-muted sm:text-[13px] sm:leading-[1.15rem]">{item.label}</p>
         </li>
       ))}
     </ul>

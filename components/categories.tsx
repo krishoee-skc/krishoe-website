@@ -99,6 +99,15 @@ const DECAGON =
  * first shoe goes on sale. Only when no collection has a shoe do they all
  * show, faded, so the row is never empty; their pages still say "coming soon".
  */
+/**
+ * Three collections still to come that stay in the row as "coming soon" even
+ * when others have shoes (owner's shop sample, 11, 2026-10-26): one stone on
+ * its own looked like an empty shop; seven faded ones (before 2026-10-08)
+ * looked like one too. Slippers, men and children are what a first visitor
+ * asks after.
+ */
+const SHOWN_WHILE_COMING = ["ladies-slippers", "mens-collection", "kids-collection"];
+
 export default function Categories({ shoeCounts }: { shoeCounts?: Record<string, number> } = {}) {
   const hideEmpty = shoeCounts !== undefined && Object.values(shoeCounts).some((count) => count > 0);
   return (
@@ -110,7 +119,7 @@ export default function Categories({ shoeCounts }: { shoeCounts?: Record<string,
 
         <SlideRail className="gap-3 px-0.5 pb-2 pt-1 sm:gap-5 lg:[&>*:first-child]:ml-auto lg:[&>*:last-child]:mr-auto">
           {[...categories]
-            .filter((item) => !hideEmpty || (shoeCounts?.[item.slug] ?? 0) > 0)
+            .filter((item) => !hideEmpty || (shoeCounts?.[item.slug] ?? 0) > 0 || SHOWN_WHILE_COMING.includes(item.slug))
             .sort((a, b) => Number((shoeCounts?.[b.slug] ?? 1) > 0) - Number((shoeCounts?.[a.slug] ?? 1) > 0))
             .map((item) => {
               const comingSoon = shoeCounts !== undefined && (shoeCounts[item.slug] ?? 0) === 0;

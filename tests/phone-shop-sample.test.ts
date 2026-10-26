@@ -77,9 +77,12 @@ describe("3 · the cart", () => {
 });
 
 describe("4 · Add to cart", () => {
-  it("has a row of its own on a phone, on one line", async () => {
+  it("sits between −/+ and ♡ again, on one line (shop sample 10, 2026-10-26)", async () => {
     const actions = await read("components/ProductDetailActions.tsx");
-    expect(actions).toContain("order-last inline-flex h-12 basis-full items-center justify-center gap-2 whitespace-nowrap");
+    expect(actions).toContain("inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap");
+    expect(actions).not.toContain("order-last inline-flex h-12 basis-full");
+    // The −/+ is narrower on a phone so the words fit beside it.
+    expect(await read("components/QuantitySelector.tsx")).toContain("grid h-12 w-11 place-items-center");
   });
 });
 

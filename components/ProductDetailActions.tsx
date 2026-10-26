@@ -111,7 +111,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
 
   return (
     <>
-      <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-[0_24px_70px_rgba(16,35,29,0.10)]">
+      <div className="rounded-lg border border-black/10 bg-brand-paper p-4 shadow-[0_24px_70px_rgba(16,35,29,0.10)] sm:p-5">
         {outOfStock ? (
           <p className="mb-4 inline-flex items-center rounded-full bg-brand-clay-tint px-3 py-1 text-sm font-bold text-brand-danger">
             {text("Sold out", "बिक्री सकियो")}
@@ -153,17 +153,18 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
               : text("Buy now", "अहिले किन्नुहोस्")}
         </button>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div className="mt-3 flex items-center gap-2 sm:gap-3">
           <QuantitySelector quantity={selectedQuantity} setQuantity={setClampedQuantity} maxQuantity={maxQuantity} />
 
           <button
             type="button"
             onClick={addSelectedItem}
             disabled={blockPurchase}
-            // A row of its own on a phone (owner's phone sample 4, 2026-10-24):
-            // squeezed between −/+ and ♡ it broke into "Add / to / cart" and
-            // spilled out of its outline.
-            className="order-last inline-flex h-12 basis-full items-center justify-center gap-2 whitespace-nowrap rounded-full border-2 border-brand-green bg-transparent px-6 text-sm font-bold text-brand-green sm:order-none sm:basis-0 sm:flex-1 transition hover:bg-brand-green hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
+            // −/+, Add to cart and ♡ on one line again (owner's shop sample,
+            // 10, 2026-10-26), with less padding on a phone so the words stay
+            // on one line — the reason it once had a row of its own (phone
+            // sample 4, 2026-10-24: "Add / to / cart" spilled out).
+            className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border-2 border-brand-green bg-transparent px-3 text-sm font-bold text-brand-green sm:gap-2 sm:px-6 transition hover:bg-brand-green hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:border-brand-muted-soft disabled:text-brand-muted-soft"
           >
             <ShoppingBagIcon className="h-4 w-4" />
             {outOfStock
@@ -181,7 +182,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
                 : text("Add to wishlist", "मनपर्नेमा राख्नुहोस्")
             }
             onClick={() => toggleWishlist(product.id)}
-            className={`ml-auto grid h-12 w-12 place-items-center rounded-full border transition sm:ml-0 ${
+            className={`grid h-12 w-12 flex-none place-items-center rounded-full border transition ${
               wished
                 ? "border-brand-gold-bright bg-brand-cream text-brand-gold-dark"
                 : "border-black/10 text-brand-green hover:border-brand-green"
@@ -191,13 +192,16 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
           </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* WhatsApp and Viber side by side on a phone too (owner's shop
+            sample, 10): five full-width buttons one under another made the
+            buying box longer than the screen. */}
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">
           <a
             href={whatsappOrderUrl(orderMessage)}
             onClick={() => trackContact("whatsapp")}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#0E7A42] px-6 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-full bg-[#0E7A42] px-2 text-[13px] font-bold text-white transition hover:brightness-95 sm:px-6 sm:text-sm"
           >
             {outOfStock
               ? text("Ask on WhatsApp", "WhatsApp मा सोध्नुहोस्")
@@ -206,7 +210,7 @@ export default function ProductDetailActions({ product, soldOutSizes = [] }: Pro
           <a
             href={viberOrderUrl(orderMessage)}
             onClick={() => trackContact("viber")}
-            className="inline-flex h-12 w-full items-center justify-center rounded-full bg-[#5A43D6] px-6 text-sm font-bold text-white transition hover:brightness-95"
+            className="inline-flex h-12 w-full items-center justify-center whitespace-nowrap rounded-full bg-[#5A43D6] px-2 text-[13px] font-bold text-white transition hover:brightness-95 sm:px-6 sm:text-sm"
           >
             {outOfStock
               ? text("Ask on Viber", "Viber मा सोध्नुहोस्")

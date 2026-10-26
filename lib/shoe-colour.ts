@@ -7,6 +7,14 @@
 const SWATCHES: Record<string, string> = {
   red: "#C62828",
   maroon: "#7B1E1E",
+  // The shop's own colour words, as the catalogue spells them.
+  cherry: "#7A1420",
+  wine: "#5E1A2A",
+  coffee: "#5A3A22",
+  chocolate: "#4A2C1D",
+  camel: "#C19A6B",
+  nude: "#E3BC9A",
+  peach: "#F2B8A0",
   black: "#1F1F1F",
   white: "#F7F7F2",
   cream: "#EFE3C8",

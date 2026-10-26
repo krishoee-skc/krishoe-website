@@ -62,6 +62,9 @@ describe("the language switch", () => {
     // The storefront keeps the switch it already had — on the bar for a
     // computer, and first in the menu drawer on a phone — and it is now the
     // same component as the other three doors rather than its own spelling.
-    expect(controls.match(/<LanguageSwitch/g) ?? []).toHaveLength(2);
+    // Since the shop sample (5, 2026-10-26) a small one sits on the phone's
+    // bar too, where the language question points.
+    expect(controls.match(/<LanguageSwitch/g) ?? []).toHaveLength(3);
+    expect(controls).toContain('<LanguageSwitch className="!h-8 lg:hidden');
   });
 });
