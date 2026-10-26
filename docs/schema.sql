@@ -1265,10 +1265,19 @@ ALTER TABLE factory_workers
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE factory_items
   ADD COLUMN IF NOT EXISTS production_item_id TEXT REFERENCES production_items(id) ON DELETE RESTRICT,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- From 20260830_factory_item_material_cost.sql, missing here until the first
+  -- restore test compared a rebuild with live (2026-10-26).
+  ADD COLUMN IF NOT EXISTS material_cost_per_pair NUMERIC NOT NULL DEFAULT 0;
 ALTER TABLE factory_daily_work
   ADD COLUMN IF NOT EXISTS submission_key TEXT,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- From 20260830_factory_qc_reject_pairs, 20260907_factory_work_stage and
+  -- 20260919_factory_work_size_counts, missing here until the first restore
+  -- test (2026-10-26).
+  ADD COLUMN IF NOT EXISTS reject_pairs INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS stage TEXT,
+  ADD COLUMN IF NOT EXISTS size_counts JSONB;
 ALTER TABLE factory_worker_ledger
   ADD COLUMN IF NOT EXISTS submission_key TEXT,
   ADD COLUMN IF NOT EXISTS source_work_id TEXT REFERENCES factory_daily_work(id) ON DELETE RESTRICT,

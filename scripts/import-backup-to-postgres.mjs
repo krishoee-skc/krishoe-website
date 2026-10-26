@@ -9,6 +9,7 @@ import pg from "pg";
 import {
   assetBackupTables,
   backupExtensionTableSpecs,
+  exactCopyTables,
   keptTableNames,
   backupKeyColumns,
   factoryBackupTables,
@@ -364,33 +365,54 @@ async function upsertRawBackupTable(client, spec, rows) {
   const keys = backupKeyColumns(spec);
   const json = new Set(spec.json ?? []);
   const quotedColumns = spec.columns.map((column) => `"${column}"`);
-  const placeholders = spec.columns.map((column, index) =>
-    json.has(column) ? `$${index + 1}::jsonb` : `$${index + 1}`,
-  );
   const updateAssignments = spec.columns
     .filter((column) => !keys.includes(column))
     .map((column) => `"${column}" = EXCLUDED."${column}"`);
-  const sql = `
-    INSERT INTO "${spec.table}" (${quotedColumns.join(", ")})
-    VALUES (${placeholders.join(", ")})
-    ON CONFLICT (${keys.map((key) => `"${key}"`).join(", ")}) DO UPDATE SET
-      ${updateAssignments.join(",\n      ")}
-  `;
+  const conflict = `ON CONFLICT (${keys.map((key) => `"${key}"`).join(", ")}) DO UPDATE SET
+      ${updateAssignments.join(",\n      ")}`;
+  const filledByDefault = await columnsFilledByDefault(client, spec.table);
 
   for (const row of rows) {
-    await client.query(
-      sql,
-      spec.columns.map((column) =>
+    const values = [];
+    // A column the database now requires, with a default, takes that default
+    // when the backup has nothing for it — a rebuilt database can be stricter
+    // than the one the backup came from (owner, 2026-10-26: customer_voice's
+    // branch_id is optional live and required in a rebuild, and the restore
+    // stopped on the first review).
+    const placeholders = spec.columns.map((column) => {
+      const value = row[column];
+      if ((value === null || value === undefined) && filledByDefault.has(column)) return "DEFAULT";
+      values.push(
         spec.table === "uploaded_images" && column === "bytes"
           ? Buffer.from(requiredString(row[column]).replace(/\s/g, ""), "base64")
-          : json.has(column) && row[column] !== null && row[column] !== undefined
-            ? JSON.stringify(row[column])
-            : row[column],
-      ),
+          : json.has(column) && value !== null && value !== undefined
+            ? JSON.stringify(value)
+            : value,
+      );
+      return json.has(column) ? `$${values.length}::jsonb` : `$${values.length}`;
+    });
+    await client.query(
+      `
+    INSERT INTO "${spec.table}" (${quotedColumns.join(", ")})
+    VALUES (${placeholders.join(", ")})
+    ${conflict}
+  `,
+      values,
     );
   }
 
   return rows.length;
+}
+
+/** Columns that refuse an empty value but have a default to fall back on. */
+async function columnsFilledByDefault(client, table) {
+  const { rows } = await client.query(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1
+        AND is_nullable = 'NO' AND column_default IS NOT NULL`,
+    [table],
+  );
+  return new Set(rows.map((row) => row.column_name));
 }
 
 async function importRawBackupTables(client, data, specs, importedGroup) {
@@ -1520,31 +1542,68 @@ async function upsertCompanyBranch(client, branch) {
   );
 }
 
+/**
+ * Every role the app has (lib/admin-role-permissions.ts adminRoles). The list
+ * here once stopped at Viewer, so a restored Worker came back as a Viewer.
+ */
+const staffRoles = ["Owner", "Manager", "Accountant", "HR", "Inventory", "Sales", "Factory", "Worker", "Viewer"];
+
+/**
+ * A staff account as the backup carries it — all of it (owner, 2026-10-26).
+ *
+ * The first real restore test found this writing only ten columns: a worker,
+ * who signs in by mobile and has no email, was written with email "" (the
+ * fourth such row broke the unique email rule and stopped the restore), came
+ * back as a Viewer, and lost the phone, the factory-worker link and the
+ * two-step setting — no worker could have signed in after a restore.
+ */
 async function upsertAdminStaffAccount(client, staff) {
+  const email = optionalString(staff.email);
   await client.query(
     `
       INSERT INTO admin_staff_accounts (
-        id, name, email, role, branch_id, status, password_hash, created_at, updated_at, last_login_at
+        id, name, email, phone, role, branch_id, status, password_hash,
+        factory_worker_id, must_change_password, mfa_enabled, password_changed_at,
+        failed_login_count, last_failed_login_at, last_login_ip, last_login_user_agent,
+        created_at, updated_at, last_login_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         email = EXCLUDED.email,
+        phone = EXCLUDED.phone,
         role = EXCLUDED.role,
         branch_id = EXCLUDED.branch_id,
         status = EXCLUDED.status,
         password_hash = EXCLUDED.password_hash,
+        factory_worker_id = EXCLUDED.factory_worker_id,
+        must_change_password = EXCLUDED.must_change_password,
+        mfa_enabled = EXCLUDED.mfa_enabled,
+        password_changed_at = EXCLUDED.password_changed_at,
+        failed_login_count = EXCLUDED.failed_login_count,
+        last_failed_login_at = EXCLUDED.last_failed_login_at,
+        last_login_ip = EXCLUDED.last_login_ip,
+        last_login_user_agent = EXCLUDED.last_login_user_agent,
         updated_at = EXCLUDED.updated_at,
         last_login_at = EXCLUDED.last_login_at
     `,
     [
       requiredString(staff.id),
       requiredString(staff.name, "Admin Staff"),
-      requiredString(staff.email).toLowerCase(),
-      allowedValue(staff.role, ["Owner", "Manager", "Accountant", "HR", "Inventory", "Sales", "Viewer"], "Viewer"),
+      email ? email.toLowerCase() : null,
+      optionalString(staff.phone),
+      allowedValue(staff.role, staffRoles, "Viewer"),
       requiredString(staff.branchId),
       allowedValue(staff.status, ["Active", "Disabled"], "Active"),
       requiredString(staff.passwordHash),
+      optionalString(staff.factoryWorkerId),
+      staff.mustChangePassword === true,
+      staff.mfaEnabled === true,
+      optionalDateValue(staff.passwordChangedAt),
+      cleanNumber(staff.failedLoginCount),
+      optionalDateValue(staff.lastFailedLoginAt),
+      requiredString(staff.lastLoginIp),
+      requiredString(staff.lastLoginUserAgent),
       dateValue(staff.createdAt),
       dateValue(staff.updatedAt),
       optionalDateValue(staff.lastLoginAt),
@@ -1617,6 +1676,56 @@ async function putKeptTablesBack(client, kept, allowLoss) {
     throw new Error(
       `${waiting.length} row(s) kept from tables this backup does not carry could not go back (first: ${first.table}: ${first.error}). Nothing was changed. Add --allow-losing-kept-rows only if losing them is meant.`,
     );
+  }
+  return report;
+}
+
+/**
+ * The exact copy written back (owner, 2026-10-26). Only the columns both the
+ * row and the table have are written, so a column dropped since leaves no
+ * trace and one added since keeps its default. Children the shaped import
+ * rebuilt with new ids (an order's lines) are cleared for the parents in the
+ * copy first, or they would be there twice.
+ */
+async function writeExactCopy(client, exact) {
+  const report = {};
+  for (const spec of exactCopyTables) {
+    const rows = exact[spec.table];
+    if (!Array.isArray(rows)) continue;
+    const present = await client.query("SELECT to_regclass($1) AS t", [`public.${spec.table}`]);
+    if (!present.rows[0].t) continue;
+    const columns = new Set(
+      (
+        await client.query(
+          "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1",
+          [spec.table],
+        )
+      ).rows.map((row) => row.column_name),
+    );
+    if (spec.childrenOf) {
+      const parents = (exact[spec.childrenOf.table] ?? []).map((row) => row?.id).filter(Boolean);
+      if (parents.length) {
+        await client.query(
+          `DELETE FROM "${spec.table}" WHERE "${spec.childrenOf.column}" = ANY($1::text[])`,
+          [parents],
+        );
+      }
+    }
+    for (const row of rows) {
+      const names = Object.keys(row ?? {}).filter((name) => columns.has(name));
+      if (!names.includes(spec.key)) continue;
+      const list = names.map((name) => `"${name}"`).join(", ");
+      const updates = names
+        .filter((name) => name !== spec.key)
+        .map((name) => `"${name}" = EXCLUDED."${name}"`);
+      await client.query(
+        `INSERT INTO "${spec.table}" (${list})
+         SELECT ${list} FROM json_populate_record(NULL::"${spec.table}", $1::json)
+         ON CONFLICT ("${spec.key}") ${updates.length ? `DO UPDATE SET ${updates.join(", ")}` : "DO NOTHING"}`,
+        [JSON.stringify(row)],
+      );
+    }
+    report[spec.table] = rows.length;
   }
   return report;
 }
@@ -1778,15 +1887,28 @@ async function importBackup(client, backup, replace, allowLoss = false) {
     }
 
     // The manifest is an explicit whitelist and dependency order. All base
-    // masters (products, raw materials, HR employees) and stock movements are
-    // already present before these raw extension rows are restored.
+    // masters (products, raw materials) and stock movements are already
+    // present before these raw extension rows are restored.
+    //
+    // The two groups point at each other: production work entries, stage
+    // rates, handovers and QC point at factory_workers, while factory_items and
+    // factory_daily_work point at production rows. So the workers go first,
+    // then production, then the rest of the factory. Production first broke
+    // the first real restore test on its first work entry (owner, 2026-10-26).
+    const workersFirst = factoryBackupTables.filter(({ table }) => table === "factory_workers");
+    await importRawBackupTables(client, data, workersFirst, imported.factory);
     await importRawBackupTables(
       client,
       data,
       productionAccountingBackupTables,
       imported.productionAccounting,
     );
-    await importRawBackupTables(client, data, factoryBackupTables, imported.factory);
+    await importRawBackupTables(
+      client,
+      data,
+      factoryBackupTables.filter(({ table }) => table !== "factory_workers"),
+      imported.factory,
+    );
     await importRawBackupTables(client, data, assetBackupTables, imported.assets);
 
     for (const transaction of operations.ledgerTransactions ?? []) {
@@ -1831,6 +1953,13 @@ async function importBackup(client, backup, replace, allowLoss = false) {
 
     // What the backup did not carry goes back as it was before the restore.
     if (kept.length > 0) imported.keptFromBeforeRestore = await putKeptTablesBack(client, kept, allowLoss);
+
+    // Last of all, the core rows exactly as the database held them, every
+    // column — over the shaped rows written above (lib/backup-table-manifest
+    // exactCopyTables). A backup from before 2026-10-26 has no data.exact.
+    if (data.exact && typeof data.exact === "object") {
+      imported.exact = await writeExactCopy(client, data.exact);
+    }
 
     await client.query("COMMIT");
   } catch (error) {

@@ -149,6 +149,21 @@ async function main() {
 
   try {
     await client.query("BEGIN");
+    // An empty database built from docs/schema.sql: the file is the end state
+    // the migrations led to, so a migration that cannot run on top of it was
+    // superseded by it — the HR module's first four, written for tables
+    // dropped on 2026-08-26, are the case that stopped every rebuild until the
+    // first restore test (owner, 2026-10-26). Anywhere else a failing
+    // migration still stops the run.
+    const freshBuild =
+      Boolean(schemaSql) &&
+      Number(
+        (
+          await client.query(
+            "SELECT count(*) AS n FROM information_schema.tables WHERE table_schema = 'public'",
+          )
+        ).rows[0].n,
+      ) === 0;
     if (schemaSql) {
       await client.query(schemaSql);
     }
@@ -163,6 +178,7 @@ async function main() {
 
     const applied = [];
     const skipped = [];
+    const supersededBySchema = [];
 
     for (const migrationPath of migrations) {
       const name = path.basename(migrationPath);
@@ -198,7 +214,23 @@ async function main() {
         throw new Error(`Migration ${name} must not manage its own transaction.`);
       }
 
-      await client.query(sql);
+      if (freshBuild) {
+        await client.query("SAVEPOINT migration");
+        try {
+          await client.query(sql);
+          await client.query("RELEASE SAVEPOINT migration");
+        } catch (error) {
+          await client.query("ROLLBACK TO SAVEPOINT migration");
+          supersededBySchema.push(`${name}: ${error instanceof Error ? error.message : String(error)}`);
+          await client.query(
+            "INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)",
+            [name, checksum],
+          );
+          continue;
+        }
+      } else {
+        await client.query(sql);
+      }
       await client.query(
         "INSERT INTO schema_migrations (name, checksum) VALUES ($1, $2)",
         [name, checksum],
@@ -217,7 +249,7 @@ async function main() {
           appliedAt: new Date().toISOString(),
           database: safeDatabaseLabel(databaseUrl),
           schema: path.relative(process.cwd(), schemaPath),
-          migrations: { applied, skipped },
+          migrations: { applied, skipped, supersededBySchema },
         },
         null,
         2,

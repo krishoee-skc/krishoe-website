@@ -4,6 +4,7 @@ import {
   backupExtensionTableSpecs,
   backupKeyColumns,
   emptyBackupExtensionGroups,
+  exactCopyTables,
 } from "@/lib/backup-table-manifest.mjs";
 import { getCostingSettings } from "@/lib/costing-settings";
 import { getDataBackendConfig, getSafeDataBackendStatus } from "@/lib/data-backend";
@@ -72,6 +73,29 @@ async function getBackupExtensionRows(): Promise<RawBackupGroups> {
   }
 
   return emptyGroups;
+}
+
+/**
+ * The core tables exactly as the database holds them, every column
+ * (lib/backup-table-manifest exactCopyTables, owner 2026-10-26). row_to_json
+ * keeps each value's own text — microseconds, numerics, arrays — so the
+ * restore writes back what was there, not what the app's objects carried.
+ */
+async function getExactCopyRows(): Promise<Record<string, RawBackupRow[]>> {
+  if (!getDataBackendConfig().hasDatabaseUrl) return {};
+  return transactionPostgres("admin backup exact copy", async (db) => {
+    await db.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
+    const copy: Record<string, RawBackupRow[]> = {};
+    for (const { table, key } of exactCopyTables) {
+      const present = await db.query<{ t: string | null }>("SELECT to_regclass($1) AS t", [`public.${table}`]);
+      if (!present[0]?.t) continue;
+      const rows = await db.query<{ row: RawBackupRow }>(
+        `SELECT row_to_json(t) AS row FROM "${table}" t ORDER BY "${key}"`,
+      );
+      copy[table] = rows.map(({ row }) => row);
+    }
+    return copy;
+  });
 }
 
 function backupExtensionCounts(groups: RawBackupGroups) {
@@ -271,6 +295,7 @@ export async function buildAdminBackup() {
     audit,
     notifications,
     backupExtensions,
+    exact,
   ] = await Promise.all([
     getProducts({ includeDrafts: true }),
     getOrders(),
@@ -288,6 +313,7 @@ export async function buildAdminBackup() {
     getAdminAuditEvents(1_000_000),
     getNotificationEvents(300),
     getBackupExtensionRows(),
+    getExactCopyRows(),
   ]);
 
   const extensionCounts = backupExtensionCounts(backupExtensions);
@@ -323,6 +349,7 @@ export async function buildAdminBackup() {
       factory: extensionCounts.factory,
       assets: extensionCounts.assets,
       shop: extensionCounts.shop,
+      exact: Object.fromEntries(Object.entries(exact).map(([table, rows]) => [table, rows.length])),
     },
     integrity: {
       products: {
@@ -558,6 +585,7 @@ export async function buildAdminBackup() {
       factory: backupExtensions.factory,
       assets: backupExtensions.assets,
       shop: backupExtensions.shop,
+      exact,
     },
   };
 }
