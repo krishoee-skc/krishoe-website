@@ -101,7 +101,7 @@ export async function GET() {
          FROM factory_daily_work work
          JOIN factory_items items ON items.id = work.item_id
          JOIN factory_workers workers ON workers.id = work.worker_id
-         WHERE items.status = 'active' AND work.status <> 'Reversed'
+         WHERE items.status = 'active' AND lower(work.status) <> 'reversed'
          GROUP BY work.item_id, items.name,
                   COALESCE(NULLIF(work.stage, ''), workers.category),
                   work.color, work.size

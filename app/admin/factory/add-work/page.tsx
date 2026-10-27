@@ -81,7 +81,7 @@ async function loadEntryScreen(): Promise<Loaded> {
                 SUM(work.pairs_count - COALESCE(work.reject_pairs, 0))::integer AS net
          FROM factory_daily_work work
          JOIN factory_workers workers ON workers.id = work.worker_id
-         WHERE work.status <> 'Reversed'
+         WHERE lower(work.status) <> 'reversed'
          GROUP BY work.item_id, COALESCE(NULLIF(work.stage, ''), workers.category),
                   work.color, work.size`,
       ).catch(() => []),
@@ -92,7 +92,7 @@ async function loadEntryScreen(): Promise<Loaded> {
         "factory",
         `SELECT DISTINCT ON (item_id) item_id, color AS colour, size
          FROM factory_daily_work
-         WHERE status <> 'Reversed' AND btrim(coalesce(color, '')) <> ''
+         WHERE lower(status) <> 'reversed' AND btrim(coalesce(color, '')) <> ''
            AND btrim(coalesce(size, '')) <> ''
          ORDER BY item_id, created_at DESC`,
       ).catch(() => []),

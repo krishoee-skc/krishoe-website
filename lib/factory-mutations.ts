@@ -367,7 +367,7 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         `SELECT stage, color, size, pairs_count AS pairs,
                 COALESCE(reject_pairs, 0) AS rejects
          FROM factory_daily_work
-         WHERE item_id = $1 AND status <> 'Reversed'
+         WHERE item_id = $1 AND lower(status) <> 'reversed'
          FOR UPDATE`,
         [input.itemId],
       );

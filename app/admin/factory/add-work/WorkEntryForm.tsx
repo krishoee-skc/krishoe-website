@@ -973,7 +973,7 @@ export default function WorkEntryForm({
                     setSavedCard(null);
                     walkRefs.current.get("pairs")?.focus();
                   }}
-                  className="min-h-10 rounded-full bg-brand-green px-3 text-xs font-black text-white"
+                  className="min-h-11 rounded-full bg-brand-green px-3 text-xs font-black text-white"
                 >
                   ➕ {text("Next entry", "अर्को entry")}
                 </button>
@@ -985,13 +985,13 @@ export default function WorkEntryForm({
                     setCalculatedAmount(0);
                     walkRefs.current.get("worker")?.focus();
                   }}
-                  className="min-h-10 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-black text-brand-green-ink"
+                  className="min-h-11 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-black text-brand-green-ink"
                 >
                   👤 {text("Another worker", "अर्को कामदार")}
                 </button>
                 <Link
                   href={`/admin/factory/ledger?workerId=${savedCard.workerId}`}
-                  className="inline-flex min-h-10 items-center rounded-full px-2 text-xs font-bold text-brand-green underline underline-offset-4"
+                  className="inline-flex min-h-11 items-center rounded-full px-2 text-xs font-bold text-brand-green underline underline-offset-4"
                 >
                   ✏️ {text("Wrong? Fix it", "गल्ती? सच्याउने")}
                 </Link>

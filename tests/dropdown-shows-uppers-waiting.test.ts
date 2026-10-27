@@ -61,7 +61,9 @@ describe("the count that reaches the screen", () => {
   it("excludes reversed work", async () => {
     const page = await readFile(PAGE, "utf8");
 
-    expect(page).toMatch(/Reversed/);
+    // factory_daily_work marks it 'reversed' in lower case; matching 'Reversed'
+    // let taken-back work through (recheck, 2026-10-27).
+    expect(page).toContain("WHERE lower(work.status) <> 'reversed'");
   });
 });
 
