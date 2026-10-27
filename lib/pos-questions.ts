@@ -29,3 +29,21 @@ export class PosNeedsAnswer extends Error {
     this.name = "PosNeedsAnswer";
   }
 }
+
+/**
+ * The counter's own rules saying no — too few pairs for the bill, more coming
+ * back than the customer owes, a shoe not in stock yet (KR-BUG-004,
+ * 2026-10-27). The counter is told, as before; Monitoring is not, where these
+ * were filed as errors and buried the real ones.
+ */
+const COUNTER_RULES = [
+  // "Cannot bill" before saving; "Cannot Sale Out" from the locked stock row
+  // when two counters sell the last pairs at once (lib/stock-rules.ts).
+  / has only \d+ pairs\. Cannot [A-Za-z ]+ \d+ pairs\.$/,
+  / has only Rs\. [\d.,-]+ due\. Cannot post Rs\. [\d.,]+\.$/,
+  / is not in stock yet\.$/,
+];
+
+export function isCounterRule(error: unknown) {
+  return error instanceof Error && COUNTER_RULES.some((rule) => rule.test(error.message));
+}

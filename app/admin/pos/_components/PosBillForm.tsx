@@ -484,6 +484,19 @@ export default function PosBillForm({
       : text("Pick whose account the unpaid part goes to", "बाँकी रकम कसको खातामा, छान्नुहोस्");
   }
 
+  // The account box, brought into sight when the bill first needs one
+  // (KR-BUG-003, 2026-10-27): pressing Credit put it below the fold, and the
+  // only sign was a grey Save saying "Pick whose account".
+  const accountBoxRef = useRef<HTMLDivElement>(null);
+  const askingForAccount = needsAccount && cart.length > 0 && !accountId;
+  const wasAskingForAccount = useRef(false);
+  useEffect(() => {
+    if (askingForAccount && !wasAskingForAccount.current) {
+      accountBoxRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    wasAskingForAccount.current = askingForAccount;
+  }, [askingForAccount]);
+
   // A note is news of the last thing done, and goes after a few seconds: "No
   // more pairs of that size." stayed up through the next customer (owner,
   // 2026-09-30).
@@ -1700,7 +1713,7 @@ export default function PosBillForm({
             ) : null}
 
             {needsAccount && cart.length > 0 ? (
-              <div className="grid gap-2 rounded-2xl border border-brand-gold bg-brand-cream-soft p-3">
+              <div ref={accountBoxRef} className="grid gap-2 rounded-2xl border border-brand-gold bg-brand-cream-soft p-3">
                 <p className="text-sm font-black text-brand-gold-deep">
                   {isReturn
                     ? text("Whose account does the return go to?", "फिर्ता कसको खातामा जान्छ?")
@@ -1830,7 +1843,9 @@ export default function PosBillForm({
               </p>
             ) : null}
 
-            <span ref={answerRef} aria-hidden="true" />
+            {/* scroll-mt: on a computer the counter's bar sits over the top of
+                the page, and the reason scrolled up under it (KR-BUG-002). */}
+            <span ref={answerRef} aria-hidden="true" className="block scroll-mt-28" />
             <ActionMessage state={state} linkLabel={text("Open receipt", "रसिद खोल्ने")} />
             {state?.ask && !givenAnswers.includes(state.ask) ? (
               <button

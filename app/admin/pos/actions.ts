@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/admin/actions";
-import { PosNeedsAnswer, POS_ANSWER_FIELD } from "@/lib/pos-questions";
+import { isCounterRule, PosNeedsAnswer, POS_ANSWER_FIELD } from "@/lib/pos-questions";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { requireAdminPermission } from "@/lib/admin-permissions";
 import { createCounterItem, CounterItemRefusal, type CounterItemInput } from "@/lib/counter-items";
@@ -230,6 +230,7 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
     if (error instanceof PosNeedsAnswer) {
       return { ok: false, message: error.message, ...(error.question ? { ask: error.question } : {}) };
     }
+    if (isCounterRule(error)) return { ok: false, message: (error as Error).message };
     reportError("save POS bill", error);
     return { ok: false, message: saveFailureMessage(error, "Could not save this bill.") };
   }
@@ -310,6 +311,7 @@ async function saveExchange(formData: FormData): Promise<ActionState> {
       refundMethod: partMethod(textValue(formData, "refundMethod")),
     });
   } catch (error) {
+    if (isCounterRule(error)) return { ok: false, message: (error as Error).message };
     reportError("save POS exchange", error);
     return { ok: false, message: saveFailureMessage(error, "Could not save this exchange.") };
   }
