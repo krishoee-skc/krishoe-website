@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
 const blob = vi.hoisted(() => ({ put: vi.fn(), list: vi.fn(), del: vi.fn() }));
 vi.mock("@vercel/blob", () => blob);
@@ -69,7 +70,7 @@ describe("the photo route and the form", () => {
   });
 
   it("sends the photos only after the bill is saved, and a failed photo never undoes the bill", async () => {
-    const form = await readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+    const form = await readPurchaseScreen();
     expect(form).toContain("const sent = await uploadBillPhoto(invoiceId, photo.file);");
     expect(form).toContain("The bill is saved — add the photo from the bill page.");
   });

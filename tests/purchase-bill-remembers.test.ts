@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { purchaseMemory, rateKey, sizesFromNote } from "@/lib/purchase-memory";
 import type { PurchaseInvoice } from "@/lib/purchasing";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
 /**
  * The purchase bill, as the owner asked for it (demo 2): one box for both
@@ -61,7 +62,7 @@ describe("what the bill remembers", () => {
 });
 
 describe("the form keeps its promises", () => {
-  const form = () => readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+  const form = () => readPurchaseScreen();
 
   it("requires sizes on a ready-made line, and posts them", async () => {
     const source = await form();
@@ -101,7 +102,7 @@ describe("the form keeps its promises", () => {
 });
 
 describe("the recheck's five fixes stay fixed", () => {
-  const form = () => readFile("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx", "utf8");
+  const form = () => readPurchaseScreen();
 
   it("a remembered rate follows the item; a typed rate is never overwritten", async () => {
     const source = await form();

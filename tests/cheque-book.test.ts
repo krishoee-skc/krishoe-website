@@ -15,6 +15,7 @@ import {
   type Cheque,
 } from "@/lib/cheque-book-rules";
 import { chequeMigrations } from "@/lib/cheques";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
 const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
 
@@ -176,7 +177,7 @@ describe("the wiring", () => {
 
   it("asks the bank and date on both forms, and reminds the Owner", async () => {
     expect(await read("app/admin/pos/_components/PosBillForm.tsx")).toContain('direction="in"');
-    expect(await read("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx")).toContain('direction="out"');
+    expect(await readPurchaseScreen()).toContain('direction="out"');
     expect(await read("app/api/cron/daily-sales/route.ts")).toContain('name: "cheque-reminders",');
     expect(await read("app/admin/page.tsx")).toContain('key: "cheques-deposit",');
     expect(await read("app/admin/nav-links.ts")).toContain('{ href: "/admin/cheques", label: "Cheques", nepali: "चेक खाता", icon: CreditCardIcon },');

@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
-const FORM = "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx";
-const read = async () => (await readFile(FORM, "utf8")).replace(/\r\n/g, "\n");
+const read = () => readPurchaseScreen();
 
 /**
  * The owner's two asks for the purchase bill (2026-09-29): the supplier's bill

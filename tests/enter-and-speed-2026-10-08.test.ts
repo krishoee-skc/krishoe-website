@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { readWorkEntryScreen } from "./helpers/work-entry-screen";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
 const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
 
@@ -60,7 +61,7 @@ describe("Enter walks the screens with no form", () => {
 
   it("shows Next on the phone keyboard in the bill and the work entry", async () => {
     expect((await readWorkEntryScreen()).match(/enterKeyHint="next"/g)?.length).toBe(7);
-    expect((await read("app/admin/purchasing/_components/PurchaseInvoiceForm.tsx")).match(/enterKeyHint="next"/g)?.length).toBe(11);
+    expect((await readPurchaseScreen()).match(/enterKeyHint="next"/g)?.length).toBe(11);
   });
 });
 

@@ -15,7 +15,10 @@ import { stockPlaces, type StockPlace } from "@/lib/stock-rules";
 import { rateKey, type PurchaseMemory, type RememberedLine } from "@/lib/purchase-memory";
 import { SIZE_RUNS, sizesInRun } from "@/lib/shoe-sizes";
 import { uploadBillPhoto } from "@/lib/bill-photo-upload";
-import ChequeFields, { type ChequeDetails } from "@/components/admin/ChequeFields";
+import { type ChequeDetails } from "@/components/admin/ChequeFields";
+import PurchasePayment from "@/app/admin/purchasing/_components/PurchasePayment";
+import PurchaseTotals from "@/app/admin/purchasing/_components/PurchaseTotals";
+import PurchaseReceipt, { type Receipt } from "@/app/admin/purchasing/_components/PurchaseReceipt";
 import type { RawMaterial } from "@/lib/operations";
 
 type PurchaseInvoiceFormProps = {
@@ -56,20 +59,7 @@ type PurchaseInvoiceFormProps = {
   chequeBook?: { ready: boolean; usedBanks: string[]; todayKey: string };
 };
 
-/** What the last save filed, shown until the next bill is started. */
-type Receipt = {
-  /** Empty when the bill named a new supplier; found by name after the save. */
-  supplierId: string;
-  supplierName: string;
-  billNo: string;
-  lines: Array<{ name: string; quantity: string; unit: string; rate: string; sizes: string }>;
-  total: number;
-  paid: number;
-  message: string;
-  href: string;
-  /** The paper-bill photos: being sent, kept, or what went wrong. */
-  photos: { sending: boolean; kept: number; problem: string };
-};
+// What the last save filed: the Receipt type, in PurchaseReceipt.tsx.
 
 /** Photos of the paper bill a purchase can carry. Matches lib/purchase-photos. */
 const MAX_PHOTOS = 4;
@@ -839,68 +829,7 @@ export default function PurchaseInvoiceForm({
   const due = Math.max(0, totals.total - paid);
   const touchedRows = rows.filter(rowIsTouched);
 
-  /**
-   * The four ways a bill gets paid, as four things to press.
-   *
-   * They were a dropdown at the foot of the form, beside the tax box, which is
-   * where the owner stopped noticing them. QR is new: the shop pays suppliers
-   * through eSewa and Khalti already and the only place to record it was
-   * "Bank".
-   */
-  const methods: Array<{
-    id: SupplierPaymentMethod;
-    ne: string;
-    en: string;
-    icon: React.ReactNode;
-  }> = [
-    {
-      id: "Cash",
-      ne: "नगद",
-      en: "Cash",
-      icon: (
-        <>
-          <rect x="2" y="6" width="20" height="12" rx="2" />
-          <circle cx="12" cy="12" r="2.5" />
-        </>
-      ),
-    },
-    {
-      id: "Credit",
-      ne: "उधारो",
-      en: "Credit",
-      icon: (
-        <>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v4l3 2" />
-        </>
-      ),
-    },
-    {
-      id: "Cheque",
-      ne: "चेक",
-      en: "Cheque",
-      icon: (
-        <>
-          <rect x="3" y="5" width="18" height="14" rx="2" />
-          <path d="M7 10h6M7 14h3" />
-        </>
-      ),
-    },
-    {
-      id: "QR",
-      ne: "QR",
-      en: "QR",
-      icon: (
-        <>
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <path d="M14 14h3v3h-3zM20 14v3M17 20h4" />
-        </>
-      ),
-    },
-  ];
-
+  // The four ways a bill gets paid: PurchasePayment.tsx.
   function chooseMethod(id: SupplierPaymentMethod) {
     setPaymentMethod(id);
     // Credit means nothing was handed over — the server refuses a credit bill
@@ -912,12 +841,6 @@ export default function PurchaseInvoiceForm({
     if (id === "Cheque" || id === "QR") setPaidFull(true);
   }
 
-  const referenceLabel =
-    paymentMethod === "QR"
-      ? text("Which wallet — eSewa, Khalti, Fonepay", "कुन app — eSewa, Khalti, Fonepay")
-      : paymentMethod === "Cheque"
-        ? text("Cheque number", "चेक नम्बर")
-        : text("Cheque / bank / reference no.", "चेक / बैंक / रेफरेन्स नं.");
 
   const cell =
     "h-12 rounded-md border px-3 text-base outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/15";
@@ -1729,289 +1652,58 @@ export default function PurchaseInvoiceForm({
             </p>
           </section>
 
-          {/* ── How it was paid ──────────────────────────────────────── */}
-          <section className="rounded-md border border-brand-green/30 p-3 md:p-4">
-            <h3 className="text-[1.0625rem] font-black text-brand-green-ink">
-              {text("How it was paid", "कसरी तिर्यो")}
-            </h3>
-
-            <div className="mt-3 grid grid-cols-4 gap-2">
-              {methods.map((method) => {
-                const on = paymentMethod === method.id;
-                return (
-                  <button
-                    key={method.id}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => chooseMethod(method.id)}
-                    className={`flex min-h-[76px] flex-col items-center justify-center gap-1 rounded-lg px-2 py-3 transition ${
-                      on
-                        ? "border-2 border-brand-green bg-brand-green-wash text-brand-green"
-                        : "border border-brand-green-line bg-brand-paper text-brand-muted hover:border-brand-gold"
-                    }`}
-                  >
-                    <svg
-                      width="21"
-                      height="21"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      {method.icon}
-                    </svg>
-                    <span className="text-[0.9375rem] font-black">{text(method.en, method.ne)}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div>
-                <div className="flex items-center justify-between gap-2">
-                  <label
-                    htmlFor="purchase-paid"
-                    className="text-[0.8125rem] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
-                  >
-                    {text("Paid now", "कति तिर्यो")}
-                  </label>
-                  {paymentMethod !== "Credit" ? (
-                    <button
-                      type="button"
-                      aria-pressed={paidFull}
-                      onClick={() => setPaidFull(true)}
-                      className={`rounded-full border px-3 py-0.5 text-sm font-black ${
-                        paidFull ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line text-brand-green-ink"
-                      }`}
-                    >
-                      💵 {text("Paid in full", "पूरै तिरेँ")}
-                    </button>
-                  ) : null}
-                </div>
-                <input
-                  id="purchase-paid"
-                  name="paidAmount"
-                ref={(element) => {
-                  boxes.current.set("paidAmount", element);
-                }}
-                enterKeyHint="next"
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "paidAmount");
-                  settle();
-                }}
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputMode="decimal"
-                  disabled={paymentMethod === "Credit"}
-                  className={`${plain} mt-1 w-full text-right text-lg font-black tabular-nums disabled:bg-brand-mist disabled:text-brand-muted-soft`}
-                  placeholder="0"
-                  value={paidText}
-                  onChange={(event) => {
-                    setPaidFull(false);
-                    setPaidAmount(event.target.value);
-                  }}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="purchase-reference"
-                  className="text-[0.8125rem] font-black uppercase tracking-[0.12em] text-brand-muted-soft"
-                >
-                  {referenceLabel}
-                </label>
-                <input
-                  id="purchase-reference"
-                  name="paymentReference"
-                ref={(element) => {
-                  boxes.current.set("paymentReference", element);
-                }}
-                enterKeyHint="next"
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "paymentReference");
-                  settle();
-                }}
-                  className={`${plain} mt-1 w-full`}
-                  placeholder={
-                    paymentMethod === "QR" ? "eSewa / Khalti / Fonepay" : text("Reference no.", "रेफरेन्स नं.")
-                  }
-                />
-              </div>
-            </div>
-
-            {chequeBook.ready && paymentMethod === "Cheque" ? (
-              <div className="mt-3">
-                <ChequeFields
-                  direction="out"
-                  value={chequeDetails}
-                  onChange={setChequeDetails}
-                  usedBanks={chequeBook.usedBanks}
-                  todayKey={chequeBook.todayKey}
-                  inputClass={`${plain} w-full`}
-                />
-              </div>
-            ) : null}
-
-            {paymentMethod === "Credit" ? (
-              <p className="mt-2 text-sm text-brand-muted">
-                {text(
-                  "Nothing handed over — the whole bill stays on the supplier's account.",
-                  "अहिले केही नतिरेको — पूरै बिल साहुको खातामा उधारो रहन्छ।",
-                )}
-              </p>
-            ) : null}
-          </section>
+          {/* ── How it was paid (PurchasePayment.tsx) ───────────────── */}
+          <PurchasePayment
+            paymentMethod={paymentMethod}
+            onChooseMethod={chooseMethod}
+            paidFull={paidFull}
+            onPaidFull={() => setPaidFull(true)}
+            paidText={paidText}
+            onPaidAmount={(value) => {
+              setPaidFull(false);
+              setPaidAmount(value);
+            }}
+            registerBox={(name, element) => {
+              boxes.current.set(name, element);
+            }}
+            onBoxKey={(name, event) => {
+              handleFieldWalk(event, name);
+              settle();
+            }}
+            plainClass={plain}
+            chequeBook={chequeBook}
+            chequeDetails={chequeDetails}
+            onChequeDetails={setChequeDetails}
+          />
         </div>
 
-        {/* ── What it comes to ───────────────────────────────────────── */}
-        <aside className="grid content-start gap-3 rounded-md border border-brand-green-line bg-brand-mist/40 p-4 xl:sticky xl:top-4">
-          <h3 className="text-[1.0625rem] font-black text-brand-green-ink">
-            {text("What it comes to", "बिलको हिसाब")}
-          </h3>
-
-          <dl className="grid gap-2 border-b border-brand-green-line pb-3 text-base">
-            <div className="flex justify-between gap-3">
-              <dt className="text-brand-muted">
-                {text(
-                  `${totals.lineCount} item${totals.lineCount === 1 ? "" : "s"}`,
-                  `${totals.lineCount} सामान`,
-                )}
-              </dt>
-              <dd className="font-semibold tabular-nums text-brand-green-ink">{money(totals.subtotal)}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-brand-muted">{text("Discount", "छुट")}</dt>
-              <dd>
-                <input
-                  name="discount"
-                ref={(element) => {
-                  boxes.current.set("discount", element);
-                }}
-                enterKeyHint="next"
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "discount");
-                  settle();
-                }}
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputMode="decimal"
-                  className={`${plain} h-11 w-24 text-right text-[0.9375rem] tabular-nums`}
-                  placeholder="0"
-                  value={discount}
-                  onChange={(event) => setDiscount(event.target.value)}
-                  aria-label={text("Bill discount", "बिलको छुट")}
-                />
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="flex items-center gap-2 text-brand-muted">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={vatOn}
-                    onChange={(event) => setVatOn(event.target.checked)}
-                    className="h-4 w-4 accent-brand-green"
-                  />
-                  {text("VAT 13%", "VAT १३%")}
-                </label>
-              </dt>
-              <dd>
-                <input
-                  name="tax"
-                ref={(element) => {
-                  boxes.current.set("tax", element);
-                }}
-                enterKeyHint="next"
-                onKeyDown={(event) => {
-                  handleFieldWalk(event, "tax");
-                  settle();
-                }}
-                  type="number"
-                  min="0"
-                  step="any"
-                  inputMode="decimal"
-                  className={`${plain} h-11 w-24 text-right text-[0.9375rem] tabular-nums ${vatOn ? "bg-brand-mist" : ""}`}
-                  placeholder="0"
-                  value={vatOn ? String(vatAmount) : tax}
-                  readOnly={vatOn}
-                  onChange={(event) => setTax(event.target.value)}
-                  aria-label={text("Bill tax", "बिलको कर")}
-                />
-              </dd>
-            </div>
-          </dl>
-          {vatOn && supplierMemory?.last?.vat ? (
-            <p className="-mt-1 text-[0.8125rem] font-bold text-brand-green">
-              {text(
-                "On because this supplier's last bill had VAT. Switch off if this one has none.",
-                "यो साहुको पछिल्लो बिलमा VAT थियो, त्यसैले आफैँ खुला भयो। यसमा छैन भने बन्द गर्नुहोस्।",
-              )}
-            </p>
-          ) : null}
-
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-base font-black text-brand-green-ink">{text("Bill total", "बिल जम्मा")}</span>
-            <span className="text-xl font-black tabular-nums text-brand-green-ink">{money(totals.total)}</span>
-          </div>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-base text-brand-muted">{text("Paid", "तिरेको")}</span>
-            <span className="text-base font-bold tabular-nums text-brand-green">{money(paid)}</span>
-          </div>
-
-          {/* The number this whole screen exists to make visible before the
-              bill is saved, rather than after. */}
-          <div
-            className={`rounded-md border p-3 ${
-              due > 0
-                ? "border-brand-clay/40 bg-brand-clay-tint text-brand-clay"
-                : "border-brand-green/30 bg-brand-green-wash text-brand-green"
-            }`}
-          >
-            <p className="text-sm font-black">
-              {due > 0 ? text("Still owed", "उधारो रहन्छ") : text("Nothing owed", "पूरै तिरियो")}
-            </p>
-            <p className="mt-1 text-2xl font-black leading-none tabular-nums">{money(due)}</p>
-            {supplier ? (
-              <p className="mt-2 text-sm font-bold">
-                {text(
-                  `${supplier.supplierName}'s account: ${money(supplier.balanceDue)} → ${money(supplier.balanceDue + due)}`,
-                  `${supplier.supplierName} को खाता: ${money(supplier.balanceDue)} → ${money(supplier.balanceDue + due)}`,
-                )}
-              </p>
-            ) : null}
-          </div>
-
-          <textarea
-            name="note"
-            className="min-h-20 rounded-md border border-brand-green-line bg-brand-paper px-3 py-2 text-base outline-none focus:border-brand-green"
-            placeholder={text(
-              "Bill note, vehicle, gate pass, invoice no.",
-              "बिलको टिपोट, गाडी, गेट पास, बिल नं.",
-            )}
-            aria-label={text("Bill note", "बिलको टिपोट")}
-          />
-
-          <button
-            ref={saveButton}
-            type="submit"
-            disabled={isSaving}
-            className="hidden h-12 w-full rounded-full bg-brand-green px-6 text-base font-black text-white transition hover:bg-brand-green-ink focus-visible:ring-4 focus-visible:ring-brand-gold-bright disabled:cursor-not-allowed disabled:opacity-60 md:block"
-          >
-            {isSaving ? text("Saving…", "राख्दै…") : text("Save purchase", "बिल राख्ने")}
-            <span className="ml-2 text-sm font-semibold opacity-75">Ctrl+S</span>
-          </button>
-          <p className="text-center text-sm leading-5 text-brand-muted">
-            {text(
-              "One press files the bill, the stock, the supplier's account and the payment.",
-              "एकपटक थिच्दा — बिल, स्टक, साहुको खाता र तिरेको पैसा सबै एकैचोटि।",
-            )}
-          </p>
-        </aside>
+        {/* ── What it comes to (PurchaseTotals.tsx) ──────────────────── */}
+        <PurchaseTotals
+          lineCount={totals.lineCount}
+          subtotal={totals.subtotal}
+          total={totals.total}
+          discount={discount}
+          onDiscount={setDiscount}
+          tax={tax}
+          onTax={setTax}
+          vatOn={vatOn}
+          onVat={setVatOn}
+          vatAmount={vatAmount}
+          vatFromLastBill={Boolean(supplierMemory?.last?.vat)}
+          paid={paid}
+          due={due}
+          supplier={supplier}
+          registerBox={(name, element) => {
+            boxes.current.set(name, element);
+          }}
+          onBoxKey={(name, event) => {
+            handleFieldWalk(event, name);
+            settle();
+          }}
+          plainClass={plain}
+          saveButton={saveButton}
+          isSaving={isSaving}
+        />
       </div>
 
       <div className="mt-4">
@@ -2037,95 +1729,29 @@ export default function PurchaseInvoiceForm({
 
       {/* After saving: the bill as filed, then the next one or a print. */}
       {receipt ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label={text("Bill saved", "बिल सेभ भयो")}>
-          <div className="grid w-full max-w-md gap-3 rounded-2xl bg-brand-paper p-5 shadow-2xl">
-            <h3 className="text-lg font-black text-brand-green-ink">✅ {text("Bill saved", "बिल सेभ भयो")}</h3>
-            <p className="text-sm text-brand-muted">{receipt.message}</p>
-            <div className="grid gap-1 rounded-lg border border-dashed border-brand-green-line p-3 text-base">
-              <p className="font-black text-brand-green-ink">
-                {receipt.supplierName}
-                {receipt.billNo ? ` · ${text("bill", "बिल नं.")} ${receipt.billNo}` : ""}
-              </p>
-              {receipt.lines.map((line, index) => (
-                <div key={index} className="flex justify-between gap-3 border-b border-dotted border-brand-green-line py-1">
-                  <span>
-                    {index + 1}. {line.name}
-                    <span className="block text-sm text-brand-muted">
-                      {line.quantity} {line.unit} × {money(Number(line.rate) || 0)}
-                      {line.sizes ? ` · ${line.sizes}` : ""}
-                    </span>
-                  </span>
-                  <span className="font-bold tabular-nums">{money((Number(line.quantity) || 0) * (Number(line.rate) || 0))}</span>
-                </div>
-              ))}
-              <p className="flex justify-between pt-1 font-black">
-                <span>{text("Bill total", "बिल जम्मा")}</span>
-                <span className="tabular-nums">{money(receipt.total)}</span>
-              </p>
-              <p className="flex justify-between text-sm text-brand-muted">
-                <span>{text("Paid", "तिरेको")}</span>
-                <span className="tabular-nums">{money(receipt.paid)}</span>
-              </p>
-            </div>
-            {receipt.photos.sending ? (
-              <p className="text-base font-bold text-brand-muted" role="status">📷 {text("Sending the photo…", "फोटो पठाउँदै…")}</p>
-            ) : receipt.photos.kept ? (
-              <p className="text-base font-bold text-brand-green" role="status">
-                📷 {text(`${receipt.photos.kept} photo(s) kept with the bill`, `${receipt.photos.kept} फोटो बिलसँग राखियो`)}
-              </p>
-            ) : null}
-            {receipt.photos.problem ? (
-              <p className="text-base font-bold text-brand-clay" role="alert">
-                ⚠ {receipt.photos.problem}{" "}
-                {text("The bill is saved — add the photo from the bill page.", "बिल सेभ भइसक्यो — फोटो बिलको पेजबाट थप्नुहोस्।")}
-              </p>
-            ) : null}
-            {/* The next bill is often from the same supplier — a second van, a
-                second bill book page. One press, and their name is in. */}
-            <button
-              type="button"
-              onClick={() => {
-                const again =
-                  supplierLedgers.find((ledger) => ledger.id === receipt.supplierId) ??
-                  exactSupplier(supplierLedgers, receipt.supplierName);
-                setReceipt(null);
-                setState(null);
-                if (again) {
-                  chooseSupplier(again.id);
-                  pendingFocus.current = "supplierBillNo";
-                } else {
-                  setSupplierQuery(receipt.supplierName);
-                  pendingFocus.current = "supplierBillNo";
-                }
-                settle();
-              }}
-              className="h-12 rounded-full border-2 border-brand-green text-base font-black text-brand-green"
-            >
-              ➕ {text(`Same supplier, next bill — ${receipt.supplierName}`, `उही साहु, नयाँ बिल — ${receipt.supplierName}`)}
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                ref={newBillButton}
-                type="button"
-                onClick={() => {
-                  setReceipt(null);
-                  setState(null);
-                }}
-                className="h-12 rounded-full bg-brand-green text-base font-black text-white"
-              >
-                ➕ {text("New bill", "नयाँ बिल")}
-              </button>
-              {receipt.href ? (
-                <a
-                  href={receipt.href}
-                  className="flex h-12 items-center justify-center rounded-full border border-brand-green-line text-base font-black text-brand-green-ink"
-                >
-                  🖨️ {text("See / print", "हेर्ने / प्रिन्ट")}
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <PurchaseReceipt
+          receipt={receipt}
+          newBillButton={newBillButton}
+          onSameSupplier={() => {
+            const again =
+              supplierLedgers.find((ledger) => ledger.id === receipt.supplierId) ??
+              exactSupplier(supplierLedgers, receipt.supplierName);
+            setReceipt(null);
+            setState(null);
+            if (again) {
+              chooseSupplier(again.id);
+              pendingFocus.current = "supplierBillNo";
+            } else {
+              setSupplierQuery(receipt.supplierName);
+              pendingFocus.current = "supplierBillNo";
+            }
+            settle();
+          }}
+          onNewBill={() => {
+            setReceipt(null);
+            setState(null);
+          }}
+        />
       ) : null}
     </form>
   );

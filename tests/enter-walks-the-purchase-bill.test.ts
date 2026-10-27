@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
 /**
  * Enter walks the whole purchase bill, not just its middle.
@@ -27,14 +28,13 @@ import { describe, expect, it } from "vitest";
  * preventDefault, and the last box on the walk simply stops. The Save button
  * stays the only way a bill is filed.
  */
-const FORM = "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx";
 const RULES = "app/admin/purchasing/_components/purchase-invoice-rules.ts";
 
 // The screen is two files: the form that draws the bill, and the rules it
 // follows. Which of the two holds a given line is housekeeping, so these
 // read the pair as one screen.
 async function screen() {
-  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  const [form, rules] = await Promise.all([readPurchaseScreen(), readFile(RULES, "utf8")]);
   return form + "\n" + rules;
 }
 
@@ -66,9 +66,16 @@ describe("the order Enter walks in", () => {
 
     // A name in the list with no handler on the input is a box the cursor
     // walks into and cannot leave.
+    // The payment and totals boxes are in their own parts since 2026-10-27:
+    // they hand their name to onBoxKey / registerBox, which the form wires to
+    // handleFieldWalk and boxes.current.set.
+    expect(form).toContain("handleFieldWalk(event, name);");
+    expect(form).toContain("boxes.current.set(name, element);");
     for (const field of FIELD_WALK) {
-      expect(form, `${field} handler`).toContain(`handleFieldWalk(event, "${field}")`);
-      expect(form, `${field} ref`).toContain(`boxes.current.set("${field}", element)`);
+      const walks = form.includes(`handleFieldWalk(event, "${field}")`) || form.includes(`onBoxKey("${field}", event)`);
+      const found = form.includes(`boxes.current.set("${field}", element)`) || form.includes(`registerBox("${field}", element)`);
+      expect(walks, `${field} handler`).toBe(true);
+      expect(found, `${field} ref`).toBe(true);
     }
   });
 

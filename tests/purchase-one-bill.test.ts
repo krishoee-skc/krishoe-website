@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
+import { readPurchaseScreen } from "./helpers/purchase-screen";
 
 /**
  * The purchase screen used to be three forms: the bill, a "New supplier" form
@@ -13,14 +14,13 @@ import { readFile } from "node:fs/promises";
  * cursor instead of submitting.
  */
 
-const FORM = "app/admin/purchasing/_components/PurchaseInvoiceForm.tsx";
 const RULES = "app/admin/purchasing/_components/purchase-invoice-rules.ts";
 
 // The screen is two files: the form that draws the bill, and the rules it
 // follows. Which of the two holds a given line is housekeeping, so these
 // read the pair as one screen.
 async function screen() {
-  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  const [form, rules] = await Promise.all([readPurchaseScreen(), readFile(RULES, "utf8")]);
   return form + "\n" + rules;
 }
 const PAGE = "app/admin/purchasing/page.tsx";
