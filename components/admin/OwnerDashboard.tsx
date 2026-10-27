@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import OwnerSummary from "@/components/admin/OwnerSummary";
-import { PageTabs } from "@/components/admin/PageKit";
 import type { StockOverview } from "@/lib/dashboard-figures";
 
 /**
@@ -55,13 +54,6 @@ type Period = "today" | "week" | "month";
 const CURRENCY = { en: "Rs.", ne: "रु." };
 const rupees = (value: number, language: string) =>
   `${language === "ne" ? CURRENCY.ne : CURRENCY.en} ${Math.round(value).toLocaleString("en-IN")}`;
-
-const tones: Record<Todo["tone"], string> = {
-  red: "bg-brand-clay",
-  blue: "bg-[#2458A6]",
-  gold: "bg-brand-gold",
-  green: "bg-brand-green",
-};
 
 /** Counts up to `to` once, and again whenever `to` changes. */
 function useCountUp(to: number) {
@@ -257,76 +249,180 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
         ? text("Good afternoon", "शुभ दिन")
         : text("Good evening", "शुभ साँझ");
 
+  // What each job's button says (the dashboard sample, 2026-10-27): the card
+  // is the reason, the button is the job.
+  const actionLabel: Record<string, { en: string; ne: string }> = {
+    "customer-voice": { en: "Reply", ne: "जवाफ दिने" },
+    wages: { en: "Pay wages", ne: "ज्याला तिर्ने" },
+    places: { en: "Check", ne: "जाँच्ने" },
+    goal: { en: "Set goal", ne: "लक्ष्य राख्ने" },
+    orders: { en: "Send", ne: "पठाउने" },
+    post: { en: "Post to stock", ne: "स्टकमा चढाउने" },
+  };
+  const toneBorder: Record<Todo["tone"], string> = {
+    red: "border-l-brand-clay",
+    blue: "border-l-[#2458A6]",
+    gold: "border-l-brand-gold",
+    green: "border-l-brand-green",
+  };
+  const sentToShop = stock.noneAtShop.reduce((sum, shoe) => sum + shoe.factory, 0);
+  const draftTodo = stockTodos.find((todo) => todo.key === "drafts");
+  // The pairs bar: what the books hold at the factory and the shop, and the
+  // pairs placed beyond the books beside them, so the shop is one number.
+  const placedAll = Math.max(1, stock.factory + stock.shop + stock.over + stock.noPlace);
+  const placedShare = (pairs: number) => (pairs / placedAll) * 100;
 
   return (
     <div className="grid gap-4">
-      {/* ── The news strip ─────────────────────────────────────────── */}
-      <div className="grid items-center gap-3 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-3 shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-        <div>
-          <p className="font-display text-2xl font-black leading-none text-brand-green-ink">{greeting}</p>
-          <p className="mt-1 text-xs font-bold text-brand-muted">
-            {text(props.dateEn, props.dateNe)} · <span className="tabular-nums">{clock || "--:--"}</span>
+      {/* ── Hello, and the day's jobs ──────────────────────────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-display text-2xl font-black leading-none text-brand-green-ink">
+            {greeting}{" "}
+            <span className="text-sm font-bold text-brand-muted">
+              {text(props.dateEn, props.dateNe)} · <span className="tabular-nums">{clock || "--:--"}</span>
+            </span>
+          </p>
+          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-sm font-bold text-brand-muted">
+            <a
+              href="#what-now"
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-black ${
+                left > 0 ? "bg-brand-clay text-white" : "bg-brand-green-wash text-brand-green"
+              }`}
+            >
+              {left > 0 ? text(`${left} to do`, `${left} काम बाँकी`) : text("✓ All clear", "✓ सबै सकियो")}
+            </a>
+            <span aria-live="polite" className="min-w-0 truncate text-brand-green-ink" key={turn}>
+              {headline ? text(headline.en, headline.ne) : null}
+            </span>
           </p>
         </div>
-        <p
-          aria-live="polite"
-          className="truncate rounded-xl bg-brand-green-wash px-3 py-2 text-[0.9375rem] font-bold text-brand-green-ink"
-          key={turn}
-        >
-          {headline ? text(headline.en, headline.ne) : null}
-        </p>
-        <a
-          href="#what-now"
-          className={`inline-flex h-fit w-fit items-center justify-self-start rounded-full px-3 py-1 text-sm font-black sm:justify-self-end ${
-            left > 0 ? "bg-brand-clay text-white" : "bg-brand-green-wash text-brand-green"
-          }`}
-        >
-          {left > 0 ? text(`${left} to do`, `${left} काम बाँकी`) : text("✓ All clear", "✓ सबै सकियो")}
-        </a>
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-[#0B3F30] p-2 shadow-sm">
+          {[
+            { href: "/admin/pos", key: "B", en: "🧾 Cut a bill", ne: "🧾 बिल काट्ने", first: true },
+            { href: "/admin/factory/add-work", key: "W", en: "📝 Add work", ne: "📝 काम टिप्ने", first: false },
+            { href: "/admin/purchasing", key: "P", en: "🛒 Purchase", ne: "🛒 खरिद", first: false },
+          ].map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-[0.9375rem] font-black transition hover:-translate-y-0.5 ${
+                action.first ? "bg-brand-gold text-[#1A1A1A]" : "border border-white/25 text-white hover:bg-white/10"
+              }`}
+            >
+              {text(action.en, action.ne)}
+              <kbd className="hidden rounded border border-current/40 px-1 text-xs font-bold opacity-75 sm:inline">{action.key}</kbd>
+            </Link>
+          ))}
+          {/* The week against the week before, in one place: bills, pairs
+              made, purchases, online orders, stock in and out (owner, from
+              the app audit, 2026-10-27). The report already counts them. */}
+          <Link
+            href="/admin/reports?period=week"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 px-3.5 text-[0.9375rem] font-black text-white transition hover:bg-white/10"
+          >
+            {text("📊 This week vs last", "📊 यो हप्ता र अघिल्लो")}
+          </Link>
+        </div>
       </div>
 
-      {/* ── The day's money, and what now ─────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <div className="relative grid gap-3 overflow-hidden rounded-3xl p-5 text-white shadow-md [background:radial-gradient(120%_140%_at_100%_0%,#1E8A63_0%,#12634A_45%,#0B3F30_100%)]">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-bold text-white/90">{periodLabel}</p>
-            <div role="group" aria-label={text("Period", "अवधि")} className="inline-flex rounded-xl bg-white/15 p-1">
-              {(["today", "week", "month"] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={period === key}
-                  onClick={() => setPeriod(key)}
-                  className={`rounded-lg px-3 py-1 text-sm font-black ${period === key ? "bg-white text-brand-green-ink" : "text-white"}`}
-                >
-                  {key === "today" ? text("Today", "आज") : key === "week" ? text("7 days", "७ दिन") : text("Month", "महिना")}
-                </button>
-              ))}
-            </div>
+      {/* The day as one journey (owner, 2026-10-27, the dashboard sample):
+          made → sent to the shop → sold → taken in, and the goal. On a phone
+          What now comes first, above it (owner, 2026-10-01, asked again
+          2026-10-27). */}
+      <div className="grid gap-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-brand-green-line bg-brand-green-line shadow-sm lg:grid-cols-[repeat(4,minmax(0,1fr))_10rem]">
+          {/* 🏭 Made */}
+          <div className="relative grid content-start gap-1 bg-brand-paper p-4">
+            <span className="text-xs font-black uppercase tracking-wide text-brand-muted">{text("🏭 Made · today", "🏭 बन्यो · आज")}</span>
+            <p>
+              <Count value={props.factory.todayPairs} className="font-display text-3xl font-black text-brand-green-ink" />{" "}
+              <span className="text-xs font-bold text-brand-muted">{text("pairs into stock today", "जोडी आज स्टकमा चढे")}</span>
+            </p>
+            {/* Each stage on its own: one pair through Upper and Fibermen is two
+                entries, and adding them up doubled the day. */}
+            {props.factory.stages?.length ? (
+              <p className="flex flex-wrap items-center gap-1 text-xs font-bold text-brand-muted">
+                <span>{text("Work today:", "आजको काम:")}</span>
+                {props.factory.stages.map((entry) => (
+                  <span key={entry.stage} className="rounded-full border border-brand-green-line px-1.5 tabular-nums text-brand-green-ink">
+                    {entry.stage} {entry.pairs}
+                  </span>
+                ))}
+              </p>
+            ) : null}
+            <Link href="/admin/factory/add-work" className="text-sm font-black text-brand-green">{text("Add work →", "काम टिप्ने →")}</Link>
+            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold lg:block">→</span>
           </div>
 
-          <Money value={money} className="font-display text-[2.75rem] font-black leading-none sm:text-6xl" />
+          {/* 🚚 Sent to the shop */}
+          <div className="relative grid content-start gap-1 bg-brand-paper p-4">
+            <span className="text-xs font-black uppercase tracking-wide text-brand-muted">{text("🚚 Sent to shop", "🚚 पसलमा पठाउने")}</span>
+            {stock.noneAtShop.length > 0 ? (
+              <>
+                <p>
+                  <Count value={stock.noneAtShop.length} className="font-display text-3xl font-black text-brand-green-ink" />{" "}
+                  <span className="text-xs font-bold text-brand-muted">
+                    {text(
+                      `website ${stock.noneAtShop.length === 1 ? "shoe has" : "shoes have"} none at the shop`,
+                      "वेबसाइटका जुत्ता पसलमा छैनन्",
+                    )}
+                  </span>
+                </p>
+                <span className="text-xs font-bold text-brand-muted">{text(`${sentToShop} pairs at the factory`, `कारखानामा ${sentToShop} जोडी`)}</span>
+                <Link href="/admin/stock#move-pairs" className="text-sm font-black text-brand-green">{text("Send →", "पठाउने →")}</Link>
+              </>
+            ) : (
+              <p className="text-sm font-bold text-brand-green">{text("✓ Every website shoe is at the shop", "✓ वेबसाइटका सबै जुत्ता पसलमा छन्")}</p>
+            )}
+            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold lg:block">→</span>
+          </div>
 
-          {period === "today" ? (
-            <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/90">
-              <span>{text("Retail", "खुद्रा")} <b className="tabular-nums">{rupees(props.today.retail, language)}</b></span>
-              <span>{text("Wholesale", "होलसेल")} <b className="tabular-nums">{rupees(props.today.wholesale, language)}</b></span>
-              <span>{text("Online", "अनलाइन")} <b className="tabular-nums">{rupees(props.today.online, language)}</b></span>
-              <span>
-                {text("Taken in", "हातमा आएको")} <b className="tabular-nums">{rupees(props.collected, language)}</b>
-              </span>
-            </p>
-          ) : null}
+          {/* 🛒 Sold */}
+          <div className="relative col-span-2 grid content-start gap-1 bg-brand-paper p-4 lg:col-span-1">
+            <div className="grid gap-1">
+              <span className="text-xs font-black uppercase tracking-wide text-brand-muted">🛒 {periodLabel}</span>
+              <div role="group" aria-label={text("Period", "अवधि")} className="inline-flex w-fit rounded-lg bg-brand-green-wash p-0.5">
+                {(["today", "week", "month"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={period === key}
+                    onClick={() => setPeriod(key)}
+                    className={`whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-black ${period === key ? "bg-brand-green text-white" : "text-brand-green-ink"}`}
+                  >
+                    {key === "today" ? text("Today", "आज") : key === "week" ? text("7 days", "७ दिन") : text("Month", "महिना")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Money value={money} className="font-display text-3xl font-black leading-tight text-brand-green-ink" />
+            {period === "today" ? (
+              <p className="flex flex-wrap gap-x-3 text-xs font-bold text-brand-muted">
+                <span>{text("Retail", "खुद्रा")} <b className="tabular-nums">{rupees(props.today.retail, language)}</b></span>
+                <span>{text("Wholesale", "होलसेल")} <b className="tabular-nums">{rupees(props.today.wholesale, language)}</b></span>
+                <span>{text("Online", "अनलाइन")} <b className="tabular-nums">{rupees(props.today.online, language)}</b></span>
+              </p>
+            ) : null}
+            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold lg:block">→</span>
+          </div>
 
-          <div className="flex items-center gap-3">
+          {/* 💰 Taken in */}
+          <div className="grid content-start gap-1 bg-brand-paper p-4">
+            <span className="text-xs font-black uppercase tracking-wide text-brand-muted">{text("💰 Taken in · today", "💰 हातमा आएको · आज")}</span>
+            <span className="font-display text-3xl font-black leading-tight tabular-nums text-brand-green-ink">{rupees(props.collected, language)}</span>
+          </div>
+
+          {/* 🎯 The goal */}
+          <div className="flex flex-col items-center justify-center gap-2 bg-brand-paper p-3 text-center">
             <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true" className="flex-none">
-              <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.2)" strokeWidth="8" />
+              <circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" strokeWidth="8" className="text-brand-green-line" />
               <circle
                 cx="32"
                 cy="32"
                 r="26"
                 fill="none"
-                stroke="#F0C66A"
+                stroke="#C99A2E"
                 strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
@@ -335,53 +431,28 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
                 style={{ transition: "stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)" }}
               />
             </svg>
-            <p className="text-sm text-white/95">
+            <p className="text-xs font-bold text-brand-muted">
               {props.salesGoal > 0 ? (
                 text(
                   `${Math.round(share * 100)}% of the ${period === "month" ? "month's" : period === "week" ? "week's share of the" : "day's share of the"} goal (${openFigures.size > 0 ? rupees(target, "en") : "Rs. ••••"})`,
                   `${period === "month" ? "महिनाको" : period === "week" ? "हप्ताको भाग" : "आजको भाग"} लक्ष्य ${openFigures.size > 0 ? rupees(target, "ne") : "रु. ••••"} को ${Math.round(share * 100)}% पुग्यो`,
                 )
               ) : (
-                <Link href="/admin/settings#goals" className="font-bold underline underline-offset-4">
+                <Link href="/admin/settings#goals" className="font-black text-brand-green underline underline-offset-4">
                   {text(`🎯 Set a goal for ${props.monthEn} and this ring fills up`, `🎯 ${props.monthNe} को लक्ष्य राख्नुहोस् — यो घेरा भरिँदै जान्छ`)}
                 </Link>
               )}
             </p>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            {[
-              { href: "/admin/pos", key: "B", en: "🧾 Cut a bill", ne: "🧾 बिल काट्ने" },
-              { href: "/admin/factory/add-work", key: "W", en: "📝 Add work", ne: "📝 काम टिप्ने" },
-              { href: "/admin/purchasing", key: "P", en: "🛒 Purchase", ne: "🛒 खरिद" },
-            ].map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 text-[0.9375rem] font-black text-brand-green-ink shadow-sm transition hover:-translate-y-0.5"
-              >
-                {text(action.en, action.ne)}
-                <kbd className="hidden rounded border border-brand-green-line px-1 text-xs font-bold text-brand-muted sm:inline">{action.key}</kbd>
-              </Link>
-            ))}
-            {/* The week against the week before, in one place: bills, pairs
-                made, purchases, online orders, stock in and out (owner, from
-                the app audit, 2026-10-27). The report already counts them. */}
-            <Link
-              href="/admin/reports?period=week"
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/40 px-4 text-[0.9375rem] font-black text-white transition hover:bg-white/10"
-            >
-              {text("📊 This week vs last", "📊 यो हप्ता र अघिल्लो")}
-            </Link>
-          </div>
         </div>
 
-        {/* On a phone the to-dos come first, above the money: what needs
-            doing is read before what was made (owner, 2026-10-01). */}
-        <div id="what-now" className="max-lg:-order-1 grid content-start gap-2 rounded-3xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
-          <h2 className="flex items-center justify-between text-lg font-black text-brand-green-ink">
-            {text("What now", "अब के गर्ने")}
-            {left > 0 ? <span className="rounded-full bg-brand-clay px-2 text-xs font-black text-white">{left}</span> : null}
+        {/* ── What now: a card a job, and the job's button on it ────── */}
+        <div id="what-now" className="max-lg:-order-1 grid content-start gap-2">
+          <h2 className="flex flex-wrap items-center justify-between gap-2 text-lg font-black text-brand-green-ink">
+            <span className="flex items-center gap-2">
+              {text("What now", "अब के गर्ने")}
+              {left > 0 ? <span className="rounded-full bg-brand-clay px-2 text-xs font-black text-white">{left}</span> : null}
+            </span>
           </h2>
           {/* The day in a few points, on a press (owner, 2026-10-01). */}
           <OwnerSummary
@@ -405,335 +476,265 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
               {text("Nothing is stuck right now.", "अहिले केही अड्किएको छैन।")}
             </p>
           ) : (
-            props.todos.map((todo) => {
-              const isDone = done.has(todo.key);
-              return (
-                <div
-                  key={todo.key}
-                  className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 transition ${isDone ? "opacity-45" : ""}`}
-                >
-                  <span className={`h-2.5 w-2.5 rounded-full ${tones[todo.tone]}`} aria-hidden="true" />
-                  <Link href={todo.href} className={`flex min-w-0 flex-col ${isDone ? "line-through" : ""}`}>
-                    <span className="block font-black text-brand-green-ink">{text(todo.en, todo.ne)}</span>
-                    <span className="block text-xs text-brand-muted">{text(todo.subEn, todo.subNe)}</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => toggleDone(todo.key)}
-                    aria-pressed={isDone}
-                    aria-label={isDone ? text("Mark not done", "नसकिएको बनाउने") : text("Mark done for today", "आजका लागि सकियो")}
-                    className="min-h-9 min-w-9 rounded-lg border border-brand-green-line text-sm font-black text-brand-green-ink"
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {props.todos.map((todo) => {
+                const isDone = done.has(todo.key);
+                const action = actionLabel[todo.key] ?? { en: "Open →", ne: "खोल्ने →" };
+                // The pairs beyond the books, said on the card that sends there.
+                const extra = todo.key === "places" && stock.over > 0 ? text(` · ${stock.over} pairs`, ` · ${stock.over} जोडी`) : "";
+                return (
+                  <div
+                    key={todo.key}
+                    className={`grid content-between gap-2 rounded-xl border border-l-4 border-brand-green-line bg-brand-paper px-3 py-2.5 shadow-sm transition ${toneBorder[todo.tone]} ${isDone ? "opacity-45" : ""}`}
                   >
-                    {isDone ? "↺" : "✓"}
-                  </button>
-                </div>
-              );
-            })
+                    <div className={`min-w-0 ${isDone ? "line-through" : ""}`}>
+                      <span className="block font-black text-brand-green-ink">{text(todo.en, todo.ne)}{extra}</span>
+                      <span className="block text-xs text-brand-muted">{text(todo.subEn, todo.subNe)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={todo.href}
+                        className="inline-flex min-h-9 items-center rounded-lg bg-brand-green px-3 text-sm font-black text-white"
+                      >
+                        {text(action.en, action.ne)}
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => toggleDone(todo.key)}
+                        aria-pressed={isDone}
+                        aria-label={isDone ? text("Mark not done", "नसकिएको बनाउने") : text("Mark done for today", "आजका लागि सकियो")}
+                        className="min-h-9 min-w-9 rounded-lg border border-brand-green-line text-sm font-black text-brand-green-ink"
+                      >
+                        {isDone ? "↺" : "✓"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
 
-      {/* The lower parts (owner, 2026-10-12): on a phone, tabs — stock,
-          factory, the week, the figures — so the page is short; on a computer
-          all of it, as before. */}
-      <PageTabs
-        id="dashboard"
-        openOnWide
-        wideGridClassName="grid gap-4 lg:grid-cols-2"
-        tabs={[
-          {
-            key: "stock",
-            en: "👟 Stock",
-            ne: "👟 स्टक",
-            wideClassName: "lg:order-2",
-            content: (
-              <>
-                {/* Every shoe's stock and where it is (owner, 2026-10-11): one card
-                    with all the pairs, where they are and whether they are on the
-                    website; what to do about it; and a bar a shoe — factory, shop,
-                    and places that do not match. */}
-                <section id="stock-by-shoe" className="grid content-start gap-3 rounded-3xl border border-brand-green-line bg-[linear-gradient(180deg,#E4ECF8,transparent_55%)] p-4 dark:bg-[linear-gradient(180deg,#17253A,transparent_55%)]">
-                  <div className="grid gap-2 rounded-2xl border border-brand-green-line bg-brand-paper p-3">
-                    <span className="text-xs font-black text-brand-muted">{text("All stock", "सबै स्टक")}</span>
-                    <span className="font-display text-2xl font-black text-brand-green-ink">
-                      {text(`${stock.all} pairs`, `${stock.all} जोडी`)}{" "}
-                      <span className="text-base font-bold text-brand-muted">
-                        ·{" "}
-                        {openFigures.has("/admin/stock") ? (
-                          <Money value={stock.value} className="font-black text-brand-green-ink" />
-                        ) : (
-                          <span data-figure-hidden aria-label={text("Amount hidden", "रकम लुकाइएको")}>{text("Rs.", "रु.")} •••• 👁</span>
-                        )}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        {/* ── Where the pairs are ─────────────────────────────────────
+            Every shoe's stock and where it is (owner, 2026-10-11), said once
+            (owner, 2026-10-27): the factory card beside it gave the shop the
+            pairs placed beyond the books too, 464 against 364. */}
+        <section id="stock-by-shoe" className="grid content-start gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+          <h2 className="flex items-center justify-between gap-2 text-lg font-black text-brand-green-ink">
+            {text(`👟 Where are my ${stock.all} pairs?`, `👟 मेरा ${stock.all} जोडी कहाँ छन्?`)}
+            <Link href="/admin/stock#every-shoe" className="text-sm font-black text-brand-green">{text("Stock →", "स्टक हेर्ने →")}</Link>
+          </h2>
+          <div className="grid gap-1">
+            <span className="flex h-6 overflow-hidden rounded-lg bg-brand-green-line/60 text-xs font-black text-white" aria-hidden="true">
+              {stock.factory > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-gold" style={{ width: `${placedShare(stock.factory)}%` }}>🏭 {stock.factory}</span> : null}
+              {stock.shop > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-green" style={{ width: `${placedShare(stock.shop)}%` }}>🛒 {stock.shop}</span> : null}
+              {stock.over > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-clay" style={{ width: `${placedShare(stock.over)}%` }}>⚠ {stock.over}</span> : null}
+              {stock.noPlace > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-clay/60" style={{ width: `${placedShare(stock.noPlace)}%` }}>{stock.noPlace}</span> : null}
+            </span>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-brand-muted">
+              <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-gold align-middle" />{text(`Factory ${stock.factory}`, `कारखाना ${stock.factory}`)}</span>
+              <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-green align-middle" />{text(`Shop ${stock.shop}`, `पसल ${stock.shop}`)}</span>
+              {stock.over > 0 ? (
+                <span className="text-brand-clay"><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-clay align-middle" />{text(`Not matching ${stock.over}`, `नमिलेको ${stock.over}`)}</span>
+              ) : null}
+              {stock.noPlace > 0 ? <span className="text-brand-clay">{text(`${stock.noPlace} no place`, `${stock.noPlace} ठाउँ छैन`)}</span> : null}
+            </div>
+          </div>
+          <div className="grid gap-1">
+            <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
+              <span className="h-full bg-brand-green" style={{ width: `${stockShare(stock.web)}%` }} />
+              <span className="h-full bg-brand-gold/60" style={{ width: `${stockShare(stock.draft)}%` }} />
+            </span>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-brand-muted">
+              <span>{text(`On the website ${stock.web}`, `वेबसाइटमा ${stock.web}`)}</span>
+              <span>{text(`Draft ${stock.draft}`, `Draft ${stock.draft}`)}</span>
+            </div>
+          </div>
+          {draftTodo ? (
+            <Link href={draftTodo.href} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm font-bold ${draftTodo.tone}`}>
+              <span aria-hidden="true">{draftTodo.icon}</span>
+              <span className="min-w-0 flex-1">{text(draftTodo.en, draftTodo.ne)}</span>
+              <span className="whitespace-nowrap underline">{text(draftTodo.goEn, draftTodo.goNe)}</span>
+            </Link>
+          ) : null}
+
+          <h3 className="mt-1 text-base font-black text-brand-green-ink">{text("👟 Stock by shoe", "👟 जुत्ता अनुसार स्टक")}</h3>
+          {shown.length === 0 ? (
+            <p className="text-sm text-brand-muted">{text("No shoe in the catalogue yet.", "सूचीमा अहिलेसम्म जुत्ता छैन।")}</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-3 text-xs font-bold text-brand-muted" aria-hidden="true">
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-gold align-middle" />{text("Factory", "कारखाना")}</span>
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-green align-middle" />{text("Shop", "पसल")}</span>
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-clay align-middle" />{text("Not matching", "नमिलेको")}</span>
+              </div>
+              <ul className="grid list-none gap-1.5 pl-0">
+                {shown.map((shoe) => (
+                  <li
+                    key={shoe.name}
+                    className="grid grid-cols-[minmax(0,150px)_minmax(0,1fr)_44px] items-center gap-2 text-sm"
+                    title={text(`Factory ${shoe.factory} · Shop ${shoe.shop}${shoe.over ? ` · ${shoe.over} placed too many` : ""}`, `कारखाना ${shoe.factory} · पसल ${shoe.shop}${shoe.over ? ` · ${shoe.over} बढी` : ""}`)}
+                  >
+                    <span className="truncate">
+                      {shoe.name}{" "}
+                      <span className={`rounded-full px-1.5 text-xs font-black ${shoe.web ? "bg-brand-green-wash text-brand-green" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
+                        {shoe.web ? text("web", "web") : text("draft", "draft")}
                       </span>
                     </span>
-                    {stock.noPrice > 0 ? (
-                      <span className="text-xs font-bold text-brand-gold-ink">
-                        {text(`${stock.noPrice} ${stock.noPrice === 1 ? "shoe has" : "shoes have"} no price, so no value`, `${stock.noPrice} जुत्ताको मूल्य राखिएको छैन, रकममा गनिएन`)}
-                      </span>
-                    ) : null}
-                    <div className="grid gap-1">
-                      <div className="flex flex-wrap justify-between gap-2 text-xs font-bold text-brand-muted">
-                        <span>{text(`🏭 Factory ${stock.factory}`, `🏭 कारखाना ${stock.factory}`)}</span>
-                        <span>{text(`🛒 Shop ${stock.shop}`, `🛒 पसल ${stock.shop}`)}</span>
-                        {stock.over > 0 ? <span className="text-brand-clay">+{stock.over} ⚠</span> : null}
-                        {stock.noPlace > 0 ? <span className="text-brand-clay">{text(`${stock.noPlace} no place`, `${stock.noPlace} ठाउँ छैन`)}</span> : null}
-                      </div>
-                      <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
-                        <span className="h-full bg-brand-gold" style={{ width: `${stockShare(stock.factory)}%` }} />
-                        <span className="h-full bg-brand-green" style={{ width: `${stockShare(stock.shop)}%` }} />
-                      </span>
-                    </div>
-                    <div className="grid gap-1">
-                      <div className="flex flex-wrap justify-between gap-2 text-xs font-bold text-brand-muted">
-                        <span>{text(`On the website ${stock.web}`, `वेबसाइटमा ${stock.web}`)}</span>
-                        <span>{text(`Draft ${stock.draft}`, `Draft ${stock.draft}`)}</span>
-                      </div>
-                      <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
-                        <span className="h-full bg-brand-green" style={{ width: `${stockShare(stock.web)}%` }} />
-                        <span className="h-full bg-brand-gold/60" style={{ width: `${stockShare(stock.draft)}%` }} />
-                      </span>
-                    </div>
-                  </div>
+                    <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
+                      <span className="h-full bg-brand-gold" style={{ width: `${(shoe.factory / maxShoe) * 100}%` }} />
+                      <span className="h-full bg-brand-green" style={{ width: `${(shoe.shop / maxShoe) * 100}%` }} />
+                      <span
+                        className="h-full bg-[repeating-linear-gradient(45deg,#7B3128_0_4px,transparent_4px_8px)] dark:bg-[repeating-linear-gradient(45deg,#e59a8d_0_4px,transparent_4px_8px)]"
+                        style={{ width: `${(shoe.over / maxShoe) * 100}%` }}
+                      />
+                    </span>
+                    <b className={`text-right tabular-nums ${shoe.total <= 0 ? "text-brand-clay" : ""}`}>
+                      {shoe.total <= 0 ? text("out", "सकियो") : shoe.total}
+                    </b>
+                  </li>
+                ))}
+              </ul>
+              {rest.length > 0 ? (
+                <p className="text-xs font-bold text-brand-muted">
+                  {text(`+ ${rest.length} more ${rest.length === 1 ? "shoe" : "shoes"} · ${restPairs} pairs`, `+ अरू ${rest.length} जुत्ता · ${restPairs} जोडी`)}
+                </p>
+              ) : null}
+            </>
+          )}
+        </section>
 
-                  {stockTodos.length > 0 ? (
-                    <ul className="grid list-none gap-1.5 pl-0">
-                      {stockTodos.map((todo) => (
-                        <li key={todo.key}>
-                          <Link href={todo.href} className={`flex items-start gap-2 rounded-xl px-3 py-2 text-sm font-bold ${todo.tone}`}>
-                            <span aria-hidden="true">{todo.icon}</span>
-                            <span className="min-w-0 flex-1">{text(todo.en, todo.ne)}</span>
-                            <span className="whitespace-nowrap underline">{text(todo.goEn, todo.goNe)}</span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <h2 className="flex items-center justify-between text-lg font-black text-brand-green-ink">
-                    {text("👟 Stock by shoe", "👟 जुत्ता अनुसार स्टक")}
-                    <Link href="/admin/stock#every-shoe" className="text-sm font-black text-brand-green">{text("Stock →", "स्टक हेर्ने →")}</Link>
-                  </h2>
-                  {shown.length === 0 ? (
-                    <p className="text-sm text-brand-muted">{text("No shoe in the catalogue yet.", "सूचीमा अहिलेसम्म जुत्ता छैन।")}</p>
-                  ) : (
-                    <>
-                      <div className="flex flex-wrap gap-3 text-xs font-bold text-brand-muted" aria-hidden="true">
-                        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-gold align-middle" />{text("Factory", "कारखाना")}</span>
-                        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-green align-middle" />{text("Shop", "पसल")}</span>
-                        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-clay align-middle" />{text("Not matching", "नमिलेको")}</span>
-                      </div>
-                      <ul className="grid list-none gap-1.5 pl-0">
-                        {shown.map((shoe) => (
-                          <li
-                            key={shoe.name}
-                            className="grid grid-cols-[minmax(0,150px)_minmax(0,1fr)_44px] items-center gap-2 text-sm"
-                            title={text(`Factory ${shoe.factory} · Shop ${shoe.shop}${shoe.over ? ` · ${shoe.over} placed too many` : ""}`, `कारखाना ${shoe.factory} · पसल ${shoe.shop}${shoe.over ? ` · ${shoe.over} बढी` : ""}`)}
-                          >
-                            <span className="truncate">
-                              {shoe.name}{" "}
-                              <span className={`rounded-full px-1.5 text-xs font-black ${shoe.web ? "bg-brand-green-wash text-brand-green" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
-                                {shoe.web ? text("web", "web") : text("draft", "draft")}
-                              </span>
-                            </span>
-                            <span className="flex h-3 overflow-hidden rounded-full bg-brand-green-line/60" aria-hidden="true">
-                              <span className="h-full bg-brand-gold" style={{ width: `${(shoe.factory / maxShoe) * 100}%` }} />
-                              <span className="h-full bg-brand-green" style={{ width: `${(shoe.shop / maxShoe) * 100}%` }} />
-                              <span
-                                className="h-full bg-[repeating-linear-gradient(45deg,#7B3128_0_4px,transparent_4px_8px)] dark:bg-[repeating-linear-gradient(45deg,#e59a8d_0_4px,transparent_4px_8px)]"
-                                style={{ width: `${(shoe.over / maxShoe) * 100}%` }}
-                              />
-                            </span>
-                            <b className={`text-right tabular-nums ${shoe.total <= 0 ? "text-brand-clay" : ""}`}>
-                              {shoe.total <= 0 ? text("out", "सकियो") : shoe.total}
-                            </b>
-                          </li>
-                        ))}
-                      </ul>
-                      {rest.length > 0 ? (
-                        <p className="text-xs font-bold text-brand-muted">
-                          {text(`+ ${rest.length} more ${rest.length === 1 ? "shoe" : "shoes"} · ${restPairs} pairs`, `+ अरू ${rest.length} जुत्ता · ${restPairs} जोडी`)}
-                        </p>
-                      ) : null}
-                    </>
-                  )}
-                </section>
-
-              </>
-            ),
-          },
-          {
-            key: "factory",
-            en: "🏭 Factory",
-            ne: "🏭 कारखाना",
-            wideClassName: "lg:order-3",
-            content: (
-              <>
-                <section className="grid content-start gap-3 rounded-3xl border border-brand-green-line bg-[linear-gradient(180deg,#FFF3D9,transparent_55%)] p-4 dark:bg-[linear-gradient(180deg,#2C2412,transparent_55%)]">
-                  <h2 className="flex items-center justify-between text-lg font-black text-brand-green-ink">
-                    {text("🏭 The factory today", "🏭 कारखाना आज")}
-                    <Link href="/admin/factory/add-work" className="text-sm font-black text-brand-green">{text("Add work →", "काम टिप्ने →")}</Link>
-                  </h2>
-                  <p>
-                    <Count value={props.factory.todayPairs} className="font-display text-5xl font-black text-brand-green-ink" />{" "}
-                    <span className="text-sm font-bold text-brand-muted">{text("pairs into stock today", "जोडी आज स्टकमा चढे")}</span>
-                  </p>
-                  {/* Each stage on its own: one pair through Upper and Fibermen is two
-                      entries, and adding them up doubled the day. */}
-                  {props.factory.stages?.length ? (
-                    <p className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-brand-muted">
-                      <span>{text("Work today:", "आजको काम:")}</span>
-                      {props.factory.stages.map((entry) => (
-                        <span key={entry.stage} className="rounded-full border border-brand-green-line bg-brand-paper px-2 py-0.5 tabular-nums text-brand-green-ink">
-                          {entry.stage} {entry.pairs}
+        <div className="grid content-start gap-4">
+          {/* ── 🔒 Money: the four figures in one place ─────────────────
+              Hidden on every visit (owner, 2026-10-01); one eye shows all
+              four, and each still has its own. On a phone the box stays one
+              line until it is opened. */}
+          <section data-zone="health" className="grid gap-3 rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-black text-brand-green-ink">{text("🔒 Money", "🔒 पैसा")}</h2>
+              <button
+                type="button"
+                data-figures-eye="all"
+                onClick={() =>
+                  setOpenFigures((open) =>
+                    open.size > 0
+                      ? new Set()
+                      : new Set(["/admin/purchasing?view=accounts", "/admin/stock", "/admin/dues", "/admin/operations/production-accounts/payments"]),
+                  )
+                }
+                aria-pressed={openFigures.size > 0}
+                className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink"
+              >
+                {openFigures.size > 0 ? text("🙈 Hide amounts", "🙈 रकम लुकाउने") : text("👁 Show amounts", "👁 रकम हेर्ने")}
+              </button>
+            </div>
+            <div className={`${openFigures.size > 0 ? "grid" : "hidden lg:grid"} grid-cols-1 gap-2 sm:grid-cols-2`}>
+              {[
+                { href: "/admin/purchasing?view=accounts", en: `Sales less purchases · ${props.monthEn}`, ne: `बिक्री − खरिद · ${props.monthNe}`, value: props.kpis.salesLessPurchases, subEn: "Not profit — bought stock is still on hand", subNe: "नाफा होइन · किनेको माल स्टकमै छ", bar: "bg-brand-green" },
+                { href: "/admin/stock", en: "Stock at selling price", ne: "स्टक · बेच्ने मूल्यमा", value: props.kpis.stockValue, subEn: `${props.kpis.stockPairs} pairs in all · ${stock.web} on the website · ${stock.draft} in draft`, subNe: `जम्मा ${props.kpis.stockPairs} जोडी · वेबसाइटमा ${stock.web} · Draft मा ${stock.draft}`, bar: "bg-brand-gold" },
+                { href: "/admin/dues", en: "Customers owe", ne: "ग्राहकको उधारो", value: props.kpis.creditOwed, subEn: props.kpis.creditOwed ? "Still to collect" : "Nobody owes anything ✓", subNe: props.kpis.creditOwed ? "उठाउन बाँकी" : "कसैले तिर्न बाँकी छैन ✓", bar: "bg-[#2458A6]" },
+                { href: "/admin/operations/production-accounts/payments", en: "Owed to workers", ne: "कामदारको बाँकी", value: props.kpis.workerDue, subEn: "Wages to pay", subNe: "ज्याला तिर्न बाँकी", bar: "bg-brand-clay" },
+              ].map((tile) => {
+                const isOpen = openFigures.has(tile.href);
+                return (
+                  <div key={tile.href} className="relative">
+                    <Link
+                      href={tile.href}
+                      className="relative grid h-full gap-0.5 overflow-hidden rounded-xl border border-brand-green-line bg-brand-paper p-3 pl-4 pr-12 transition hover:border-brand-gold"
+                    >
+                      <span className={`absolute inset-y-0 left-0 w-1 ${tile.bar}`} aria-hidden="true" />
+                      <span className="text-xs font-black text-brand-muted">{text(tile.en, tile.ne)}</span>
+                      {isOpen ? (
+                        <Money value={tile.value} className="font-display text-xl font-black text-brand-green-ink" />
+                      ) : (
+                        <span data-figure-hidden className="font-display text-xl font-black tracking-widest text-brand-muted" aria-label={text("Amount hidden", "रकम लुकाइएको")}>
+                          {text("Rs.", "रु.")} ••••
                         </span>
-                      ))}
-                    </p>
-                  ) : null}
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    {[
-                      { en: "At the factory", ne: "कारखानामा", value: props.factory.atFactory, tone: "text-brand-gold-ink" },
-                      { en: "At the shop", ne: "पसलमा", value: props.factory.atShop, tone: "text-brand-green" },
-                      { en: "Not matching", ne: "ठाउँ नमिलेको", value: props.factory.mismatched, tone: props.factory.mismatched ? "text-brand-clay" : "text-brand-green" },
-                    ].map((cell) => (
-                      <div key={cell.en} className="rounded-xl border border-brand-green-line bg-brand-paper px-1 py-2">
-                        <span className="block text-xs font-black text-brand-muted">{text(cell.en, cell.ne)}</span>
-                        <b className={`text-xl tabular-nums ${cell.tone}`}>{cell.value}</b>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </>
-            ),
-          },
-          {
-            key: "week",
-            en: "📈 7 days",
-            ne: "📈 ७ दिन",
-            wideClassName: "lg:order-4 lg:col-span-2",
-            content: (
-              <>
-                {/* ── Seven days ─────────────────────────────────────────────── */}
-                <section className="rounded-3xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
-                  <h2 className="text-lg font-black text-brand-green-ink">{text("Sales, the last 7 days", "पछिल्ला ७ दिनको बिक्री")}</h2>
-                  {props.days.every((day) => day.net === 0) ? (
-                    <p className="mt-1 text-sm text-brand-muted">
-                      {text("No sales in the last 7 days yet — the bars fill as bills are cut.", "पछिल्ला ७ दिनमा बिक्री छैन — बिल काटेपछि बार भरिँदै जान्छन्।")}
-                    </p>
-                  ) : null}
-                  <div className="relative mt-3 grid h-44 grid-cols-7 items-end gap-2">
-                    {props.days.map((day) => {
-                      const height = day.net > 0 ? Math.max(4, (day.net / maxDay) * 100) : 2;
-                      const label = `${text(day.en, day.ne)}: ${rupees(day.net, language)}`;
-                      return (
-                        <button
-                          key={day.key}
-                          type="button"
-                          aria-label={label}
-                          onMouseEnter={() => setHoverDay(day.key)}
-                          onMouseLeave={() => setHoverDay(null)}
-                          onFocus={() => setHoverDay(day.key)}
-                          onBlur={() => setHoverDay(null)}
-                          onClick={() => setHoverDay(day.key)}
-                          className="relative flex h-full flex-col items-center justify-end gap-1"
-                        >
-                          {hoverDay === day.key ? (
-                            <span className="absolute -top-1 z-10 -translate-y-full whitespace-nowrap rounded-md bg-brand-green-ink px-2 py-0.5 text-xs font-black text-white">
-                              {label}
-                            </span>
-                          ) : null}
-                          <span
-                            className={`block w-full max-w-12 rounded-t-[4px] transition-[height] duration-700 ${day.today ? "bg-brand-gold" : "bg-brand-green"}`}
-                            style={{ height: `${height}%` }}
-                          />
-                          <span className={`text-xs font-bold ${day.today ? "text-brand-gold-ink" : "text-brand-muted"}`}>
-                            {day.today ? text("Today", "आज") : text(day.en, day.ne)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              </>
-            ),
-          },
-          {
-            key: "figures",
-            en: "💰 Figures",
-            ne: "💰 अंक",
-            wideClassName: "lg:order-1 lg:col-span-2",
-            content: (
-              <>
-                {/* ── Four figures ───────────────────────────────────────────── */}
-                <div data-zone="health" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <div className="col-span-full flex justify-end">
+                      )}
+                      <span className="text-xs text-brand-muted">{text(tile.subEn, tile.subNe)}</span>
+                      {tile.href === "/admin/stock" && stock.noPrice > 0 ? (
+                        <span className="text-xs font-bold text-brand-gold-ink">
+                          ⚠ {text(`${stock.noPrice} ${stock.noPrice === 1 ? "shoe has" : "shoes have"} no price, so no value`, `${stock.noPrice} जुत्ताको मूल्य राखिएको छैन, रकममा गनिएन`)}
+                        </span>
+                      ) : null}
+                    </Link>
+                    {/* Beside the link, not in it: the eye shows the amount and opens nothing. */}
                     <button
                       type="button"
-                      data-figures-eye="all"
+                      data-figures-eye={tile.href}
                       onClick={() =>
-                        setOpenFigures((open) =>
-                          open.size > 0
-                            ? new Set()
-                            : new Set(["/admin/purchasing?view=accounts", "/admin/stock", "/admin/dues", "/admin/operations/production-accounts/payments"]),
-                        )
+                        setOpenFigures((open) => {
+                          const next = new Set(open);
+                          if (next.has(tile.href)) next.delete(tile.href);
+                          else next.add(tile.href);
+                          return next;
+                        })
                       }
-                      aria-pressed={openFigures.size > 0}
-                      className="min-h-11 rounded-xl border border-brand-green-line bg-brand-paper px-4 text-sm font-black text-brand-green-ink"
+                      aria-pressed={isOpen}
+                      aria-label={isOpen ? text("Hide this amount", "यो रकम लुकाउने") : text("Show this amount", "यो रकम हेर्ने")}
+                      className="absolute right-1.5 top-1.5 grid min-h-10 min-w-10 place-items-center rounded-lg border border-brand-green-line bg-brand-paper"
                     >
-                      {openFigures.size > 0 ? text("🙈 Hide amounts", "🙈 रकम लुकाउने") : text("👁 Show amounts", "👁 रकम हेर्ने")}
+                      {isOpen ? "🙈" : "👁"}
                     </button>
                   </div>
-                  {[
-                    { href: "/admin/purchasing?view=accounts", en: `Sales less purchases · ${props.monthEn}`, ne: `बिक्री − खरिद · ${props.monthNe}`, value: props.kpis.salesLessPurchases, subEn: "Not profit — bought stock is still on hand", subNe: "नाफा होइन · किनेको माल स्टकमै छ", bar: "bg-brand-green" },
-                    { href: "/admin/stock", en: "Stock at selling price", ne: "स्टक · बेच्ने मूल्यमा", value: props.kpis.stockValue, subEn: `${props.kpis.stockPairs} pairs in all · ${stock.web} on the website · ${stock.draft} in draft`, subNe: `जम्मा ${props.kpis.stockPairs} जोडी · वेबसाइटमा ${stock.web} · Draft मा ${stock.draft}`, bar: "bg-brand-gold" },
-                    { href: "/admin/dues", en: "Customers owe", ne: "ग्राहकको उधारो", value: props.kpis.creditOwed, subEn: props.kpis.creditOwed ? "Still to collect" : "Nobody owes anything ✓", subNe: props.kpis.creditOwed ? "उठाउन बाँकी" : "कसैले तिर्न बाँकी छैन ✓", bar: "bg-[#2458A6]" },
-                    { href: "/admin/operations/production-accounts/payments", en: "Owed to workers", ne: "कामदारको बाँकी", value: props.kpis.workerDue, subEn: "Wages to pay", subNe: "ज्याला तिर्न बाँकी", bar: "bg-brand-clay" },
-                  ].map((tile) => {
-                    const isOpen = openFigures.has(tile.href);
-                    return (
-                      <div key={tile.href} className="relative">
-                        <Link
-                          href={tile.href}
-                          className="relative grid h-full gap-0.5 overflow-hidden rounded-2xl border border-brand-green-line bg-brand-paper p-4 pl-5 pr-14 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-gold"
-                        >
-                          <span className={`absolute inset-y-0 left-0 w-1 ${tile.bar}`} aria-hidden="true" />
-                          <span className="text-xs font-black text-brand-muted">{text(tile.en, tile.ne)}</span>
-                          {isOpen ? (
-                            <Money value={tile.value} className="font-display text-2xl font-black text-brand-green-ink" />
-                          ) : (
-                            <span data-figure-hidden className="font-display text-2xl font-black tracking-widest text-brand-muted" aria-label={text("Amount hidden", "रकम लुकाइएको")}>
-                              {text("Rs.", "रु.")} ••••
-                            </span>
-                          )}
-                          <span className="text-xs text-brand-muted">{text(tile.subEn, tile.subNe)}</span>
-                        </Link>
-                        {/* Beside the link, not in it: the eye shows the amount and opens nothing. */}
-                        <button
-                          type="button"
-                          data-figures-eye={tile.href}
-                          onClick={() =>
-                            setOpenFigures((open) => {
-                              const next = new Set(open);
-                              if (next.has(tile.href)) next.delete(tile.href);
-                              else next.add(tile.href);
-                              return next;
-                            })
-                          }
-                          aria-pressed={isOpen}
-                          aria-label={isOpen ? text("Hide this amount", "यो रकम लुकाउने") : text("Show this amount", "यो रकम हेर्ने")}
-                          className="absolute right-2 top-2 grid min-h-11 min-w-11 place-items-center rounded-xl border border-brand-green-line bg-brand-paper text-lg"
-                        >
-                          {isOpen ? "🙈" : "👁"}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+                );
+              })}
+            </div>
+          </section>
 
-              </>
-            ),
-          },
-        ]}
-      />
+          {/* ── Seven days ─────────────────────────────────────────────── */}
+          <section className="rounded-2xl border border-brand-green-line bg-brand-paper p-4 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">{text("Sales, the last 7 days", "पछिल्ला ७ दिनको बिक्री")}</h2>
+            {props.days.every((day) => day.net === 0) ? (
+              <p className="mt-1 text-sm text-brand-muted">
+                {text("No sales in the last 7 days yet — the bars fill as bills are cut.", "पछिल्ला ७ दिनमा बिक्री छैन — बिल काटेपछि बार भरिँदै जान्छन्।")}
+              </p>
+            ) : null}
+            <div className="relative mt-3 grid h-32 grid-cols-7 items-end gap-2">
+              {props.days.map((day) => {
+                const height = day.net > 0 ? Math.max(4, (day.net / maxDay) * 100) : 2;
+                const label = `${text(day.en, day.ne)}: ${rupees(day.net, language)}`;
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    aria-label={label}
+                    onMouseEnter={() => setHoverDay(day.key)}
+                    onMouseLeave={() => setHoverDay(null)}
+                    onFocus={() => setHoverDay(day.key)}
+                    onBlur={() => setHoverDay(null)}
+                    onClick={() => setHoverDay(day.key)}
+                    className="relative flex h-full flex-col items-center justify-end gap-1"
+                  >
+                    {hoverDay === day.key ? (
+                      <span className="absolute -top-1 z-10 -translate-y-full whitespace-nowrap rounded-md bg-brand-green-ink px-2 py-0.5 text-xs font-black text-white">
+                        {label}
+                      </span>
+                    ) : null}
+                    <span
+                      className={`block w-full max-w-12 rounded-t-[4px] transition-[height] duration-700 ${day.today ? "bg-brand-gold" : "bg-brand-green"}`}
+                      style={{ height: `${height}%` }}
+                    />
+                    <span className={`text-xs font-bold ${day.today ? "text-brand-gold-ink" : "text-brand-muted"}`}>
+                      {day.today ? text("Today", "आज") : text(day.en, day.ne)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* A bill a thumb away on a phone, above the dock (the dashboard sample). */}
+      <Link
+        href="/admin/pos"
+        className="fixed bottom-[calc(6.25rem+env(safe-area-inset-bottom))] right-4 z-30 inline-flex min-h-12 items-center rounded-full bg-brand-gold px-5 text-[0.9375rem] font-black text-[#1A1A1A] shadow-lg md:hidden print:hidden"
+      >
+        {text("＋ Cut a bill", "＋ बिल काट्ने")}
+      </Link>
     </div>
   );
 }

@@ -75,7 +75,10 @@ describe("the dashboard card", () => {
 
   it("keeps the amount behind its eye", async () => {
     const screen = await read("components/admin/OwnerDashboard.tsx");
-    expect(screen).toContain('openFigures.has("/admin/stock") ? (');
+    // Since the dashboard sample (owner, 2026-10-27) the stock's rupees sit in
+    // the Money box with the other three, behind the same eyes.
+    expect(screen).toContain("const isOpen = openFigures.has(tile.href);");
+    expect(screen).toContain('href: "/admin/stock", en: "Stock at selling price"');
   });
 
   it("lands each line where it is put right", async () => {

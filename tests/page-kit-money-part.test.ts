@@ -35,10 +35,12 @@ describe("Discount codes", () => {
 });
 
 describe("Dashboard", () => {
-  it("is tabs on a phone and all open on a computer, the goal's rupees behind the eye", async () => {
+  // The dashboard sample (owner, 2026-10-27): one page that scrolls, no tabs
+  // on a phone; the Money box stays one line there until it is opened.
+  it("is one page on a phone, the money folded, the goal's rupees behind the eye", async () => {
     const dash = await read("components/admin/OwnerDashboard.tsx");
-    expect(dash).toContain('id="dashboard"');
-    expect(dash).toContain("openOnWide");
+    expect(dash).not.toContain("<PageTabs");
+    expect(dash).toContain('openFigures.size > 0 ? "grid" : "hidden lg:grid"');
     expect(dash).toContain('openFigures.size > 0 ? rupees(target, "en") : "Rs. ••••"');
     const kit = await read("components/admin/PageKit.tsx");
     expect(kit).toContain('${openOnWide ? "lg:hidden" : ""}');
