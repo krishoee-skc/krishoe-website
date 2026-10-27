@@ -12,6 +12,7 @@ import { readPosScreen } from "./helpers/pos-screen";
  * refund part — the way an exchange's "give back" always has.
  */
 const cashBack = {
+  kind: "Return" as const,
   paidAmount: 0,
   paymentMethod: "Cash",
   payments: [{ method: "Cash" as const, amount: 1500, purpose: "refund" as const }],
