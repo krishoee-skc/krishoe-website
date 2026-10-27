@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { writeFileAtomic } from "@/lib/atomic-json";
 import { runWithDataBackend } from "@/lib/data-backend";
+import { SELF_LOGOUT } from "@/lib/admin-session-marks";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 
 export type AdminStaffTokenPurpose = "invitation" | "password_reset" | "mfa_login";
@@ -650,6 +651,32 @@ export async function revokeAdminStaffSession(sessionId: string, revokedBy: stri
   });
 }
 
+/**
+ * Whether the sign-in that made this device trusted still stands: not revoked,
+ * or revoked only by its own owner logging out. Signed out from Login devices,
+ * by "Sign out all devices" or by a password change, it does not.
+ */
+export async function trustedSignInStillStands(sessionId: string, staffId: string) {
+  if (!sessionId || !staffId) return false;
+  return runWithDataBackend({
+    storeName: "admin settings",
+    localJson: async () => {
+      const store = await readLocalStore();
+      const session = store.sessions.find((row) => row.id === sessionId && row.staffId === staffId);
+      return Boolean(session && (!session.revokedAt || session.revokedBy === SELF_LOGOUT));
+    },
+    postgres: async () => {
+      const rows = await queryPostgres<{ id: string }>(
+        "admin settings",
+        `SELECT id FROM admin_staff_sessions
+         WHERE id = $1 AND staff_id = $2 AND (revoked_at IS NULL OR revoked_by = $3)`,
+        [sessionId, staffId, SELF_LOGOUT],
+      );
+      return rows.length > 0;
+    },
+  });
+}
+
 export async function revokeAllAdminStaffSessions(staffId: string, revokedBy: string) {
   return runWithDataBackend({
     storeName: "admin settings",
@@ -657,7 +684,11 @@ export async function revokeAllAdminStaffSessions(staffId: string, revokedBy: st
       const store = await readLocalStore();
       let count = 0;
       store.sessions = store.sessions.map((session) => {
-        if (session.staffId !== staffId || session.revokedAt) return session;
+        if (session.staffId !== staffId) return session;
+        // A sign-in its owner logged out of still vouches for its device
+        // (lib/admin-trusted-device.ts); signing out everywhere ends that too.
+        if (session.revokedAt && session.revokedBy === SELF_LOGOUT) return { ...session, revokedBy: revokedBy.trim() };
+        if (session.revokedAt) return session;
         count += 1;
         return { ...session, revokedAt: nowIso(), revokedBy: revokedBy.trim() };
       });
@@ -672,6 +703,13 @@ export async function revokeAllAdminStaffSessions(staffId: string, revokedBy: st
          WHERE staff_id = $1 AND revoked_at IS NULL
          RETURNING id`,
         [staffId, revokedBy.trim()],
+      );
+      // A sign-in its owner logged out of still vouches for its device
+      // (lib/admin-trusted-device.ts); signing out everywhere ends that too.
+      await queryPostgres(
+        "admin settings",
+        `UPDATE admin_staff_sessions SET revoked_by = $2 WHERE staff_id = $1 AND revoked_by = $3`,
+        [staffId, revokedBy.trim(), SELF_LOGOUT],
       );
       return rows.length;
     },

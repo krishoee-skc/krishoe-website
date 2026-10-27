@@ -34,8 +34,10 @@ import {
   createAdminStaffToken,
   getValidAdminStaffToken,
   revokeAdminStaffSession,
+  trustedSignInStillStands,
   verifyAdminStaffMfaCode,
 } from "@/lib/admin-staff-security";
+import { SELF_LOGOUT, grantTrustedDevice, readTrustedDevice } from "@/lib/admin-trusted-device";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { constantTimeEqual } from "@/lib/session-security";
 import { isAdminBootstrapLoginAllowed } from "@/lib/admin-bootstrap-login";
@@ -132,6 +134,8 @@ async function completeStaffLogin(
   mfaVerified: boolean,
   context: Awaited<ReturnType<typeof loginRequestContext>>,
   remember = false,
+  /** Signed in on a trusted device, without the code this time. */
+  onTrust = false,
 ) {
   const markedStaff = await markAdminStaffLogin(staff.id, context);
   if (!markedStaff) return invalidState;
@@ -147,6 +151,10 @@ async function completeStaffLogin(
     userAgent: context.userAgent,
     mfaVerified,
   });
+  // The second step passed here, on a device its owner said is theirs: for
+  // thirty days a sign-in on it needs the password only (owner, 2026-10-27).
+  // A sign-in that itself skipped the code on trust does not renew it.
+  if (remember && mfaVerified && !onTrust) await grantTrustedDevice(markedStaff.id, sessionRecord.id);
   await setAdminSessionCookie(
     await createAdminSessionToken(
       {
@@ -438,6 +446,22 @@ export async function loginAdminAction(_previousState: LoginState, formData: For
     // sign-in. Every role that can see or change the shop keeps the code.
     const codeHasNowhereToGo = staff.role === "Worker" && !staff.email?.trim();
 
+    // A device this account trusted, with a code, in the last thirty days, and
+    // whose trust has not been ended: the password is enough here.
+    if (staff.mfaEnabled && !codeHasNowhereToGo) {
+      const trusted = await readTrustedDevice(staff.id);
+      if (trusted && (await trustedSignInStillStands(trusted.sessionId, staff.id))) {
+        await clearLoginRateLimit(key);
+        await recordAdminAuditEvent(
+          "login_trusted_device",
+          `${staff.email} signed in with the password on a device trusted until ${new Date(trusted.exp).toISOString().slice(0, 10)}; the emailed code was not asked.`,
+          "success",
+          { actorId: staff.id, actorEmail: staff.email, actorRole: staff.role },
+        );
+        return completeStaffLogin(staff, true, requestContext, remember, true);
+      }
+    }
+
     if (staff.mfaEnabled && !codeHasNowhereToGo) {
       const { challenge, delivery } = await issueMfaChallenge(staff.email, staff.id);
 
@@ -591,7 +615,9 @@ export async function logoutAdminAction() {
   if (session) {
     await recordAdminAuditEvent("logout", "Admin session cleared.");
     if (session.sessionId) {
-      await revokeAdminStaffSession(session.sessionId, session.staffId ?? "self");
+      // Marked as its own log-out, so a trusted device stays trusted
+      // (lib/admin-trusted-device.ts) until its thirty days run out.
+      await revokeAdminStaffSession(session.sessionId, SELF_LOGOUT);
     }
   }
 

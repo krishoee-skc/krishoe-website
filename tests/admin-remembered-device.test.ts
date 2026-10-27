@@ -76,6 +76,27 @@ describe("what a remembered device does not change", () => {
     // …except a mobile-only Worker, whose code would have nowhere to go.
     expect(code).toContain("if (staff.mfaEnabled && !codeHasNowhereToGo) {");
     expect(code).toContain('const codeHasNowhereToGo = staff.role === "Worker" && !staff.email?.trim();');
-    expect(code).not.toMatch(/remember[\s\S]{0,40}mfaEnabled/);
+    // Since 2026-10-27 (owner: "for a month, the password only") a device can
+    // skip the code — but never on the ticked box alone. Only a device that
+    // itself passed the code (or a passkey) with the box ticked, in the last
+    // thirty days, whose sign-in has not been ended by "Sign out all devices",
+    // Login devices or a password change.
+    const skipStart = code.indexOf("const trusted = await readTrustedDevice(staff.id);");
+    expect(skipStart, "the trusted-device check moved").toBeGreaterThan(-1);
+    const skip = code.slice(skipStart, code.indexOf("const { challenge, delivery } = await issueMfaChallenge(staff.email, staff.id);", skipStart));
+    expect(skip).toContain("trustedSignInStillStands(trusted.sessionId, staff.id)");
+    expect(skip).not.toMatch(/if \(remember/);
+    expect(code).toContain("if (remember && mfaVerified && !onTrust) await grantTrustedDevice(markedStaff.id, sessionRecord.id);");
+  });
+
+  it("trusts a device for thirty days from the code, and ends that with sign-out-all", async () => {
+    const device = await readFile("lib/admin-trusted-device.ts", "utf8");
+    expect(device).toContain("export const TRUSTED_DEVICE_SECONDS = 30 * 24 * 60 * 60;");
+    expect(device).toContain("httpOnly: true");
+    const security = await readFile("lib/admin-staff-security.ts", "utf8");
+    expect(security).toContain("(revoked_at IS NULL OR revoked_by = $3)");
+    expect(security).toContain("UPDATE admin_staff_sessions SET revoked_by = $2 WHERE staff_id = $1 AND revoked_by = $3");
+    const actions = await readFile("app/admin/login/actions.ts", "utf8");
+    expect(actions).toContain("await revokeAdminStaffSession(session.sessionId, SELF_LOGOUT);");
   });
 })
