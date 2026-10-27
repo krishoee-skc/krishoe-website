@@ -24,7 +24,6 @@ import {
 import { colourKey } from "@/lib/colour-name";
 import { toBikramSambatNepali } from "@/lib/bikram-sambat";
 import { money } from "@/lib/format-money";
-import { colourSwatch, compactSizes } from "@/lib/shoe-colour";
 import { stageNeedingUpperFirst } from "@/lib/stage-order";
 import { productionStageForFactoryCategory } from "@/lib/factory-stage";
 import { useToast } from "@/components/admin/ToastProvider";
@@ -51,12 +50,13 @@ import {
 // decisions have always imported them from this file.
 export { fillFromWaitingRun, waitingCounts };
 
-// Every box and button on the form the same height, so a row of four reads as
-// one row. The owner's words: the boxes did not line up.
-const CONTROL =
-  "h-12 w-full min-w-0 rounded-lg border border-brand-green-line bg-brand-paper px-3 text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold disabled:bg-brand-mist disabled:text-brand-muted";
-const LABEL = "mb-1.5 block truncate text-sm font-bold text-brand-green-ink";
-const HINT = "mt-1 min-h-5 text-xs text-brand-muted";
+// Every box and button on the form the same height (work-entry-styles.ts).
+import { CONTROL, HINT, LABEL } from "@/app/admin/factory/add-work/work-entry-styles";
+import SavedStrip, { type SavedCard } from "@/app/admin/factory/add-work/SavedStrip";
+import ColourField from "@/app/admin/factory/add-work/ColourField";
+import SizeField from "@/app/admin/factory/add-work/SizeField";
+import ConfirmSave from "@/app/admin/factory/add-work/ConfirmSave";
+import { AddProductDialog, SetRateDialog } from "@/app/admin/factory/add-work/WorkEntryDialogs";
 
 const WEEKDAYS = [
   { en: "Sunday", ne: "आइतबार" },
@@ -184,13 +184,7 @@ export default function WorkEntryForm({
   // What was saved last, for "↻ same as last".
   const [lastEntry, setLastEntry] = useState<LastEntry | null>(null);
   /** What was just saved, shown in full until the next entry is begun (2026-10-04). */
-  const [savedCard, setSavedCard] = useState<{
-    workerId: string; workerName: string; itemName: string; color: string; size: string; pairs: string; amount: number; pending: boolean;
-    /** Kept on this phone for want of the internet (rule 4). */
-    kept?: boolean;
-    /** Stepped aside after a few seconds; the day's list still marks the row. */
-    hidden?: boolean;
-  } | null>(null);
+  const [savedCard, setSavedCard] = useState<SavedCard | null>(null);
   // A pointer or the cursor on the strip holds it there.
   const [cardHeld, setCardHeld] = useState(false);
   // "✓ Saved" steps aside after five seconds, so the form comes back up
@@ -918,85 +912,20 @@ export default function WorkEntryForm({
               (owner, 2026-10-04: after a save the form showed "Save 60 pairs ·
               Rs. 2,400" again, and it read as not saved). */}
           {savedCard && !savedCard.hidden ? (
-            // One strip, not a card (owner's sample क, 2026-10-26): the card
-            // pushed the form about 170px down and said again what the day's
-            // list beside it already says. Everything on the card is still here.
-            <div
-              role="status"
-              onMouseEnter={() => setCardHeld(true)}
-              onMouseLeave={() => setCardHeld(false)}
-              onFocus={() => setCardHeld(true)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setCardHeld(false);
+            <SavedStrip
+              card={savedCard}
+              onHold={setCardHeld}
+              onNextEntry={() => {
+                setSavedCard(null);
+                walkRefs.current.get("pairs")?.focus();
               }}
-              className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border-2 border-brand-green bg-brand-green-wash px-3 py-2"
-            >
-              <p className="font-black text-brand-green">
-                {savedCard.pending
-                  ? text("⏳ Saving…", "⏳ टिप्दै…")
-                  : savedCard.kept
-                    ? text("📴 Kept on this phone", "📴 फोनमा राखियो")
-                    : text("✓ Saved", "✓ टिपियो")}
-              </p>
-              <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm font-bold text-brand-green-ink">
-                <span>{savedCard.workerName}</span>
-                <span aria-hidden="true">·</span>
-                <span>{savedCard.itemName}</span>
-                {savedCard.color ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span className="inline-flex items-center gap-1">
-                      {colourSwatch(savedCard.color) ? (
-                        <span aria-hidden="true" className="h-3 w-3 rounded-full ring-1 ring-black/20" style={{ background: colourSwatch(savedCard.color) ?? undefined }} />
-                      ) : null}
-                      {savedCard.color}
-                    </span>
-                  </>
-                ) : null}
-                {savedCard.size ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{compactSizes(savedCard.size)}</span>
-                  </>
-                ) : null}
-              </p>
-              <p className="text-sm font-black tabular-nums text-brand-green">
-                {text(`${savedCard.pairs} pairs`, `${savedCard.pairs} जोडी`)}
-                {savedCard.amount > 0 ? ` · ${money(savedCard.amount)}` : ""}
-              </p>
-              <p className="text-xs font-bold text-brand-muted">{text("just now", "भर्खर")}</p>
-              <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
-                <button
-                  type="button"
-                  title={text("Next entry · same worker", "अर्को entry · उही कामदार")}
-                  onClick={() => {
-                    setSavedCard(null);
-                    walkRefs.current.get("pairs")?.focus();
-                  }}
-                  className="min-h-11 rounded-full bg-brand-green px-3 text-xs font-black text-white"
-                >
-                  ➕ {text("Next entry", "अर्को entry")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSavedCard(null);
-                    setFormData((prev) => ({ ...prev, worker_id: "", stage: "", item_id: "", color: "", size: "", pairs_count: "" }));
-                    setCalculatedAmount(0);
-                    walkRefs.current.get("worker")?.focus();
-                  }}
-                  className="min-h-11 rounded-full border border-brand-green-line bg-brand-paper px-3 text-xs font-black text-brand-green-ink"
-                >
-                  👤 {text("Another worker", "अर्को कामदार")}
-                </button>
-                <Link
-                  href={`/admin/factory/ledger?workerId=${savedCard.workerId}`}
-                  className="inline-flex min-h-11 items-center rounded-full px-2 text-xs font-bold text-brand-green underline underline-offset-4"
-                >
-                  ✏️ {text("Wrong? Fix it", "गल्ती? सच्याउने")}
-                </Link>
-              </div>
-            </div>
+              onAnotherWorker={() => {
+                setSavedCard(null);
+                setFormData((prev) => ({ ...prev, worker_id: "", stage: "", item_id: "", color: "", size: "", pairs_count: "" }));
+                setCalculatedAmount(0);
+                walkRefs.current.get("worker")?.focus();
+              }}
+            />
           ) : null}
 
           {success && (
@@ -1271,194 +1200,53 @@ export default function WorkEntryForm({
               </p>
             </div>
 
-            {/* Colour — required: rows of one item at one rate could not be
-                told apart afterwards without it. The chips are the colours this
-                factory makes, the shoe's usual one first (★). */}
-            <div className="col-span-2 min-w-0">
-              <label htmlFor="work-colour" className={LABEL}>🎨 {text("Colour", "रङ")}</label>
-              <input
-                id="work-colour"
-                aria-label={text("Colour", "रङ")}
-                ref={(element) => {
-                  walkRefs.current.set("colour", element);
-                }}
-                enterKeyHint="next"
-                onKeyDown={(event) => {
-                  completeColourOnEnter(event);
-                  handleFieldWalk(event, "colour");
-                }}
-                type="text"
-                value={formData.color}
-                onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
-                placeholder={text("Tap below or type a colour", "तल थिच्नुहोस् वा रङ लेख्नुहोस्")}
-                className={CONTROL}
-              />
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {colourChips.map((chip) => {
-                  const active = chip.matches.includes(colourKey(formData.color));
-                  return (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      // Tab goes box to box; the chips are for a finger or the
-                      // mouse, and the box takes "cr" for Cream (audit, 2026-10-27).
-                      tabIndex={-1}
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, color: chip.value }));
-                        // On to Size, so the next Enter carries on down the
-                        // form; the cursor left on the chip made Enter press
-                        // the chip again (owner, 2026-10-26).
-                        pendingFocus.current = "size";
-                      }}
-                      className={`press-dip inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-bold transition ${
-                        active
-                          ? "border-brand-green bg-brand-green text-white"
-                          : chip.star
-                            ? "border-brand-gold bg-brand-gold/10 text-brand-green-ink"
-                            : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
-                      }`}
-                    >
-                      {chip.hex !== "transparent" ? (
-                        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full border border-black/15" style={{ background: chip.hex }} />
-                      ) : null}
-                      {chip.label}
-                      {chip.star ? <span aria-label={text("usual", "सधैँको")}> ★</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {/* Colour — required (ColourField.tsx). */}
+            <ColourField
+              value={formData.color}
+              onChange={(color) => setFormData((prev) => ({ ...prev, color }))}
+              chips={colourChips}
+              registerBox={(element) => {
+                walkRefs.current.set("colour", element);
+              }}
+              onKeyDown={(event) => {
+                completeColourOnEnter(event);
+                handleFieldWalk(event, "colour");
+              }}
+              onPick={(color) => {
+                setFormData((prev) => ({ ...prev, color }));
+                pendingFocus.current = "size";
+              }}
+            />
 
-            {/* Size — the runs this factory makes, the shoe's own first (★), and
-                its single sizes to tap one at a time. Anything else is typed:
-                "21/25", "36, 38, 40". */}
-            <div className="col-span-2 min-w-0">
-              <label htmlFor="work-size" className={LABEL}>📏 {text("Size", "साइज")}</label>
-              <input
-                id="work-size"
-                aria-label={text("Size", "साइज")}
-                ref={(element) => {
-                  walkRefs.current.set("size", element);
-                }}
-                enterKeyHint="next"
-                onKeyDown={(event) => handleFieldWalk(event, "size")}
-                type="text"
-                value={formData.size}
-                onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-                placeholder={text("Tap below or type sizes (e.g. 21/25)", "तल थिच्नुहोस् वा साइज लेख्नुहोस् (जस्तै 21/25)")}
-                className={CONTROL}
-              />
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {sizeChips.map((chip) => {
-                  const active = sizeRunKey(formData.size) !== "" && sizeRunKey(formData.size) === sizeRunKey(chip.value);
-                  return (
-                    <button
-                      key={`${chip.star ? "star" : "run"}:${sizeRunKey(chip.value)}`}
-                      type="button"
-                      tabIndex={-1}
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, size: chip.value }));
-                        // A whole run is the size: on to Rejected. With the
-                        // per-size counts open, the cursor stays for them.
-                        if (!showSizeCounts) pendingFocus.current = "rejected";
-                      }}
-                      className={`press-dip inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-black tabular-nums transition ${
-                        active
-                          ? "border-brand-green bg-brand-green text-white"
-                          : chip.star
-                            ? "border-brand-gold bg-brand-gold/10 text-brand-green-ink"
-                            : "border-brand-green-line text-brand-green-ink hover:border-brand-green"
-                      }`}
-                    >
-                      {compactSizeRun(chip.value).replace("-", "–")}
-                      {chip.star ? <span aria-label={text("this shoe's", "यो जुत्ताको")}> ★</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* The shoe's single sizes, for a run that is not a whole run —
-                  "41" alone, or 36, 38 and 40. Each toggles in and out. */}
-              {itemSizes.length > 0 ? (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {itemSizes.map((size) => {
-                    const active = chosenSizes.includes(size);
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        tabIndex={-1}
-                        onClick={() => setFormData((prev) => ({ ...prev, size: toggleSize(prev.size, size) }))}
-                        className={`press-dip grid h-11 min-w-11 place-items-center rounded-md border px-1 text-sm font-black transition ${
-                          active
-                            ? "border-brand-green bg-brand-green text-white"
-                            : "border-brand-green-line text-brand-muted hover:border-brand-green"
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-              {/* How many in each size, offered rather than imposed — most runs
-                  are even. */}
-              {countableSizes.length > 1 ? (
-                showSizeCounts ? (
-                  <div className="mt-3 rounded-xl border-2 border-brand-green bg-brand-green/5 p-3">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-black uppercase tracking-wide text-brand-green-ink">
-                        {text("Pairs in each size", "कुन साइजको कति जोडी")}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={closeSizeCounts}
-                        className="press-dip rounded-lg border border-brand-green-line px-2.5 py-1 text-xs font-bold text-brand-green-ink transition hover:border-brand-green"
-                      >
-                        {text("Use one total", "जम्मा मात्र लेख्ने")}
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                      {countableSizes.map((size) => (
-                        <label key={size} className="block">
-                          <span className="block text-center text-xs font-bold text-brand-muted">
-                            {size}
-                          </span>
-                          <input
-                            type="number"
-                            min="0"
-                            inputMode="numeric"
-                            aria-label={text(`Pairs in size ${size}`, `साइज ${size} को जोडी`)}
-                            value={sizeCounts[size] ?? ""}
-                            onChange={(event) =>
-                              setSizeCounts((current) => ({
-                                ...current,
-                                [size]: event.target.value,
-                              }))
-                            }
-                            className="min-h-11 w-full rounded-lg border-2 border-brand-green-line px-1 py-1 text-center text-lg font-black tabular-nums text-brand-green-ink focus:border-transparent focus:ring-2 focus:ring-brand-gold"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                    {/* The total, added up rather than asked for again. */}
-                    <p className="mt-2 text-sm font-black text-brand-green-ink">
-                      {text(
-                        `Total ${countedPairs} pairs — added up`,
-                        `जम्मा ${countedPairs} जोडी — आफैँ जोडिएको`,
-                      )}
-                    </p>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={openSizeCounts}
-                    className="press-dip mt-2 inline-flex min-h-11 items-center rounded-lg border border-brand-green-line px-3 text-sm font-bold text-brand-green-ink transition hover:border-brand-green"
-                  >
-                    {text("Sizes are not equal?", "साइज बराबर छैन?")}
-                  </button>
-                )
-              ) : null}
-            </div>
+            {/* Size — the runs, the shoe's own sizes, a box per size (SizeField.tsx). */}
+            <SizeField
+              value={formData.size}
+              onChange={(size) => setFormData((prev) => ({ ...prev, size }))}
+              registerBox={(element) => {
+                walkRefs.current.set("size", element);
+              }}
+              onKeyDown={(event) => handleFieldWalk(event, "size")}
+              runs={sizeChips}
+              onPickRun={(size) => {
+                setFormData((prev) => ({ ...prev, size }));
+                if (!showSizeCounts) pendingFocus.current = "rejected";
+              }}
+              itemSizes={itemSizes}
+              chosenSizes={chosenSizes}
+              onToggleSize={(size) => setFormData((prev) => ({ ...prev, size: toggleSize(prev.size, size) }))}
+              countableSizes={countableSizes}
+              showSizeCounts={showSizeCounts}
+              onOpenCounts={openSizeCounts}
+              onCloseCounts={closeSizeCounts}
+              sizeCounts={sizeCounts}
+              onCount={(size, value) =>
+                setSizeCounts((current) => ({
+                  ...current,
+                  [size]: value,
+                }))
+              }
+              countedPairs={countedPairs}
+            />
 
             {/* QC — rejects, usually none. One box of the grid like the rest;
                 it had the full width of the form for one small number. */}
@@ -1530,43 +1318,13 @@ export default function WorkEntryForm({
           {/* The question before writing: what is about to be saved, and
               whether the day already has it. Enter says yes, Esc goes back. */}
           {confirming ? (
-            <div
-              role="alertdialog"
-              aria-labelledby="work-confirm-text"
-              onKeyDown={(event) => {
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  cancelConfirm();
-                }
-              }}
-              className={`rounded-lg border-2 p-3 ${confirming.duplicate ? "border-amber-400 bg-amber-50" : "border-brand-gold bg-brand-gold/10"}`}
-            >
-              {confirming.duplicate ? (
-                <p className="mb-1 text-sm font-black text-amber-900">
-                  ⚠️ {text("This looks already entered today.", "यो आज टिपिसकेको जस्तो छ।")}
-                </p>
-              ) : null}
-              <p id="work-confirm-text" className="text-sm font-bold text-brand-green-ink">
-                {confirmSummary} — {text("save?", "टिप्ने?")}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  ref={confirmYes}
-                  onClick={() => void saveEntry()}
-                  className="min-h-11 rounded-lg bg-brand-green px-4 text-sm font-black text-white focus:outline-none focus:ring-4 focus:ring-brand-gold"
-                >
-                  {text("Yes, save (Enter)", "हो, टिप्ने (Enter)")}
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelConfirm}
-                  className="min-h-11 rounded-lg border border-brand-green-line px-4 text-sm font-bold text-brand-green-ink"
-                >
-                  {text("Go back (Esc)", "फर्किने (Esc)")}
-                </button>
-              </div>
-            </div>
+            <ConfirmSave
+              duplicate={confirming.duplicate}
+              summary={confirmSummary}
+              yesRef={confirmYes}
+              onYes={() => void saveEntry()}
+              onCancel={cancelConfirm}
+            />
           ) : null}
         </form>
 
@@ -1592,80 +1350,29 @@ export default function WorkEntryForm({
 
       {/* Add Product Modal */}
       {showAddProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-brand-paper rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h2 className="text-xl font-bold text-brand-green-ink mb-4">
-              ➕ {text("Add new product", "नयाँ सामान थप्ने")}
-            </h2>
-            <input
-              aria-label={text("New product name", "नयाँ सामानको नाम")}
-              type="text"
-              value={newProductName}
-              onChange={(e) => setNewProductName(e.target.value)}
-              placeholder={text("Product name (e.g. Flatpatta, Sendil)", "जुत्ताको नाम (जस्तै: फ्ल्याटपट्टा, सेन्डिल)")}
-              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent mb-4"
-              onKeyPress={(e) => e.key === "Enter" && handleAddProduct()}
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddProduct}
-                className="flex-1 bg-brand-green hover:bg-brand-green-ink text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                ✅ Add Product
-              </button>
-              <button
-                onClick={() => {
-                  setShowAddProduct(false);
-                  setNewProductName("");
-                }}
-                className="flex-1 bg-brand-green-line hover:bg-brand-muted-soft text-brand-green-ink font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <AddProductDialog
+          name={newProductName}
+          onName={setNewProductName}
+          onAdd={handleAddProduct}
+          onCancel={() => {
+            setShowAddProduct(false);
+            setNewProductName("");
+          }}
+        />
       )}
 
       {/* Set Rate Modal */}
       {showSetRate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-brand-paper rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h2 className="text-xl font-bold text-brand-green-ink mb-2">⚙️ Set Rate</h2>
-            <p className="text-sm text-brand-muted mb-4">
-              Rate not found for this product. Please enter the rate per pair.
-            </p>
-            <input
-              aria-label={text("Rate per pair", "प्रति जोडी दर")}
-              type="number"
-              value={newRate}
-              onChange={(e) => setNewRate(e.target.value)}
-              placeholder={text("Rate per pair (e.g. 10, 12, 15)", "प्रति जोडी दर (जस्तै: १०, १२, १५)")}
-              className="w-full min-h-12 px-3 py-2 border border-brand-green-line rounded-lg focus:ring-2 focus:ring-brand-gold focus:border-transparent mb-4"
-              onKeyPress={(e) => e.key === "Enter" && handleSetRate()}
-            />
-            <p className="text-xs text-brand-muted mb-4">
-              Category: <strong>{workers.find((w) => w.id === formData.worker_id)?.category}</strong>
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSetRate}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                ✅ Set Rate
-              </button>
-              <button
-                onClick={() => {
-                  setShowSetRate(false);
-                  setNewRate("");
-                }}
-                className="flex-1 bg-brand-green-line hover:bg-brand-muted-soft text-brand-green-ink font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <SetRateDialog
+          rate={newRate}
+          onRate={setNewRate}
+          category={workers.find((w) => w.id === formData.worker_id)?.category}
+          onSet={handleSetRate}
+          onCancel={() => {
+            setShowSetRate(false);
+            setNewRate("");
+          }}
+        />
       )}
     </div>
   );

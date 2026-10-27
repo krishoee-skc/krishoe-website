@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 /**
  * Enter walks the work entry, which is the form that pays a worker.
@@ -20,7 +21,7 @@ const RULES = "app/admin/factory/add-work/work-entry-rules.ts";
 // The screen is two files: the form that draws the boxes, and the rules it
 // follows. The walk order is a rule, so it reads the pair as one screen.
 async function screen() {
-  const [form, rules] = await Promise.all([readFile(FORM, "utf8"), readFile(RULES, "utf8")]);
+  const [form, rules] = await Promise.all([readWorkEntryScreen({ crlf: true }), readFile(RULES, "utf8")]);
   return form + "\n" + rules;
 }
 
@@ -86,7 +87,10 @@ describe("what Enter must never do", () => {
     const form = await screen();
 
     expect(form).toContain('event.key === "Escape"');
-    expect(form).toContain("cancelConfirm()");
+    // The question is its own part since 2026-10-27: Esc calls onCancel, which
+    // the form gives as cancelConfirm.
+    expect(form).toContain("onCancel();");
+    expect(form).toContain("onCancel={cancelConfirm}");
   });
 });
 

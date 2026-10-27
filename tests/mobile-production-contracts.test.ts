@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 function source(path: string) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -101,8 +102,8 @@ describe("mobile production contracts", () => {
     expect(scanner).toContain('accept="image/*"');
   });
 
-  it("keeps the daily work entry fast on a phone", () => {
-    const addWork = source("app/admin/factory/add-work/WorkEntryForm.tsx");
+  it("keeps the daily work entry fast on a phone", async () => {
+    const addWork = await readWorkEntryScreen();
 
     // The date is now the Bikram Sambat field (a tap-to-open BS calendar that
     // stores AD), which replaced the native type="date" input.

@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { countsFromSizeRun, sizeCountsTotal } from "@/lib/shoe-sizes";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 /**
  * A box per size, so the odd one out can be written down.
@@ -17,7 +17,6 @@ import { countsFromSizeRun, sizeCountsTotal } from "@/lib/shoe-sizes";
  * The total is not typed while they are open. Two numbers for one quantity is
  * how a breakdown ends up disagreeing with the wage it was paid on.
  */
-const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
 
 describe("what the boxes start with", () => {
   it("shares the run out evenly, which is what today's entries mean", () => {
@@ -43,7 +42,7 @@ describe("what the boxes start with", () => {
 
 describe("the screen", () => {
   it("shows a box for each size in the run", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     const code = form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
     expect(code, "the boxes must be built from the chosen sizes").toMatch(
@@ -52,7 +51,7 @@ describe("the screen", () => {
   });
 
   it("adds the boxes up rather than asking for the total twice", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     const code = form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
     // Asserted on the payload the save builds, not on the file: the helper is
@@ -67,7 +66,7 @@ describe("the screen", () => {
   });
 
   it("sends the counts with the entry", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     const code = form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 
     // The API reads body.size_counts. Boxes that are filled in and not sent
@@ -80,7 +79,7 @@ describe("the screen", () => {
   });
 
   it("gives every box a label a screen reader can read", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
 
     // Six unlabelled number boxes in a row are six identical boxes to anyone
     // not looking at the screen.

@@ -1,8 +1,7 @@
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
-const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
-const read = async () => (await readFile(FORM, "utf8")).replace(/\r\n/g, "\n");
+const read = () => readWorkEntryScreen();
 
 /**
  * Add work, owner's sample क and ग (2026-10-26): what was just saved is one
@@ -17,11 +16,13 @@ describe("क · one strip, with everything the card had", () => {
       'text("⏳ Saving…", "⏳ टिप्दै…")',
       'text("📴 Kept on this phone", "📴 फोनमा राखियो")',
       'text("✓ Saved", "✓ टिपियो")',
-      "savedCard.workerName",
-      "savedCard.itemName",
-      "savedCard.color",
-      "compactSizes(savedCard.size)",
-      "money(savedCard.amount)",
+      // The strip is its own part since 2026-10-27, given the card as card.
+      "card={savedCard}",
+      "card.workerName",
+      "card.itemName",
+      "card.color",
+      "compactSizes(card.size)",
+      "money(card.amount)",
       'text("just now", "भर्खर")',
       'text("Next entry", "अर्को entry")',
       'text("Another worker", "अर्को कामदार")',
@@ -46,8 +47,9 @@ describe("ग · steps aside after five seconds", () => {
 
   it("stays while a pointer or the cursor is on it", async () => {
     const form = await read();
-    expect(form).toContain("onMouseEnter={() => setCardHeld(true)}");
-    expect(form).toContain("onFocus={() => setCardHeld(true)}");
+    expect(form).toContain("onMouseEnter={() => onHold(true)}");
+    expect(form).toContain("onFocus={() => onHold(true)}");
+    expect(form).toContain("onHold={setCardHeld}");
   });
 
   it("only hides the strip: the day's list still marks the row just saved", async () => {

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { COMMON_COLOURS, WORK_SIZE_RUNS } from "@/app/admin/factory/add-work/work-entry-rules";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 /**
  * The work-entry form as the owner laid it out on 2026-09-27.
@@ -14,7 +15,6 @@ import { COMMON_COLOURS, WORK_SIZE_RUNS } from "@/app/admin/factory/add-work/wor
  * beside the form, a question before a likely double entry, the shoe's usual
  * colour and size first, and the wage on the Save button.
  */
-const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
 const TODAY = "app/admin/factory/add-work/TodayEntries.tsx";
 const PAGE = "app/admin/factory/add-work/page.tsx";
 
@@ -28,7 +28,7 @@ describe("the colours and sizes this factory makes", () => {
   });
 
   it("puts the shoe's usual colour and size first, starred", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     const page = await readFile(PAGE, "utf8");
     expect(page).toContain("SELECT DISTINCT ON (item_id) item_id, color AS colour, size");
     expect(page).toContain("lastColour:");
@@ -40,7 +40,7 @@ describe("the colours and sizes this factory makes", () => {
 
 describe("the layout", () => {
   it("fills a computer screen, with the day's entries on the right", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     expect(form).not.toContain("max-w-5xl");
     expect(form).toContain("max-w-[1600px]");
     expect(form).toContain("lg:grid-cols-[minmax(0,1fr)_20rem]");
@@ -48,7 +48,7 @@ describe("the layout", () => {
   });
 
   it("gives every box one height through one class", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     expect(form).toMatch(/const CONTROL =\s*"h-12 /);
     for (const id of ["work-worker", "work-stage", "work-item", "work-colour", "work-size"]) {
       const at = form.indexOf(`id="${id}"`);
@@ -59,14 +59,14 @@ describe("the layout", () => {
   });
 
   it("keeps the rejects box one box of the grid, not the full width", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     const at = form.indexOf('id="work-reject"');
     const block = form.slice(form.lastIndexOf("<div", at - 300), at);
     expect(block).not.toContain("col-span");
   });
 
   it("writes the day as a line, with today and yesterday one tap", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     expect(form).toContain("toBikramSambatNepali(formData.date)");
     expect(form).toContain('text("Yesterday", "हिजो")');
     expect(form).toContain('text("Another day…", "अर्को मिति…")');
@@ -77,13 +77,13 @@ describe("the layout", () => {
 
 describe("the suggestions the owner took", () => {
   it("fills the last entry again with one press", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     expect(form).toContain('text("Same as last", "अघिल्लो जस्तै")');
     expect(form).toContain("setLastEntry({");
   });
 
   it("asks before saving what the day already has", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     const request = form.slice(form.indexOf("const requestSave"), form.indexOf("const cancelConfirm"));
     expect(request).toContain("(dayEntries ?? []).some(looksLikeForm)");
     expect(form).toContain("यो आज टिपिसकेको जस्तो छ।");
@@ -99,7 +99,7 @@ describe("the suggestions the owner took", () => {
 
 describe("the two tabs", () => {
   it("drops the form's grid when Post to stock is chosen", async () => {
-    const form = await readFile(FORM, "utf8");
+    const form = await readWorkEntryScreen();
     // `lg:grid` sets display itself and beats the hidden attribute on a
     // computer, which left the form on screen above Post to stock. The class
     // has to go with the view, not only the attribute.

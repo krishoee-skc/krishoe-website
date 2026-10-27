@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
 
@@ -26,14 +27,14 @@ describe("Add work: a mistake is mended from the day's list", () => {
   });
 
   it("offers today's workers as one-tap buttons, the list staying for everyone", async () => {
-    const form = await read("app/admin/factory/add-work/WorkEntryForm.tsx");
+    const form = await readWorkEntryScreen();
     expect(form).toContain("const quickWorkers = (() => {");
     expect(form).toContain("chooseWorker(worker.id);");
     expect(form).toContain('id="work-worker"');
   });
 
   it("lets Tab go box to box, past the chips", async () => {
-    const form = await read("app/admin/factory/add-work/WorkEntryForm.tsx");
+    const form = await readWorkEntryScreen();
     expect((form.match(/tabIndex=\{-1\}/g) ?? []).length).toBeGreaterThanOrEqual(4);
   });
 });

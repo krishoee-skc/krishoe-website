@@ -1,5 +1,5 @@
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 /**
  * The pair count and the wage it decides are read together.
@@ -15,7 +15,6 @@ import { describe, expect, it } from "vitest";
  * workshop phone, the step buttons stay big enough to hit with a thumb, and a
  * phone still gets one box per line.
  */
-const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
 
 function code(form: string) {
   return form.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -23,7 +22,7 @@ function code(form: string) {
 
 describe("the wage beside the count", () => {
   it("writes the wage directly under the pair count", async () => {
-    const source = code(await readFile(FORM, "utf8"));
+    const source = code(await readWorkEntryScreen());
     const pairsAt = source.indexOf('🔢 {text("Number of pairs"');
     expect(pairsAt, "the pairs label moved").toBeGreaterThan(0);
 
@@ -34,7 +33,7 @@ describe("the wage beside the count", () => {
   });
 
   it("puts the wage on the Save button too", async () => {
-    const source = code(await readFile(FORM, "utf8"));
+    const source = code(await readWorkEntryScreen());
     const save = source.slice(source.indexOf('type="submit"'));
     expect(save.slice(0, 1500)).toContain("money(calculatedAmount)");
   });
@@ -42,14 +41,14 @@ describe("the wage beside the count", () => {
 
 describe("what the smaller box must not cost", () => {
   it("keeps the number large enough to read across a workbench", async () => {
-    const source = code(await readFile(FORM, "utf8"));
+    const source = code(await readWorkEntryScreen());
     const input = source.slice(source.indexOf("onChange={handlePairsChange}"));
     expect(input.length, "the pairs input moved").toBeGreaterThan(0);
     expect(input.slice(0, 600), "the digits stay large").toMatch(/text-2xl/);
   });
 
   it("keeps the step buttons thumb-sized", async () => {
-    const source = code(await readFile(FORM, "utf8"));
+    const source = code(await readWorkEntryScreen());
     const minus = source.slice(source.indexOf("stepPairs(-PAIRS_STEP)"));
     const size = minus.slice(0, 700).match(/\bh-(\d+)\b/);
     expect(size, "the minus button lost its height").not.toBeNull();
@@ -58,7 +57,7 @@ describe("what the smaller box must not cost", () => {
   });
 
   it("two boxes a row on a phone, four on a computer", async () => {
-    const source = code(await readFile(FORM, "utf8"));
+    const source = code(await readWorkEntryScreen());
     // Two narrow boxes side by side on a phone (the owner's sample), four
     // across on a computer; colour, size and Save take a whole row.
     expect(source).toContain('className="grid grid-cols-2 gap-x-3 gap-y-3 sm:gap-x-4 xl:grid-cols-4"');

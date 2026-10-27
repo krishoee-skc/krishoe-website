@@ -1,9 +1,7 @@
-import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { completeColour } from "@/app/admin/factory/add-work/work-entry-rules";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
-const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
-const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
 
 /**
  * Add work, owner 2026-10-26 (क and ग of the Enter sample): a colour or size
@@ -13,18 +11,25 @@ const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
  */
 describe("क · a chip moves the cursor on", () => {
   it("goes from a colour chip to Size, and from a size run to Rejected", async () => {
-    const form = await read(FORM);
-    const colour = form.slice(form.indexOf("{colourChips.map((chip)"), form.indexOf("{sizeChips.map((chip)"));
-    expect(colour).toContain('pendingFocus.current = "size";');
-    const runs = form.slice(form.indexOf("{sizeChips.map((chip)"), form.indexOf("{itemSizes.map((size)"));
-    expect(runs).toContain('if (!showSizeCounts) pendingFocus.current = "rejected";');
+    const form = await readWorkEntryScreen();
+    // The chips are their own parts since 2026-10-27: a chip calls onPick /
+    // onPickRun, and the form moves the cursor there.
+    expect(form).toContain("onClick={() => onPick(chip.value)}");
+    const colourPick = form.slice(form.indexOf("onPick={(color) =>"), form.indexOf("onPick={(color) =>") + 200);
+    expect(colourPick).toContain('pendingFocus.current = "size";');
+    expect(form).toContain("onClick={() => onPickRun(chip.value)}");
+    const runPick = form.slice(form.indexOf("onPickRun={(size) =>"), form.indexOf("onPickRun={(size) =>") + 200);
+    expect(runPick).toContain('if (!showSizeCounts) pendingFocus.current = "rejected";');
   });
 
   it("leaves the cursor on a single size, where several are picked one by one", async () => {
-    const form = await read(FORM);
+    const form = await readWorkEntryScreen();
     const singles = form.slice(form.indexOf("{itemSizes.map((size)"), form.indexOf("{itemSizes.map((size)") + 900);
-    expect(singles).toContain("toggleSize(prev.size, size)");
+    expect(singles).toContain("onClick={() => onToggleSize(size)}");
     expect(singles).not.toContain("pendingFocus.current");
+    const toggle = form.slice(form.indexOf("onToggleSize={(size) =>"), form.indexOf("onToggleSize={(size) =>") + 120);
+    expect(toggle).toContain("toggleSize(prev.size, size)");
+    expect(toggle).not.toContain("pendingFocus.current");
   });
 });
 
@@ -58,7 +63,7 @@ describe("ग · a few letters are a colour", () => {
   });
 
   it("is applied before Enter walks on from the colour box", async () => {
-    const form = await read(FORM);
+    const form = await readWorkEntryScreen();
     const box = form.slice(form.indexOf('id="work-colour"'), form.indexOf('id="work-size"'));
     expect(box.indexOf("completeColourOnEnter(event);")).toBeGreaterThan(-1);
     expect(box.indexOf("completeColourOnEnter(event);")).toBeLessThan(box.indexOf('handleFieldWalk(event, "colour")'));

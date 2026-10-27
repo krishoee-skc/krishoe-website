@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readWorkEntryScreen } from "./helpers/work-entry-screen";
 
 /**
  * The work-entry screen is opened fifty times a morning, and each of those is
@@ -7,11 +8,10 @@ import { describe, expect, it } from "vitest";
  * row typeable while the last one is still being saved — easy to undo by
  * accident, and each one costs the entry clerk real time.
  */
-const FORM = "app/admin/factory/add-work/WorkEntryForm.tsx";
 
 describe("entering the next row without waiting", () => {
   it("clears the pairs box before the save comes back", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
 
     // The clearing happens before the fetch, not in its .then — that is the
     // whole point. If these ever swap order the wait comes back.
@@ -28,7 +28,7 @@ describe("entering the next row without waiting", () => {
   });
 
   it("keeps the worker, the item and the stage for the next row", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
 
     // A person makes three or four rows of the same work. Re-picking the worker
     // and item each time was most of the typing.
@@ -44,7 +44,7 @@ describe("entering the next row without waiting", () => {
   });
 
   it("does not send the clerk away after saving", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
 
     // It used to redirect to the dashboard a second and a half after a save,
     // so a second entry meant navigating back. The Cancel button that also
@@ -57,7 +57,7 @@ describe("entering the next row without waiting", () => {
   });
 
   it("puts a failed entry back in the form", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
     const failure = source.slice(source.indexOf("} catch (err) {"));
 
     // A wage entry that vanishes because the network blinked is a day's work
@@ -72,7 +72,7 @@ describe("entering the next row without waiting", () => {
   });
 
   it("gives every send its own idempotency key", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
 
     // Two entries a second apart — same worker, same item, same twenty pairs,
     // which is a real morning — share a key scope. Rotating before the request
@@ -88,7 +88,7 @@ describe("entering the next row without waiting", () => {
   });
 
   it("confirms with a toast that names the worker and the pairs", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
 
     // The form has already cleared, so the confirmation has to carry enough to
     // recognise: "Saved — 20 pairs for Ram", not "Saved".
@@ -100,7 +100,7 @@ describe("entering the next row without waiting", () => {
 /** Owner, 2026-10-04: after a save, what was saved is shown in full. */
 describe("after a save", () => {
   it("shows what was saved until the next entry is begun", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
     expect(source).toContain('text("⏳ Saving…", "⏳ टिप्दै…")');
     expect(source).toContain('text("✓ Saved", "✓ टिपियो")');
     // Or, with no internet, kept on the phone (owner, 2026-10-20, rule 4).
@@ -119,7 +119,7 @@ describe("after a save", () => {
 /** Recheck, 2026-10-04: the pairs box goes blank after a save, so a count typed only in the size boxes must still count. */
 describe("pairs counted in the size boxes", () => {
   it("count for Save and for the pairs check", async () => {
-    const source = await readFile(FORM, "utf8");
+    const source = await readWorkEntryScreen();
     expect(source).toContain("const pairsEntered = showSizeCounts && countedPairs > 0 ? countedPairs : parseInt(formData.pairs_count) || 0;");
     expect(source).toContain("if (!(pairsEntered > 0)) {");
     expect(source).toContain("const pairsNow = pairsEntered;");
