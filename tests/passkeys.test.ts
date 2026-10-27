@@ -103,8 +103,17 @@ describe("how a passkey sign-in is recorded", () => {
     // A second path that "also logs someone in" is how one of them ends up not
     // writing an audit entry.
     expect(actions).toContain("export async function completePasskeyStaffLogin");
-    expect(actions).toContain("return completeStaffLogin(staff, true, context)");
-    expect(passkey).toContain("completePasskeyStaffLogin(staff)");
+    // With the "Remember this device — 30 days" box, as a password sign-in
+    // (owner, 2026-10-27: a fingerprint sign-in ignored it and ended after 8h).
+    expect(actions).toContain("return completeStaffLogin(staff, true, context, remember)");
+    expect(passkey).toContain("completePasskeyStaffLogin(staff, remember === true)");
+    const button = await readFile("components/PasskeySignInButton.tsx", "utf8");
+    expect(button).toContain("finishPasskeyLoginAction(assertion, remember)");
+    const form = await readFile("components/AdminLoginForm.tsx", "utf8");
+    expect(form).toContain("<PasskeySignInButton nextPath={nextPath} remember={remember} />");
+    // The box comes back ticked where it was ticked, and unticking forgets it.
+    expect(form).toContain('const REMEMBER_KEY = "krishoe-admin-remember";');
+    expect(form).toContain("window.localStorage.removeItem(REMEMBER_KEY)");
   });
 
   it("still refuses a disabled account", async () => {

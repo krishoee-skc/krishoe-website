@@ -207,14 +207,17 @@ async function completeStaffLogin(
  * plus a fingerprint or PIN, which is a stronger pair than a password and a
  * code sent to an inbox that same password might open.
  */
-export async function completePasskeyStaffLogin(staff: SafeAdminStaffAccount) {
+export async function completePasskeyStaffLogin(staff: SafeAdminStaffAccount, remember = false) {
   if (staff.status !== "Active") {
     return { ok: false, message: "यो खाता बन्द छ। मालिकलाई भन्नुहोस्।" } satisfies LoginState;
   }
 
   const context = await loginRequestContext();
   await clearLoginRateLimit(await loginKey());
-  return completeStaffLogin(staff, true, context);
+  // The "Remember this device — 30 days" box counts here too (owner,
+  // 2026-10-27): a fingerprint sign-in with it ticked ended after eight hours,
+  // which read as the box not working.
+  return completeStaffLogin(staff, true, context, remember);
 }
 
 /**

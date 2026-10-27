@@ -98,7 +98,7 @@ export async function startPasskeyLoginAction() {
   return { ok: true as const, options };
 }
 
-export async function finishPasskeyLoginAction(response: AuthenticationResponseJSON) {
+export async function finishPasskeyLoginAction(response: AuthenticationResponseJSON, remember = false) {
   const verified = await finishPasskeyLogin(response);
   if (!verified.ok) return { ok: false as const, message: verified.reason };
 
@@ -108,5 +108,5 @@ export async function finishPasskeyLoginAction(response: AuthenticationResponseJ
   // A passkey already proves possession of the device and a fingerprint or PIN,
   // so it counts as verified — asking for an emailed code on top would be
   // asking for a weaker second factor than the first one.
-  return completePasskeyStaffLogin(staff);
+  return completePasskeyStaffLogin(staff, remember === true);
 }

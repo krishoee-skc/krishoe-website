@@ -1,7 +1,7 @@
 "use client";
 import WorkerForgotHelp from "@/components/WorkerForgotHelp";
 
-import { FormEvent, KeyboardEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -46,6 +46,9 @@ const WORKER_SIGN_IN_HINT = {
   ne: "आफ्नो मोबाइल नम्बर वा email र password हाल्नुहोस्। पहिलो पटकमै आफ्नो नयाँ password राख्नुहोस्।",
 };
 
+/** This device's last answer to "Remember this device — 30 days". */
+const REMEMBER_KEY = "krishoe-admin-remember";
+
 export default function AdminLoginForm({
   nextPath = "/admin",
   bootstrapLoginAllowed = false,
@@ -74,6 +77,31 @@ export default function AdminLoginForm({
   // always the saved password, offered by the phone's password manager on the
   // screen right after a password field.
   const [codeWasFilled, setCodeWasFilled] = useState(false);
+  // "Remember this device — 30 days", ticked again on a device where it was
+  // ticked last time (owner, 2026-10-27), so the owner's own phone and computer
+  // are not asked every month. Unticking it forgets that. Read after the first
+  // draw, so the page the server sent and the one the browser draws agree.
+  const [remember, setRemember] = useState(false);
+  useEffect(() => {
+    let remembered = false;
+    try {
+      remembered = window.localStorage.getItem(REMEMBER_KEY) === "1";
+    } catch {
+      // Storage blocked: the box simply starts unticked.
+    }
+    if (!remembered) return;
+    const id = window.setTimeout(() => setRemember(true), 0);
+    return () => window.clearTimeout(id);
+  }, []);
+  function chooseRemember(on: boolean) {
+    setRemember(on);
+    try {
+      if (on) window.localStorage.setItem(REMEMBER_KEY, "1");
+      else window.localStorage.removeItem(REMEMBER_KEY);
+    } catch {
+      // Nothing to keep; the box still counts for this sign-in.
+    }
+  }
   const router = useRouter();
 
   /**
@@ -266,7 +294,7 @@ export default function AdminLoginForm({
       {/* Offered above the password, because it is the better way in when the
           device has one. It removes itself where passkeys cannot work, so the
           password below is never left as the unexplained second choice. */}
-      <PasskeySignInButton nextPath={nextPath} />
+      <PasskeySignInButton nextPath={nextPath} remember={remember} />
 
       {/* One box, either identity. A worker who has no email should not have to
           work out which of two fields their number belongs in; the server
@@ -364,6 +392,8 @@ export default function AdminLoginForm({
         <input
           type="checkbox"
           name="remember"
+          checked={remember}
+          onChange={(event) => chooseRemember(event.target.checked)}
           className="mt-0.5 h-5 w-5 shrink-0 accent-brand-green"
         />
         <span>

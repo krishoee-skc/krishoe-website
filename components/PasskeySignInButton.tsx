@@ -18,7 +18,14 @@ import { usePasskeySupport } from "@/lib/use-passkey-support";
  * plain http address — because a button that fails when pressed teaches people
  * to distrust the whole screen. The password underneath always works.
  */
-export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?: string }) {
+export default function PasskeySignInButton({
+  nextPath = "/admin",
+  remember = false,
+}: {
+  nextPath?: string;
+  /** The form's "Remember this device — 30 days" box, which a fingerprint sign-in honours too. */
+  remember?: boolean;
+}) {
   const supported = usePasskeySupport();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +41,7 @@ export default function PasskeySignInButton({ nextPath = "/admin" }: { nextPath?
     try {
       const started = await startPasskeyLoginAction();
       const assertion = await startAuthentication({ optionsJSON: started.options });
-      const result = await finishPasskeyLoginAction(assertion);
+      const result = await finishPasskeyLoginAction(assertion, remember);
 
       if (!result.ok) {
         setError(result.message || text("That did not match.", "पहिचान मिलेन।"));
