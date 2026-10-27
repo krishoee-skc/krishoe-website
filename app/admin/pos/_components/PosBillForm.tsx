@@ -1,5 +1,16 @@
 "use client";
 
+import {
+  BillTimer,
+  BillTypeBar,
+  ExchangeSides,
+  HeldBills,
+  PhoneBillBar,
+  TodayStrip,
+  TotalAndSave,
+  type BillKind,
+  type TodayFigures,
+} from "@/app/admin/pos/_components/PosBillParts";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import PhoneWithCountry from "@/components/PhoneWithCountry";
 import { useRouter } from "next/navigation";
@@ -46,14 +57,7 @@ import { customerForPhone, customerSuggestions, phoneProblem, type KnownCustomer
 export type { RepeatBill, RepeatBillItem, SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
 /** Today's counter, for the strip above the bill. */
-export type TodayFigures = {
-  bills: number;
-  netSales: number;
-  cash: number;
-  /** QR, eSewa, Khalti and bank together. */
-  digital: number;
-  credit: number;
-};
+export type { TodayFigures } from "@/app/admin/pos/_components/PosBillParts";
 
 type PosBillFormProps = {
   ledgers: LedgerOption[];
@@ -85,7 +89,7 @@ type PosBillFormProps = {
   chequeBook?: { ready: boolean; usedBanks: string[]; todayKey: string };
 };
 
-type Kind = "Sale" | "Return" | "Exchange";
+type Kind = BillKind;
 type Payment = "Cash" | "QR" | "eSewa" | "Khalti" | "Credit" | "Bank" | "Cheque";
 type DiscountMode = "none" | "5" | "10" | "amount";
 
@@ -180,21 +184,7 @@ function newSubmissionKey() {
 const inputClass =
   "h-11 w-full rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base text-brand-green-ink outline-none focus:border-brand-green";
 
-function BillTimer({ startedAt }: { startedAt: number | null }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (startedAt === null) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [startedAt]);
-  if (startedAt === null) return null;
-  const seconds = Math.max(0, Math.floor((now - startedAt) / 1000));
-  return (
-    <span className="font-mono text-xs text-brand-muted" aria-hidden="true">
-      ⏱ {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
-    </span>
-  );
-}
+// BillTimer: PosBillParts.tsx.
 
 /**
  * The counter bill.
@@ -975,14 +965,6 @@ export default function PosBillForm({
     Cheque: text("Cheque", "चेक"),
   };
 
-  const segment = (active: boolean, tone: "green" | "clay" = "green") =>
-    `h-10 rounded-xl px-4 text-sm font-black transition ${
-      active
-        ? tone === "clay"
-          ? "bg-brand-clay text-white"
-          : "bg-brand-green text-white"
-        : "text-brand-muted hover:text-brand-green-ink"
-    }`;
 
   return (
     // min-w-0 all the way down: the size row scrolls sideways, and without it
@@ -996,88 +978,24 @@ export default function PosBillForm({
           )}
         </p>
       ) : null}
-      {today ? (
-        <div className="flex gap-x-5 gap-y-1 overflow-x-auto whitespace-nowrap rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2 text-sm tabular-nums [scrollbar-width:none]">
-          <span className="font-bold text-brand-muted">{text("Today", "आज")}</span>
-          <span>
-            <b className="text-brand-green-ink">{today.bills}</b> {text("bills", "बिल")}
-          </span>
-          <span>
-            {text("Sales", "बिक्री")} <b className="text-brand-green-ink">{money(today.netSales)}</b>
-          </span>
-          <span>
-            {text("Cash", "नगद")} <b className="text-brand-green-ink">{money(today.cash)}</b>
-          </span>
-          <span>
-            {text("QR/wallet", "QR/वालेट")} <b className="text-brand-green-ink">{money(today.digital)}</b>
-          </span>
-          {today.credit > 0 ? (
-            <span>
-              {text("Credit", "उधारो")} <b className="text-brand-green-ink">{money(today.credit)}</b>
-            </span>
-          ) : null}
-        </div>
-      ) : null}
+      {today ? <TodayStrip today={today} /> : null}
 
       {/* Two rows of look-alike pills sat side by side with nothing to say
           which was which: what kind of bill, and who it is for. Each now
           carries a small name above it. */}
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="grid gap-0.5">
-        <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-          {text("What", "के गर्ने")}
-        </span>
-        <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Bill type", "बिलको किसिम")}>
-          <button type="button" aria-pressed={kind === "Sale"} onClick={() => setKind("Sale")} className={segment(kind === "Sale")}>
-            {text("Sale", "बिक्री")}
-          </button>
-          {paymentsReady ? (
-            <button
-              type="button"
-              aria-pressed={kind === "Exchange"}
-              onClick={() => {
-                setKind("Exchange");
-                setAddingBack(true);
-              }}
-              className={segment(kind === "Exchange")}
-            >
-              {text("Exchange", "साटफेर")}
-            </button>
-          ) : null}
-          <button type="button" aria-pressed={kind === "Return"} onClick={() => setKind("Return")} className={segment(kind === "Return", "clay")}>
-            {text("Return", "फिर्ता")}
-          </button>
-        </div>
-        </div>
-        <div className="grid gap-0.5">
-        <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-          {text("Who for", "कसलाई")}
-        </span>
-        <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Sales channel", "बिक्रीको बाटो")}>
-          {(["Retail", "Wholesale", "Online"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={channel === option}
-              onClick={() => changeChannel(option)}
-              className={segment(channel === option)}
-            >
-              {option === "Retail" ? text("Retail", "खुद्रा") : option === "Wholesale" ? text("Wholesale", "थोक") : text("Online", "अनलाइन")}
-            </button>
-          ))}
-        </div>
-        </div>
-        {lastBill && lastBill.items.length > 0 ? (
-          <button
-            type="button"
-            onClick={repeatLast}
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink hover:border-brand-green"
-          >
-            ↻ {text("Repeat last bill", "अघिल्लो बिल दोहोर्‍याउने")}
-            <span className="hidden font-mono text-xs text-brand-muted sm:inline">{lastBill.invoiceNumber}</span>
-          </button>
-        ) : null}
-      </div>
+      <BillTypeBar
+        kind={kind}
+        onKind={setKind}
+        paymentsReady={paymentsReady}
+        onExchange={() => {
+          setKind("Exchange");
+          setAddingBack(true);
+        }}
+        channel={channel}
+        onChannel={changeChannel}
+        lastBill={lastBill}
+        onRepeatLast={repeatLast}
+      />
 
       {/* The bill wider and the shoes a short list (owner, 2026-10-04). */}
       <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -1085,28 +1003,7 @@ export default function PosBillForm({
           {isExchange ? (
             // Which side the next tapped shoe goes to. The pair that came back
             // first, as the customer hands it over, then the new one.
-            <div className="mb-3 grid grid-cols-2 gap-2" role="group" aria-label={text("Exchange side", "साटफेरको पक्ष")}>
-              <button
-                type="button"
-                aria-pressed={addingBack}
-                onClick={() => setAddingBack(true)}
-                className={`min-h-12 rounded-2xl border-2 text-sm font-black ${
-                  addingBack ? "border-brand-clay bg-brand-clay-tint text-brand-clay" : "border-brand-green-line text-brand-muted"
-                }`}
-              >
-                ↩ {text("The pair that came back", "फिर्ता आएको जुत्ता")}
-              </button>
-              <button
-                type="button"
-                aria-pressed={!addingBack}
-                onClick={() => setAddingBack(false)}
-                className={`min-h-12 rounded-2xl border-2 text-sm font-black ${
-                  !addingBack ? "border-brand-green bg-brand-green-tint text-brand-green" : "border-brand-green-line text-brand-muted"
-                }`}
-              >
-                ↗ {text("The new pair", "नयाँ लगेको जुत्ता")}
-              </button>
-            </div>
+            <ExchangeSides addingBack={addingBack} onSide={setAddingBack} />
           ) : null}
           <PosProductPicker
             catalog={catalog}
@@ -1209,24 +1106,7 @@ export default function PosBillForm({
               <BillTimer startedAt={startedAt} />
             </div>
 
-            {held.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {held.map((bill, index) => (
-                  <button
-                    key={bill.id}
-                    type="button"
-                    onClick={() => resumeBill(bill.id)}
-                    className="rounded-full border border-dashed border-brand-gold bg-brand-cream-soft px-3 py-1 text-xs font-black text-brand-gold-deep"
-                  >
-                    ⏸ {text(`Held ${index + 1}`, `होल्ड ${index + 1}`)} ·{" "}
-                    {text(
-                      `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} pairs — open`,
-                      `${bill.cart.reduce((sum, line) => sum + line.quantity, 0)} जोडी — खोल्ने`,
-                    )}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            {held.length > 0 ? <HeldBills bills={held} onResume={resumeBill} /> : null}
 
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
               <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">1</span>
@@ -1983,95 +1863,52 @@ export default function PosBillForm({
                 </p>
               ) : null}
               {/* The total, beside Save (owner, 2026-10-04: the namuna's model). */}
-              {cart.length > 0 ? (
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="font-bold text-brand-green-ink lg:text-xl">
-                      {isReturn
-                        ? text("Back to the account", "खातामा फिर्ता")
-                        : isExchange && settle.toRefund > 0
-                          ? text("Give back", "ग्राहकलाई फिर्ता")
-                          : isExchange || dueAmount > 0
-                            ? text("To take", "लिनुपर्ने")
-                            : text("Total", "जम्मा")}
-                    </span>
-                    <span
-                      className={`text-4xl font-black tabular-nums lg:text-6xl ${
-                        isReturn || (isExchange && settle.toRefund > 0) ? "text-brand-clay" : "text-brand-green-ink"
-                      }`}
-                    >
-                      {money(
-                        isReturn
-                          ? totals.total
-                          : isExchange
-                            ? settle.toRefund > 0
-                              ? settle.toRefund
-                              : settle.toPay
-                            : totals.total + dueAmount,
-                      )}
-                    </span>
-                  </div>
-                ) : null}
-              <button
-                type="submit"
-                disabled={isSaving || saveLocked || Boolean(blocked)}
-                className={`min-h-16 w-full rounded-2xl px-4 text-xl font-black text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold focus-visible:ring-offset-2 lg:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
-                  isReturn ? "bg-brand-clay" : "bg-brand-green-ink hover:bg-brand-green"
-                }`}
-              >
-                {saveLabel}
-                <span className="ml-2 hidden font-mono text-xs opacity-70 md:inline">F9</span>
-              </button>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={holdBill}
-                  disabled={cart.length === 0}
-                  className="h-11 rounded-xl border border-brand-green-line text-sm font-bold text-brand-green-ink disabled:opacity-50"
-                >
-                  ⏸ {text("Hold", "होल्ड")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (cart.length === 0) return;
-                    setUndo({ label: text("Bill cleared", "बिल खाली गरियो"), cart });
-                    setCart([]);
-                    setStartedAt(null);
-                  }}
-                  disabled={cart.length === 0}
-                  className="h-11 rounded-xl border border-brand-green-line text-sm font-bold text-brand-green-ink disabled:opacity-50"
-                >
-                  ✕ {text("Clear", "खाली गर्ने")}
-                </button>
-              </div>
+              <TotalAndSave
+                hasLines={cart.length > 0}
+                totalLabel={
+                  isReturn
+                    ? text("Back to the account", "खातामा फिर्ता")
+                    : isExchange && settle.toRefund > 0
+                      ? text("Give back", "ग्राहकलाई फिर्ता")
+                      : isExchange || dueAmount > 0
+                        ? text("To take", "लिनुपर्ने")
+                        : text("Total", "जम्मा")
+                }
+                totalAmount={
+                  isReturn
+                    ? totals.total
+                    : isExchange
+                      ? settle.toRefund > 0
+                        ? settle.toRefund
+                        : settle.toPay
+                      : totals.total + dueAmount
+                }
+                totalInClay={isReturn || (isExchange && settle.toRefund > 0)}
+                saveDisabled={isSaving || saveLocked || Boolean(blocked)}
+                saveLabel={saveLabel}
+                isReturn={isReturn}
+                onHold={holdBill}
+                onClear={() => {
+                  if (cart.length === 0) return;
+                  setUndo({ label: text("Bill cleared", "बिल खाली गरियो"), cart });
+                  setCart([]);
+                  setStartedAt(null);
+                }}
+              />
             </div>
           </EnterWalkForm>
         </aside>
       </div>
 
       {!cartOpen ? (
-        <div data-pos-bar className="fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-3 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2.5 shadow-[0_12px_40px_rgba(16,35,29,0.18)] md:hidden print:hidden">
-          <div className="tabular-nums">
-            <p className="text-xs text-brand-muted">
-              {/* Which rate, beside the count: on a phone the bill itself is a tap away. */}
-              <span className={`mr-1 rounded-full px-2 font-black ${channel === "Wholesale" ? "bg-brand-gold-bright/30 text-brand-gold-deep" : "bg-brand-green-wash text-brand-green"}`}>
-                {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
-              </span>
-              {text(`${totals.pairs} pairs`, `${totals.pairs} जोडी`)}
-              {shortDesigns.length > 0 ? (
-                <span className="ml-1 font-black text-brand-gold-deep">⚠ {text(`${shortDesigns.length} to fix`, `${shortDesigns.length} मिलाउनु`)}</span>
-              ) : null}
-            </p>
-            <p className="text-xl font-black text-brand-green-ink">{money(totals.total)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCartOpen(true)}
-            className="h-12 rounded-xl bg-brand-green px-5 text-base font-black text-white"
-          >
-            {cart.length > 0 ? text("Bill & save ▲", "बिल र राख्ने ▲") : text("Open bill ▲", "बिल हेर्ने ▲")}
-          </button>
-        </div>
+        <PhoneBillBar
+          channel={channel}
+          pairs={totals.pairs}
+          toFix={shortDesigns.length}
+          total={totals.total}
+          hasLines={cart.length > 0}
+          onOpen={() => setCartOpen(true)}
+        />
       ) : null}
 
       {newItemName !== null ? (

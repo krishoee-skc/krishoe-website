@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readPosScreen } from "./helpers/pos-screen";
 
 const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\n/g, "\n");
 
@@ -43,7 +44,7 @@ describe("the admin on a phone", () => {
   });
 
   it("says wholesale or retail on the phone's bill bar, and puts the to-dos first", async () => {
-    const form = await read("app/admin/pos/_components/PosBillForm.tsx");
+    const form = await readPosScreen();
     expect(form).toContain('text("Bill & save ▲", "बिल र राख्ने ▲")');
     const dashboard = await read("components/admin/OwnerDashboard.tsx");
     expect(dashboard).toContain('<div id="what-now" className="max-lg:-order-1 grid');

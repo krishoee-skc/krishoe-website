@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import { readPosScreen } from "./helpers/pos-screen";
 
 /**
  * The switch was working. There was nothing for it to switch.
@@ -101,11 +102,13 @@ describe("the screens opened every day", () => {
  */
 describe("what must not move while the words do", () => {
   it("keeps the values the POS library matches bills on", async () => {
-    const form = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
+    const form = await readPosScreen();
 
     // The bill is tapped, not picked from dropdowns, so these travel in hidden
     // inputs whose values are typed constants — never the words on a button.
-    expect(form).toContain('type Kind = "Sale" | "Return" | "Exchange";');
+    // The kinds are named in PosBillParts.tsx since 2026-10-27.
+    expect(form).toContain('export type BillKind = "Sale" | "Return" | "Exchange";');
+    expect(form).toContain("type Kind = BillKind;");
     expect(form).toContain('(["Retail", "Wholesale", "Online"] as const)');
     expect(form).toContain('const PAYMENTS: Payment[] = ["Cash", "QR", "eSewa", "Khalti", "Credit", "Bank", "Cheque"];');
     expect(form).toContain('name="kind" value={kind}');

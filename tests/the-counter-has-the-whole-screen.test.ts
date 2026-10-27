@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { cleanQuery, findByCode, matchesSearch, type SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
+import { readPosScreen } from "./helpers/pos-screen";
 
 /**
  * Four things the owner asked for on the counter bill, 2026-09-27:
@@ -38,7 +39,7 @@ describe("the bill has the whole screen", () => {
   });
 
   it("drops the phone's bill bar to the foot once the dock is gone", async () => {
-    const form = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
+    const form = await readPosScreen();
     expect(form).toContain("<div data-pos-bar ");
     const css = await readFile("app/globals.css", "utf8");
     expect(css).toContain("body:has([data-counter-mode]) [data-pos-bar]");

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { readWorkEntryScreen } from "./helpers/work-entry-screen";
+import { readPosScreen } from "./helpers/pos-screen";
 
 function source(path: string) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -27,8 +28,8 @@ describe("mobile production contracts", () => {
     expect(source("app/admin/AdminCommandBar.tsx")).toContain("md:w-full");
   });
 
-  it("draws the POS bill phone-first and renders staff access as phone-first cards", () => {
-    const bill = source("app/admin/pos/_components/PosBillForm.tsx");
+  it("draws the POS bill phone-first and renders staff access as phone-first cards", async () => {
+    const bill = await readPosScreen();
     // Lines, not a table of boxes; on a phone the bill waits in a bar above the
     // dock and opens over the shelf, with Save kept at the thumb.
     expect(bill).not.toContain("<table");
