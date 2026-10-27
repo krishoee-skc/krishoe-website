@@ -255,6 +255,9 @@ export default function PosBillForm({
   // channel must not lose what was typed.
   const [customerPan, setCustomerPan] = useState("");
   const [ledgerId, setLedgerId] = useState("");
+  // How a return's money goes back, when the counter chose (KR-DEC-001): kept
+  // for this bill only — a new bill starts again from the suggestion.
+  const [returnWayPick, setReturnWayPick] = useState<{ bill: number | null; way: "cash" | "account" } | null>(null);
   const [ledgerOptions, setLedgerOptions] = useState(ledgers);
   const [ledgerNote, setLedgerNote] = useState("");
   const [isOpeningLedger, setIsOpeningLedger] = useState(false);
@@ -446,7 +449,14 @@ export default function PosBillForm({
   // customer's account, the way it always has. A credit bill is the due itself.
   const paid = plan ? plan.paid : 0;
   const creditAmount = plan ? plan.credit : 0;
-  const needsAccount = isReturn ? totals.total > 0 : creditAmount > 0;
+  // A return goes back in cash or to an account (owner, 2026-10-27, KR-DEC-001
+  // choice क): a phone with a known account that owes something suggests the
+  // account; everyone else, a walk-in who paid cash, gets cash. One press
+  // changes it.
+  const suggestedReturnWay: "cash" | "account" = phoneAccount && (phoneAccount.balanceDue ?? 0) > 0 ? "account" : "cash";
+  const returnWay = returnWayPick && returnWayPick.bill === startedAt ? returnWayPick.way : suggestedReturnWay;
+  const cashBack = isReturn && returnWay === "cash";
+  const needsAccount = isReturn ? !cashBack && totals.total > 0 : creditAmount > 0;
   const needsReference = Boolean(plan) && NEEDS_REFERENCE.has(payment) && amountDue + dueAmount > 0;
   const needsRestReference = Boolean(plan?.split) && NEEDS_REFERENCE.has(restMethod as Payment);
   // A cheque on a sale, as the whole payment or its second part.
@@ -959,7 +969,9 @@ export default function PosBillForm({
       : blocked && cart.length > 0
         ? blocked
         : isReturn
-          ? text(`Save return · ${money(totals.total)}`, `फिर्ता बिल राख्ने · ${money(totals.total)}`)
+          ? cashBack
+            ? text(`Save return · give back ${money(totals.total)}`, `फिर्ता बिल राख्ने · ${money(totals.total)} नगद फिर्ता`)
+            : text(`Save return · ${money(totals.total)}`, `फिर्ता बिल राख्ने · ${money(totals.total)}`)
           : isExchange
             ? settle.toRefund > 0
               ? text(`Save exchange · give back ${money(settle.toRefund)}`, `साटफेर राख्ने · ${money(settle.toRefund)} फिर्ता`)
@@ -1067,7 +1079,8 @@ export default function PosBillForm({
             <input type="hidden" name="itemCount" value={cart.length} />
             <input type="hidden" name="invoiceDiscount" value={totals.discount} />
             <input type="hidden" name="paidAmount" value={paid} />
-            <input type="hidden" name="ledgerId" value={accountId} />
+            <input type="hidden" name="ledgerId" value={cashBack ? "" : accountId} />
+            {isReturn ? <input type="hidden" name="returnMoney" value={returnWay} /> : null}
             {/* A bill paid in more than one way sends its parts; an exchange
                 always does, since the returned pairs are one of them. */}
             {plan && (plan.split || isExchange) ? (
@@ -1409,8 +1422,40 @@ export default function PosBillForm({
               </div>
             ) : null}
 
+            {/* A return's money: cash in the hand, or off what they owe. */}
+            {isReturn && cart.length > 0 ? (
+              <>
+                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+                  <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">2</span>
+                  {text("Money back", "पैसा फिर्ता")}
+                </p>
+                <div className="grid grid-cols-2 gap-1.5" role="group" aria-label={text("Money back", "पैसा फिर्ता")}>
+                  {(["cash", "account"] as const).map((way) => (
+                    <button
+                      key={way}
+                      type="button"
+                      aria-pressed={returnWay === way}
+                      onClick={() => setReturnWayPick({ bill: startedAt, way })}
+                      className={`grid min-h-14 content-center rounded-xl border-2 px-3 py-2 text-left ${
+                        returnWay === way
+                          ? "border-brand-green bg-brand-green-wash text-brand-green"
+                          : "border-brand-green-line bg-brand-paper-deep text-brand-green-ink"
+                      }`}
+                    >
+                      <span className="text-base font-black">{way === "cash" ? text("💵 Cash back", "💵 नगद फिर्ता") : text("📒 Into an account", "📒 खातामा")}</span>
+                      <span className="text-xs font-bold text-brand-muted">
+                        {way === "cash"
+                          ? text(`Hand ${money(totals.total)} to the customer`, `ग्राहकलाई ${money(totals.total)} दिने`)
+                          : text("Off what they owe", "बाँकी उधारोबाट घटाउने")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">2</span>
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">{isReturn && cart.length > 0 ? 3 : 2}</span>
               {text("Customer", "ग्राहक")}
             </p>
             <div className="grid gap-2">
@@ -1882,7 +1927,9 @@ export default function PosBillForm({
                 hasLines={cart.length > 0}
                 totalLabel={
                   isReturn
-                    ? text("Back to the account", "खातामा फिर्ता")
+                    ? cashBack
+                      ? text("Cash back to the customer", "ग्राहकलाई नगद फिर्ता")
+                      : text("Back to the account", "खातामा फिर्ता")
                     : isExchange && settle.toRefund > 0
                       ? text("Give back", "ग्राहकलाई फिर्ता")
                       : isExchange || dueAmount > 0

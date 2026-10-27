@@ -133,6 +133,14 @@ export function settledByExchange(invoice: Pick<PaidInvoice, "payments">) {
   return (invoice.payments ?? []).some((part) => part.method === "Exchange");
 }
 
+/**
+ * Whether a return was paid back in money at the counter instead of going to
+ * an account (KR-DEC-001, owner 2026-10-27: cash back for a walk-in).
+ */
+export function refundedAtCounter(invoice: Pick<PaidInvoice, "payments">) {
+  return !settledByExchange(invoice) && (invoice.payments ?? []).some((part) => part.purpose === "refund");
+}
+
 export type ExchangeSettlement = {
   /** The returned pairs' value set against the new ones. */
   exchanged: number;

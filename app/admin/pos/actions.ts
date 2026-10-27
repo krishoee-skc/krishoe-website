@@ -173,7 +173,9 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
     };
   }
 
-  if (kind === "Return" && !ledgerId) {
+  // Cash back to a walk-in: a return with no account (KR-DEC-001, owner 2026-10-27).
+  const cashBack = kind === "Return" && textValue(formData, "returnMoney") === "cash";
+  if (kind === "Return" && !ledgerId && !cashBack) {
     return {
       ok: false,
       message:
@@ -210,7 +212,8 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       cashier: textValue(formData, "cashier"),
       paymentMethod,
       paymentReference,
-      ledgerId,
+      ledgerId: cashBack ? "" : ledgerId,
+      cashBack,
       invoiceDiscount: numberValue(formData, "invoiceDiscount"),
       tax: numberValue(formData, "tax"),
       paidAmount,

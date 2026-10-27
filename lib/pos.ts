@@ -19,6 +19,7 @@ import {
   paymentPartsProblem,
   readPaymentParts,
   settleExchange,
+  refundedAtCounter,
   settledByExchange,
   type PosPaymentPart,
   type PosPaymentPartMethod,
@@ -200,6 +201,12 @@ export type CreatePosInvoiceInput = {
   answerBelowMinimum?: boolean;
   /** Whether the person billing is the Owner, who alone may go under a minimum. */
   billedByOwner?: boolean;
+  /**
+   * A return paid back in cash at the counter, with no account (KR-DEC-001,
+   * owner 2026-10-27): the customer who paid cash gets cash, and it comes out
+   * of the drawer the way an exchange's "give back" always has.
+   */
+  cashBack?: boolean;
   /** The customer's older credit, cleared on the same bill. */
   collectDue?: {
     ledgerId: string;
@@ -293,7 +300,7 @@ function invoiceNeedsLedger(invoice: Pick<PosInvoice, "kind" | "creditAmount" | 
   // A return settled against a new pair in an exchange owes nobody anything.
   return (
     (invoice.kind === "Sale" && invoice.creditAmount > 0) ||
-    (invoice.kind === "Return" && !settledByExchange(invoice))
+    (invoice.kind === "Return" && !settledByExchange(invoice) && !refundedAtCounter(invoice))
   );
 }
 
@@ -387,7 +394,7 @@ function requiresPaymentReference(paymentMethod: PosPaymentMethod) {
   return paymentMethod === "Cheque" || paymentMethod === "QR" || paymentMethod === "eSewa" || paymentMethod === "Khalti" || paymentMethod === "Bank";
 }
 
-function validatePaymentInput(input: Pick<CreatePosInvoiceInput, "kind" | "paymentMethod" | "paymentReference" | "paidAmount" | "ledgerId">, creditAmount: number) {
+function validatePaymentInput(input: Pick<CreatePosInvoiceInput, "kind" | "paymentMethod" | "paymentReference" | "paidAmount" | "ledgerId" | "cashBack">, creditAmount: number) {
   const paidAmount = cleanNumber(input.paidAmount);
   const paymentReference = cleanText(input.paymentReference);
   const ledgerId = cleanText(input.ledgerId);
@@ -407,7 +414,7 @@ function validatePaymentInput(input: Pick<CreatePosInvoiceInput, "kind" | "payme
     );
   }
 
-  if (input.kind === "Return" && !ledgerId) {
+  if (input.kind === "Return" && !ledgerId && !input.cashBack) {
     throw new Error(
       "फिर्ता कसको खातामा जान्छ, त्यो छान्नुहोस्। A return must be linked to a customer account.",
     );
@@ -682,7 +689,9 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
   const paymentMethod = parts.length > 0 ? (parts[0].method as PosPaymentMethod) : input.paymentMethod;
   const paymentReference = parts.length > 0 ? (parts[0].reference ?? "") : cleanText(input.paymentReference);
   const creditAmount = input.kind === "Sale" ? Math.max(0, total - paidAmount) : 0;
-  validatePaymentInput({ ...input, paymentMethod, paymentReference, paidAmount }, creditAmount);
+  // Cash back: no account, and the money goes out of the drawer as a refund part.
+  const cashBack = input.kind === "Return" && Boolean(input.cashBack);
+  validatePaymentInput({ ...input, paymentMethod, paymentReference, paidAmount, cashBack }, creditAmount);
 
   // The customer's older credit, cleared on this bill: money into the drawer,
   // and a payment on their account, in the same save.
@@ -828,9 +837,9 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
     customerAddress: cleanText(input.customerAddress ?? ""),
     customerPan: cleanText(input.customerPan ?? ""),
     cashier: cleanText(input.cashier) || "Admin",
-    paymentMethod,
+    paymentMethod: cashBack ? "Cash" : paymentMethod,
     paymentReference,
-    ledgerId: cleanText(input.ledgerId) || (due ? due.ledgerId : ""),
+    ledgerId: cashBack ? "" : cleanText(input.ledgerId) || (due ? due.ledgerId : ""),
     subtotal,
     discount,
     tax,
@@ -851,6 +860,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
       ...(due
         ? [{ method: due.method, amount: due.amount, purpose: "due" as const, ...(due.reference ? { reference: due.reference } : {}) }]
         : []),
+      ...(cashBack && total > 0 ? [{ method: "Cash" as const, amount: total, purpose: "refund" as const }] : []),
     ],
   };
 
@@ -873,7 +883,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
     };
   });
 
-  const needsLedger = (input.kind === "Sale" && creditAmount > 0) || input.kind === "Return";
+  const needsLedger = (input.kind === "Sale" && creditAmount > 0) || (input.kind === "Return" && !cashBack);
   const ledgerTransaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null =
     needsLedger
       ? {
