@@ -47,7 +47,7 @@ export default async function WorkerPortalQrPage() {
 ${invite.en}`)}`;
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-8 print:px-0 print:py-0">
+    <div className="mx-auto max-w-3xl px-5 py-8 print:px-0 print:py-0">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div>
           <h1 className="font-display text-2xl font-black text-brand-green-ink"><T en="Worker portal poster" ne="कामदारको पोस्टर" /></h1>
@@ -121,6 +121,6 @@ Ask the Owner for your mobile sign-in. Change the password on first use, and nev
           </span>
         </p>
       </article>
-    </main>
+    </div>
   );
 }

@@ -7,15 +7,18 @@
  *                 factory?" Yes sends the bill again with the answer.
  *   belowMinimum  a wholesale bill under the shoe's minimum. The Owner may say
  *                 yes; anyone else is told the minimum, as before.
+ *   heldForOrder  the pairs are held for an online order a customer is waiting
+ *                 on (KR-BUG-014, 2026-10-28). Yes sells them anyway.
  *
  * No database here: the bill form reads these names.
  */
-export type PosQuestion = "fromFactory" | "belowMinimum";
+export type PosQuestion = "fromFactory" | "belowMinimum" | "heldForOrder";
 
 /** The form field that carries the counter's yes for each question. */
 export const POS_ANSWER_FIELD: Record<PosQuestion, string> = {
   fromFactory: "answerFromFactory",
   belowMinimum: "answerBelowMinimum",
+  heldForOrder: "answerHeldForOrder",
 };
 
 /** Thrown by the bill when it needs an answer, or only to say no; never logged as a failure. */

@@ -14,7 +14,7 @@ export default async function FactoryLayout({ children }: { children: ReactNode 
   return (
     <section className="min-h-screen bg-[linear-gradient(180deg,rgba(247,248,245,0.98),rgba(255,255,255,1)_22rem)]">
       <FactoryNav waiting={inbox.photos + inbox.requests} />
-      <main className="mx-auto w-full max-w-[1600px]">{children}</main>
+      <div className="mx-auto w-full max-w-[1600px]">{children}</div>
     </section>
   );
 }

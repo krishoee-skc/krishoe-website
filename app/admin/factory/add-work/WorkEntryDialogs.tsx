@@ -61,7 +61,10 @@ export function SetRateDialog({
   category,
   onSet,
   onCancel,
+  error = "",
 }: {
+  /** Why the last press did not set it, said inside the box (KR-BUG-010). */
+  error?: string;
   rate: string;
   onRate: (value: string) => void;
   /** The chosen worker's category, which the rate is set for. */
@@ -89,6 +92,11 @@ export function SetRateDialog({
         <p className="text-xs text-brand-muted mb-4">
           Category: <strong>{category}</strong>
         </p>
+        {error ? (
+          <p role="alert" className="mb-4 rounded-lg bg-brand-clay-tint px-3 py-2 text-sm font-bold text-brand-clay">
+            ✕ {error}
+          </p>
+        ) : null}
         <div className="flex gap-2">
           <button
             onClick={onSet}

@@ -41,6 +41,7 @@ import { PosNeedsAnswer } from "@/lib/pos-questions";
 import { keptBillTime } from "@/lib/kept-bill-time";
 import { nepalDay } from "@/lib/nepal-day";
 import { pairsAtPlaces } from "@/lib/pos-place-check";
+import { heldKey, pairsHeldByOrders } from "@/lib/pos-held-pairs";
 
 export type PosChannel = "Retail" | "Wholesale" | "Online";
 export type PosInvoiceKind = "Sale" | "Return";
@@ -197,6 +198,8 @@ export type CreatePosInvoiceInput = {
   paymentParts?: PosPaymentPart[];
   /** The counter said yes: a shoe short on the shop's shelf goes from the factory (audit 6). */
   answerFromFactory?: boolean;
+  /** The counter said yes: pairs held for an online order are sold anyway (KR-BUG-014). */
+  answerHeldForOrder?: boolean;
   /** The Owner said yes to a wholesale bill under the shoe's minimum (audit 12). */
   answerBelowMinimum?: boolean;
   /** Whether the person billing is the Owner, who alone may go under a minimum. */
@@ -741,6 +744,47 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
 
   if (input.kind === "Sale") {
     preflightSaleStock(operations, items);
+
+    // Pairs a customer is waiting on, held by an online order the website
+    // already counts (KR-BUG-014, owner 2026-10-28): the counter sold the last
+    // size 38 of a called order. Asked once; an Online bill is the order's own
+    // bill, and is not asked about its own pairs.
+    if (input.channel !== "Online" && !input.answerHeldForOrder) {
+      const held = await pairsHeldByOrders([...new Set(items.map((item) => item.design))]);
+      if (held && held.size > 0) {
+        const wanted = new Map<string, { design: string; size: string; pairs: number }>();
+        for (const item of items) {
+          const size = item.sizeRun && item.sizeRun !== "Mixed" ? item.sizeRun : "";
+          const key = heldKey(item.design, size);
+          const line = wanted.get(key) ?? { design: item.design, size, pairs: 0 };
+          line.pairs += item.quantity;
+          wanted.set(key, line);
+        }
+        const taken = [...wanted.values()].flatMap((line) => {
+          const hold = held.get(heldKey(line.design, line.size));
+          if (!hold || hold.pairs <= 0) return [];
+          const stock = resolveStockRow(operations.finishedStock, line.design, line.size || "Mixed")?.stockPairs ?? 0;
+          const free = Math.max(0, stock - hold.pairs);
+          return line.pairs > free ? [{ ...line, hold, free }] : [];
+        });
+        if (taken.length > 0) {
+          const said = taken.map((line) => {
+            const shoe = line.size ? `${line.design} ${line.size}` : line.design;
+            return {
+              en: `${shoe}: ${line.hold.pairs} held for ${line.hold.orders.join(", ")}, ${line.free} free`,
+              ne: `${shoe}: ${line.hold.orders.join(", ")} का लागि ${line.hold.pairs} होल्ड, ${line.free} खुला`,
+            };
+          });
+          throw new PosNeedsAnswer(
+            {
+              en: `Held for an online order — ${said.map((line) => line.en).join("; ")}. Sell them anyway?`,
+              ne: `Online अर्डरका लागि होल्ड छ — ${said.map((line) => line.ne).join("; ")}। जे भए पनि बेच्ने?`,
+            },
+            "heldForOrder",
+          );
+        }
+      }
+    }
 
     // The counter and the website sell from the shop's shelf. When the shelf
     // has fewer pairs than the bill, the rest came off the factory's count

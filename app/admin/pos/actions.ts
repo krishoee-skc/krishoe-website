@@ -226,6 +226,7 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       collectDue: dueFrom(formData),
       answerFromFactory: textValue(formData, POS_ANSWER_FIELD.fromFactory) === "yes",
       answerBelowMinimum: textValue(formData, POS_ANSWER_FIELD.belowMinimum) === "yes",
+      answerHeldForOrder: textValue(formData, POS_ANSWER_FIELD.heldForOrder) === "yes",
       billedByOwner: role === "Owner",
     });
   } catch (error) {

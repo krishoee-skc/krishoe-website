@@ -1900,7 +1900,9 @@ export default function PosBillForm({
               >
                 {state.ask === "fromFactory"
                   ? text("Yes, give them from the factory and save", "हो, कारखानाबाट दिएर बिल राख्ने")
-                  : text("Yes, bill under the minimum this time", "हो, यसपटक कम दिएर बिल राख्ने")}
+                  : state.ask === "heldForOrder"
+                    ? text("Yes, sell them anyway", "हो, जे भए पनि बेच्ने")
+                    : text("Yes, bill under the minimum this time", "हो, यसपटक कम दिएर बिल राख्ने")}
               </button>
             ) : null}
             {askingDiscount ? (

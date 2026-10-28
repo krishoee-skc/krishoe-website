@@ -53,7 +53,9 @@ export default function TrackOrderForm() {
             required
             autoComplete="off"
             className="h-12 rounded-lg border border-black/15 bg-brand-paper px-4 font-normal text-brand-green-ink outline-none placeholder:text-brand-muted-soft focus:border-brand-green"
-            placeholder="KRI-1042"
+            // The shape of a real order number (KR-BUG-015): "KRI-1042" looked
+            // like one, and no order is ever numbered that way.
+            placeholder="KRS-ORD-20261028103045-AB12"
           />
         </label>
 

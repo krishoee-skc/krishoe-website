@@ -179,6 +179,12 @@ export default function WorkEntryForm({
   const [showSetRate, setShowSetRate] = useState(false);
   const [newRate, setNewRate] = useState("");
   const [idempotencyKeys] = useState(() => createIdempotencyKeyRegistry());
+  // The entries on their way to the server, by what they say. Save pressed
+  // twice in the same instant sent the same entry twice: the key had already
+  // turned for the next row, so the second press looked new and the worker
+  // was paid twice (KR-BUG-011). An entry already on its way is not sent
+  // again; the next row — even the same count again later — still goes.
+  const inFlight = useRef(new Set<string>());
   // The calendar opens only when the day is neither today nor yesterday.
   const [pickingDate, setPickingDate] = useState(false);
   // What was saved last, for "↻ same as last".
@@ -397,8 +403,16 @@ export default function WorkEntryForm({
       setFormData((prev) => ({ ...prev, item_id: data.id }));
       setNewProductName("");
       setShowAddProduct(false);
-      setSuccess("✅ Product added! Now set the rate.");
-      setShowSetRate(true);
+      // A rate belongs to a stage, and the stage comes with the worker. With no
+      // worker chosen the rate box opened with "Category:" blank, and Set Rate
+      // did nothing — its "choose a worker first" was behind the box
+      // (KR-BUG-010). Then it is asked once the worker is picked.
+      if (workers.some((worker) => worker.id === formData.worker_id)) {
+        setSuccess(text("✅ Product added! Now set the rate.", "✅ जुत्ता थपियो! अब दर राख्नुहोस्।"));
+        setShowSetRate(true);
+      } else {
+        setSuccess(text("✅ Product added! Choose the worker — the rate is asked then.", "✅ जुत्ता थपियो! कामदार छान्नुहोस् — दर त्यसपछि सोधिन्छ।"));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add product");
     }
@@ -685,6 +699,8 @@ export default function WorkEntryForm({
     // And what is sent: the same fields, plus the breakdown when there is one.
     const payload = hasCounted ? { ...entry, size_counts: counted } : entry;
     const keyScope = `work:${JSON.stringify(payload)}`;
+    if (inFlight.current.has(keyScope)) return;
+    inFlight.current.add(keyScope);
     const key = idempotencyKeys.get(keyScope);
     idempotencyKeys.rotate(keyScope);
 
@@ -816,6 +832,7 @@ export default function WorkEntryForm({
         "error",
       );
     } finally {
+      inFlight.current.delete(keyScope);
       setSubmitting(false);
     }
   };
@@ -1368,6 +1385,7 @@ export default function WorkEntryForm({
           onRate={setNewRate}
           category={workers.find((w) => w.id === formData.worker_id)?.category}
           onSet={handleSetRate}
+          error={error}
           onCancel={() => {
             setShowSetRate(false);
             setNewRate("");
