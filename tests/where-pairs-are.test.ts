@@ -129,7 +129,12 @@ describe("the road between the two places", () => {
     const screen = await readFile(SCREEN, "utf8");
 
     expect(lib).toContain("WHERE submission_key = $1");
-    expect(screen).toContain('name="submissionKey"');
+    // One key per challan, set as the form is sent and kept until it saves
+    // (KR-BUG-007: a "date-1-name" key restarted with every page load and
+    // dropped the day's second challan without a word).
+    expect(screen).toContain('formData.set("submissionKey", sendKey.current);');
+    expect(screen).toContain('sendKey.current = "";');
+    expect(screen).not.toContain("trf-${today}-${nextKey}-${staffName}");
   });
 });
 

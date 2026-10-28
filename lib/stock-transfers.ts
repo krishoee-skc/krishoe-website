@@ -28,6 +28,13 @@ export type StockAtPlace = {
    * quietly disagrees with the stock figure is worse than no location figure.
    */
   unplaced: number;
+  /**
+   * Pairs on a challan still on the road: they left the factory's count when
+   * it was sent and reach the shop's when it is counted in. Not "no place" —
+   * offering to put them right counted them twice once the challan arrived
+   * (KR-BUG-006).
+   */
+  onRoad?: number;
 };
 
 export type TransferItem = {
@@ -146,6 +153,7 @@ export async function getStockByPlace(): Promise<StockAtPlace[]> {
     factory: number | string;
     shop: number | string;
     total: number | string;
+    on_road: number | string;
   }>(
     STORE,
     // One join per place rather than one join and a FILTER. stock_locations is
@@ -158,7 +166,8 @@ export async function getStockByPlace(): Promise<StockAtPlace[]> {
        s.size_run,
        s.stock_pairs AS total,
        coalesce(f.pairs, 0) AS factory,
-       coalesce(p.pairs, 0) AS shop
+       coalesce(p.pairs, 0) AS shop,
+       coalesce(r.pairs, 0) AS on_road
      FROM (
        -- Every size with stock or with pairs placed: a place with no stock
        -- row behind it is shown too, as pairs placed too many — kitto 770's
@@ -179,6 +188,13 @@ export async function getStockByPlace(): Promise<StockAtPlace[]> {
        ON f.design = s.design AND f.size_run = s.size_run AND f.location = 'Factory'
      LEFT JOIN stock_locations p
        ON p.design = s.design AND p.size_run = s.size_run AND p.location = 'Shop'
+     LEFT JOIN (
+       SELECT i.design, i.size_run, sum(i.sent_pairs)::int AS pairs
+         FROM stock_transfer_items i
+         JOIN stock_transfers t ON t.id = i.transfer_id
+        WHERE t.status = 'Sent'
+        GROUP BY i.design, i.size_run
+     ) r ON r.design = s.design AND r.size_run = s.size_run
      ORDER BY s.design, s.size_run
      LIMIT 500`,
   );
@@ -187,13 +203,15 @@ export async function getStockByPlace(): Promise<StockAtPlace[]> {
     const factory = whole(row.factory);
     const shop = whole(row.shop);
     const total = whole(row.total);
+    const onRoad = whole(row.on_road);
     return {
       design: row.design,
       sizeRun: row.size_run,
       factory,
       shop,
       total,
-      unplaced: total - factory - shop,
+      onRoad,
+      unplaced: total - factory - shop - onRoad,
     };
   });
 }

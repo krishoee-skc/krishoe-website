@@ -5,6 +5,7 @@ import { createSupplierTransactionAction } from "@/app/admin/purchasing/actions"
 import { money } from "@/lib/format-money";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import RefusedNote from "@/app/admin/purchasing/_components/RefusedNote";
 
 type SupplierOption = { id: string; name: string; due: number };
 
@@ -31,9 +32,10 @@ export default function SupplierPaymentForm({ suppliers }: { suppliers: Supplier
   }
 
   return (
-    <EnterWalkForm action={createSupplierTransactionAction} className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+    <EnterWalkForm action={createSupplierTransactionAction} oncePerPress className="rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
       <h2 className="text-lg font-black text-brand-green-ink">Supplier payment</h2>
       <div className="mt-4 grid gap-3">
+        <RefusedNote />
         <select aria-label="Supplier"
           data-summary="text"
           name="supplierLedgerId"

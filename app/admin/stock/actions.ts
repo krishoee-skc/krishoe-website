@@ -114,7 +114,10 @@ export async function createStockTransferAction(
 
   const items: Array<{ design: string; sizeRun: string; pairs: number }> = [];
   for (let index = 0; index < lineCount; index += 1) {
-    const design = textValue(formData, `line${index}Design`);
+    // The shoe box's value is "design::sizeRun" (the size travels on its
+    // own too). Read as the design whole, "Test Chappal::Mixed" matched no
+    // shoe and every challan was refused with "has 0 pairs" (KR-BUG-005).
+    const design = textValue(formData, `line${index}Design`).split("::")[0].trim();
     const pairs = wholeValue(formData, `line${index}Pairs`);
     if (design && pairs > 0) {
       items.push({ design, sizeRun: textValue(formData, `line${index}SizeRun`) || "Mixed", pairs });

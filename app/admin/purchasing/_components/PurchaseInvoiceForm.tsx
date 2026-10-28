@@ -137,6 +137,13 @@ export default function PurchaseInvoiceForm({
   // Lines where the buyer said "no, it is raw material" to the shoe question.
   const [notShoes, setNotShoes] = useState<Set<number>>(() => new Set());
   const [isSaving, startSaving] = useTransition();
+  // A second press in the same instant, before "Saving…" shuts the button,
+  // filed the bill twice — the supplier's due and the stock with it
+  // (KR-BUG-012). Held from the press until the save is over.
+  const saving = useRef(false);
+  useEffect(() => {
+    if (!isSaving) saving.current = false;
+  }, [isSaving]);
   const router = useRouter();
 
   // Enter moves the cursor, which means it has to be able to find the box it is
@@ -572,6 +579,7 @@ export default function PurchaseInvoiceForm({
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving.current) return;
     const formData = new FormData(event.currentTarget);
 
     // Catch the everyday gaps here — a supplier, a started line with no product —
@@ -654,6 +662,7 @@ export default function PurchaseInvoiceForm({
     };
     const photosToSend = photos;
 
+    saving.current = true;
     startSaving(async () => {
       const result = await createPurchaseInvoiceAction(state, formData);
       setState(result);

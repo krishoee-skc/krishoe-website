@@ -56,6 +56,19 @@ function safeReturnTo(value: string) {
   return value.startsWith("/admin/purchasing") ? value : "/admin/purchasing";
 }
 
+/**
+ * Back to the form with the rule's own words (KR-BUG-013): a payment the
+ * supplier's account refuses is a "no" for the counter, not an error page.
+ */
+function refuseBack(returnTo: string, message: string): never {
+  const target = safeReturnTo(returnTo || "/admin/purchasing?view=accounts");
+  const join = target.includes("?") ? "&" : "?";
+  redirect(`${target}${join}said=${encodeURIComponent(message.slice(0, 200))}`);
+}
+
+/** The supplier account's own refusals: more paid than is owed. */
+const SUPPLIER_RULE = / has only Rs\. [\d.,-]+ (supplier )?due\. Cannot post Rs\. [\d.,]+\.$/;
+
 function refreshPurchasingPage(returnTo = "/admin/purchasing") {
   revalidatePath("/admin");
   revalidatePath("/admin/purchasing");
@@ -237,22 +250,29 @@ export async function createSupplierTransactionAction(formData: FormData) {
 
   const supplierLedgerId = textValue(formData, "supplierLedgerId");
   const amount = numberValue(formData, "amount");
+  const returnTo = textValue(formData, "returnTo");
 
   if (!supplierLedgerId || amount <= 0) {
-    throw new Error("Supplier ledger and positive amount are required.");
+    refuseBack(returnTo, "Choose the supplier and an amount above 0.");
   }
 
-  const transaction = await addSupplierTransaction({
-    supplierLedgerId,
-    type: optionValue(textValue(formData, "type"), transactionTypes, "Cash Payment"),
-    amount,
-    note: textValue(formData, "note"),
-  });
+  let transaction;
+  try {
+    transaction = await addSupplierTransaction({
+      supplierLedgerId,
+      type: optionValue(textValue(formData, "type"), transactionTypes, "Cash Payment"),
+      amount,
+      note: textValue(formData, "note"),
+    });
+  } catch (error) {
+    if (error instanceof Error && SUPPLIER_RULE.test(error.message)) refuseBack(returnTo, error.message);
+    throw error;
+  }
 
   await recordAdminAuditEvent(
     "supplier_transaction_create",
     `${transaction.type} recorded for ${transaction.supplierName}: Rs. ${transaction.amount}.`,
   );
 
-  refreshPurchasingPage(textValue(formData, "returnTo"));
+  refreshPurchasingPage(returnTo);
 }

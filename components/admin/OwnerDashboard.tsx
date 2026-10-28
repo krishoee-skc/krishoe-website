@@ -269,7 +269,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
   const draftTodo = stockTodos.find((todo) => todo.key === "drafts");
   // The pairs bar: what the books hold at the factory and the shop, and the
   // pairs placed beyond the books beside them, so the shop is one number.
-  const placedAll = Math.max(1, stock.factory + stock.shop + stock.over + stock.noPlace);
+  const placedAll = Math.max(1, stock.factory + stock.shop + stock.onRoad + stock.over + stock.noPlace);
   const placedShare = (pairs: number) => (pairs / placedAll) * 100;
 
   return (
@@ -530,12 +530,16 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
             <span className="flex h-6 overflow-hidden rounded-lg bg-brand-green-line/60 text-xs font-black text-white" aria-hidden="true">
               {stock.factory > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-gold" style={{ width: `${placedShare(stock.factory)}%` }}>🏭 {stock.factory}</span> : null}
               {stock.shop > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-green" style={{ width: `${placedShare(stock.shop)}%` }}>🛒 {stock.shop}</span> : null}
+              {stock.onRoad > 0 ? <span className="grid place-items-center overflow-hidden bg-[#2458A6]" style={{ width: `${placedShare(stock.onRoad)}%` }}>🚚 {stock.onRoad}</span> : null}
               {stock.over > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-clay" style={{ width: `${placedShare(stock.over)}%` }}>⚠ {stock.over}</span> : null}
               {stock.noPlace > 0 ? <span className="grid place-items-center overflow-hidden bg-brand-clay/60" style={{ width: `${placedShare(stock.noPlace)}%` }}>{stock.noPlace}</span> : null}
             </span>
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-brand-muted">
               <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-gold align-middle" />{text(`Factory ${stock.factory}`, `कारखाना ${stock.factory}`)}</span>
               <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-green align-middle" />{text(`Shop ${stock.shop}`, `पसल ${stock.shop}`)}</span>
+              {stock.onRoad > 0 ? (
+                <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#2458A6] align-middle" />{text(`On the road ${stock.onRoad}`, `बाटोमा ${stock.onRoad}`)}</span>
+              ) : null}
               {stock.over > 0 ? (
                 <span className="text-brand-clay"><span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brand-clay align-middle" />{text(`Not matching ${stock.over}`, `नमिलेको ${stock.over}`)}</span>
               ) : null}

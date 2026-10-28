@@ -310,7 +310,7 @@ export default async function SupplierLedgerDetailPage({ params }: SupplierLedge
                 ne: "💵 तिर्ने",
                 wideClassName: "lg:order-2",
                 content: (
-                  <EnterWalkForm action={createSupplierTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
+                  <EnterWalkForm action={createSupplierTransactionAction} oncePerPress className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
                     <div>
                       <h2 className="font-black text-brand-green-ink">
                         <T en="Record supplier payment / adjustment" ne="साहुलाई तिरेको वा मिलाएको टिप्ने" />

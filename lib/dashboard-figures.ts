@@ -116,6 +116,8 @@ export type StockOverview = {
   over: number;
   /** Pairs in stock with no place said. */
   noPlace: number;
+  /** Pairs on a challan still on the road, factory to shop (KR-BUG-006). */
+  onRoad: number;
   /** Shoes whose places do not match their stock. */
   mismatched: Array<{ name: string; over: number; noPlace: number }>;
   /** Website shoes with pairs, none of them at the shop. */
@@ -138,17 +140,20 @@ export type StockOverview = {
  */
 export function stockByShoe(
   products: Array<{ name: string; status: string; stock: number; priceValue: number }>,
-  places: Array<{ design: string; factory: number; shop: number; total: number }>,
+  places: Array<{ design: string; factory: number; shop: number; total: number; onRoad?: number }>,
 ): StockOverview {
-  const byKey = new Map<string, { factory: number; shop: number; total: number }>();
+  const byKey = new Map<string, { factory: number; shop: number; total: number; onRoad: number }>();
   for (const row of places) {
     const key = designKey(row.design);
-    const entry = byKey.get(key) ?? { factory: 0, shop: 0, total: 0 };
+    const entry = byKey.get(key) ?? { factory: 0, shop: 0, total: 0, onRoad: 0 };
     entry.factory += Math.max(0, row.factory);
     entry.shop += Math.max(0, row.shop);
     entry.total += Math.max(0, row.total);
+    entry.onRoad += Math.max(0, row.onRoad ?? 0);
     byKey.set(key, entry);
   }
+  // A challan on the road has a place: between the two. It is not "no place".
+  const roadOf = new Map<string, number>();
   const lines: ShoeStockLine[] = [];
   let noPrice = 0;
   let value = 0;
@@ -157,12 +162,14 @@ export function stockByShoe(
     const total = placed ? placed.total : Math.max(0, Number(product.stock) || 0);
     const factory = placed?.factory ?? 0;
     const shop = placed?.shop ?? 0;
-    const over = Math.max(0, factory + shop - total);
+    const onRoad = placed?.onRoad ?? 0;
+    const over = Math.max(0, factory + shop + onRoad - total);
     const overShop = Math.min(over, shop);
     const web = product.status === "Active";
     // A draft with nothing is not stock; a website shoe sold out still is news.
     if (total <= 0 && !web) continue;
     lines.push({ name: product.name, web, total, factory: factory - (over - overShop), shop: shop - overShop, over });
+    roadOf.set(product.name, onRoad);
     if (total > 0 && !(Number(product.priceValue) > 0)) noPrice += 1;
     value += ((Number(product.priceValue) || 0) / 100) * total;
   }
@@ -179,9 +186,10 @@ export function stockByShoe(
     factory: sum((line) => line.factory),
     shop: sum((line) => line.shop),
     over: sum((line) => line.over),
-    noPlace: sum((line) => Math.max(0, line.total - line.factory - line.shop)),
+    noPlace: sum((line) => Math.max(0, line.total - line.factory - line.shop - (roadOf.get(line.name) ?? 0))),
+    onRoad: sum((line) => roadOf.get(line.name) ?? 0),
     mismatched: lines
-      .map((line) => ({ name: line.name, over: line.over, noPlace: Math.max(0, line.total - line.factory - line.shop) }))
+      .map((line) => ({ name: line.name, over: line.over, noPlace: Math.max(0, line.total - line.factory - line.shop - (roadOf.get(line.name) ?? 0)) }))
       .filter((line) => line.over > 0 || line.noPlace > 0),
     noneAtShop: lines.filter((line) => line.web && line.total > 0 && line.shop === 0).map((line) => ({ name: line.name, factory: line.factory })),
     noPrice,

@@ -23,6 +23,7 @@ import {
   prepareNotificationTypesAction,
   prepareStockMovementTypesAction,
   prepareLedgerReversalAction,
+  preparePublicRolesAction,
 } from "./actions";
 import { getBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
 import { MAX_DELIVERY_ZONES, deliveryPolicySentence } from "@/lib/delivery-fee";
@@ -39,6 +40,7 @@ import PhotoRobotSwitch from "./PhotoRobotSwitch";
 import { notificationTypesStatus } from "@/lib/notification-types-database";
 import { stockMovementTypesStatus } from "@/lib/stock-movement-types-database";
 import { ledgerReversalStatus } from "@/lib/ledger-reversal-database";
+import { publicRolesStatus } from "@/lib/public-roles-database";
 import { reportError } from "@/lib/report-error";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 // Enter walks box to box on the forms that take typing, and asks before it
@@ -181,6 +183,10 @@ export default async function AdminSettingsPage({
   });
   const ledgerReversal = await ledgerReversalStatus().catch((error) => {
     reportError("check the ledger reversal columns", error);
+    return null;
+  });
+  const publicRoles = await publicRolesStatus().catch((error) => {
+    reportError("check the public roles' table grants", error);
     return null;
   });
   const posDatabase = await posDatabaseStatus().catch((error) => {
@@ -941,6 +947,42 @@ export default async function AdminSettingsPage({
               <form action={prepareLedgerReversalAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, add the room" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {/* A second lock behind row-level security (owner, 2026-10-28,
+            KR-SEC-02 of the security check). */}
+        {publicRoles && !publicRoles.ready ? (
+          <section id="public-roles" className="scroll-mt-24 self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              🔒 <T en="Shut the tables to Supabase's public roles" ne="Supabase का सार्वजनिक role लाई table बाट हटाउने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-green-ink">
+              <T
+                en={`Row-level security already keeps outsiders out of every table. ${publicRoles.open} tables still give the public roles (anon, authenticated) a grant, so one table left without that security would be open. The app does not use these roles: nothing it does changes, and no record changes. Take a backup first (Activity → Export backup).`}
+                ne={`Row-level security ले बाहिरका मान्छेलाई सबै table बाट पहिले नै रोक्छ। तर ${publicRoles.open} वटा table ले अझै सार्वजनिक role (anon, authenticated) लाई अनुमति दिन्छन्, त्यसैले कुनै table मा त्यो सुरक्षा छुट्यो भने त्यो खुल्छ। App ले यी role प्रयोग गर्दैन: app को कुनै काम र कुनै रेकर्ड बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।`}
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <p className="mt-3 text-sm font-bold text-brand-green-ink">
+                <T en="This is changed:" ne="यति बदलिन्छ:" />
+              </p>
+              <ul className="mt-1 list-disc pl-5 text-sm text-brand-green-ink">
+                <li>
+                  <T en={publicRoles.label.en} ne={publicRoles.label.ne} />
+                </li>
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed: no table, no row ✅ · Records changed: none ✅" ne="मेटिने: कुनै table वा रेकर्ड छैन ✅ · बदलिने रेकर्ड: कुनै छैन ✅" />
+              </p>
+              <form action={preparePublicRolesAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, shut them" />
               </form>
             </details>
           </section>

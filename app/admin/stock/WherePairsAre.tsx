@@ -14,6 +14,13 @@ import {
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
 import { sameCode } from "@/lib/shoe-code";
 import Link from "next/link";
+
+/** A key no other challan has. */
+function newKey() {
+  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 import FillByCount from "@/app/admin/stock/FillByCount";
 import { PageTabs } from "@/components/admin/PageKit";
 
@@ -119,6 +126,12 @@ export default function WherePairsAre({
   const [from, setFrom] = useState<"Factory" | "Shop">("Factory");
   const [lines, setLines] = useState<Line[]>([emptyLine(0)]);
   const [nextKey, setNextKey] = useState(1);
+  // One key per challan, made at the first press and kept until it saves: a
+  // double press sends the same key (one challan), and the next challan gets
+  // a new one. It was "date-1-name" from a counter that restarted with every
+  // page load, so the day's second challan matched the first and was dropped
+  // without a word (KR-BUG-007).
+  const sendKey = useRef("");
   const [receiveNow, setReceiveNow] = useState(false);
   const [state, setState] = useState<ActionState | null>(null);
   const [saving, startSaving] = useTransition();
@@ -196,6 +209,8 @@ export default function WherePairsAre({
   function handleSend(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    if (!sendKey.current) sendKey.current = `trf-${newKey()}`;
+    formData.set("submissionKey", sendKey.current);
 
     const asked = lines.filter((line) => line.design && Number(line.pairs) > 0);
     if (asked.length === 0) {
@@ -230,6 +245,7 @@ export default function WherePairsAre({
       const result = await createStockTransferAction(state, formData);
       setState(result);
       if (result.ok) {
+        sendKey.current = "";
         setLines([emptyLine(nextKey)]);
         setNextKey((value) => value + 1);
         setReceiveNow(false);
@@ -580,6 +596,7 @@ export default function WherePairsAre({
                 {row.sizeRun && row.sizeRun !== "Mixed" ? ` (${row.sizeRun})` : ""}
                 {row.unplaced > 0 ? ` — ${text("no place", "ठाउँ छैन")}: ${row.unplaced}` : ""}
                 {row.unplaced < 0 ? ` — ${text("too many placed", "बढी गनिएको")}: ${-row.unplaced}` : ""}
+                {row.onRoad ? ` — 🚚 ${text("on the road", "बाटोमा")}: ${row.onRoad}` : ""}
               </option>
             ))}
           </select>
@@ -872,8 +889,8 @@ export default function WherePairsAre({
             <input type="hidden" name="toLocation" value={to} />
             <input type="hidden" name="sentBy" value={staffName} />
             <input type="hidden" name="sentDate" value={today} />
-            {/* One challan per press, however slow the connection. */}
-            <input type="hidden" name="submissionKey" value={`trf-${today}-${nextKey}-${staffName}`} />
+            {/* One challan per press, however slow the connection: the key is
+                set as the form is sent (sendKey above). */}
 
             <div className="flex flex-wrap items-center gap-3">
               <button

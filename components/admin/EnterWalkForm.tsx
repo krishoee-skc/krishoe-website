@@ -30,6 +30,9 @@ import {
  * box on the form — the worker picked higher up the page.
  */
 
+/** Two submits closer than this are one press pressed twice. */
+const DOUBLE_PRESS_MS = 800;
+
 export function describe(element: Element): WalkField {
   const el = element as HTMLInputElement;
   return {
@@ -105,6 +108,7 @@ export default function EnterWalkForm({
   formRef: outerRef,
   worker = false,
   onBlocked,
+  oncePerPress = false,
   ...props
 }: ComponentProps<"form"> & {
   confirmTitle?: string;
@@ -114,6 +118,13 @@ export default function EnterWalkForm({
    * the owner (owner, 2026-10-08: the question came up in English).
    */
   worker?: boolean;
+  /**
+   * A form posted straight to a server action, with no key of its own: a
+   * second submit a moment after the first is dropped (KR-BUG-012). Off by
+   * default — the counter bill asks questions and sends itself again on the
+   * answer, which must never be taken for a double press.
+   */
+  oncePerPress?: boolean;
   /** For a page that reads the form itself — the product form's AI drafter. */
   formRef?: { current: HTMLFormElement | null };
   /**
@@ -131,6 +142,10 @@ export default function EnterWalkForm({
   const lastStop = useRef<HTMLElement | null>(null);
   const [question, setQuestion] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  // Two presses in the same instant sent a form twice — a supplier paid twice
+  // (KR-BUG-012). On a form that asks for it (oncePerPress), a second submit
+  // within a moment of the first is the same press.
+  const lastSubmit = useRef(0);
 
   // Phone keyboards draw their action key from this: "Next" until the last
   // box, "Done" on it.
@@ -261,7 +276,15 @@ export default function EnterWalkForm({
   function handleBlur(event: FocusEvent<HTMLFormElement>) {
     onBlur?.(event);
     const into = event.relatedTarget as Node | null;
-    if (!into || !formRef.current?.contains(into)) setHint(null);
+    if (into && formRef.current?.contains(into)) return;
+    // After the click has landed, not before it (KR-BUG-008). Safari does not
+    // focus a pressed button, so a box lost focus to "nothing" on the press
+    // itself; the hint went at once, the page under it shifted, and at the
+    // foot of a page the release fell on the form instead of Save — nothing
+    // saved. Cleared a moment later, it goes only if focus truly left.
+    window.setTimeout(() => {
+      if (!formRef.current?.contains(document.activeElement)) setHint(null);
+    }, 300);
   }
 
   return (
@@ -276,6 +299,12 @@ export default function EnterWalkForm({
       onFocus={handleFocus}
       onBlur={handleBlur}
       onSubmit={(event) => {
+        const now = Date.now();
+        if (oncePerPress && now - lastSubmit.current < DOUBLE_PRESS_MS) {
+          event.preventDefault();
+          return;
+        }
+        lastSubmit.current = now;
         setQuestion(null);
         onSubmit?.(event);
       }}

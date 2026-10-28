@@ -1,6 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/components/LanguageProvider";
+import RefusedNote from "@/app/admin/purchasing/_components/RefusedNote";
 
 const inputClass =
   "h-10 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none focus:border-brand-green";
@@ -26,6 +27,7 @@ export default function SupplierPaymentFields() {
   const { text } = useLanguage();
   return (
     <div className="grid gap-3 md:grid-cols-3">
+      <RefusedNote className="md:col-span-3" />
       <label className="grid gap-1 text-sm font-bold text-brand-green-ink">
         {text("How", "कसरी")}
         <select aria-label={text("Type", "किसिम")} name="type" data-summary="text" className={inputClass} defaultValue="Cash Payment">

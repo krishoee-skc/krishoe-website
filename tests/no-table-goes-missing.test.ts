@@ -37,6 +37,9 @@ const NOT_A_TABLE = new Set([
   // isolation is doing anything; pg_proc and pg_constraint name the rules a
   // refusal came from.
   "pg_roles", "pg_proc", "pg_constraint",
+  // Supabase's public roles, named in REVOKE ... FROM anon, authenticated
+  // (lib/public-roles-database.ts, KR-SEC-02): roles, not tables.
+  "anon",
   // SQL keywords that follow FROM/UPDATE in the shapes used here.
   "lateral", "set", "of", "your", "balanced",
   // Common table expressions and derived-table aliases used across the app.

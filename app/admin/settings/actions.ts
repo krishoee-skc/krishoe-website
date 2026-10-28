@@ -13,6 +13,7 @@ import { prepareWorkerPortalDatabase } from "@/lib/worker-portal-db";
 import { prepareNotificationTypes } from "@/lib/notification-types-database";
 import { prepareStockMovementTypes } from "@/lib/stock-movement-types-database";
 import { prepareLedgerReversal } from "@/lib/ledger-reversal-database";
+import { preparePublicRoles } from "@/lib/public-roles-database";
 import { redirect } from "next/navigation";
 import { recordAdminAuditEvent } from "@/lib/admin-audit";
 import { saveBusinessGoal, currentGoalMonthKey } from "@/lib/business-goals";
@@ -345,6 +346,25 @@ export async function prepareLedgerReversalAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("A line on a customer's account is now taken back and kept, never deleted.");
+}
+
+export async function preparePublicRolesAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to shut the tables to the public roles.");
+    }
+    const { applied } = await preparePublicRoles();
+    await recordAdminAuditEvent(
+      "settings_database_public_roles_shut",
+      applied
+        ? "Supabase's public roles (anon, authenticated) lost their table grants — a second lock behind row-level security."
+        : "Supabase's public roles already had no table grants.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("The tables are shut to Supabase's public roles, behind row-level security as well.");
 }
 
 export async function prepareStockMovementTypesAction(formData: FormData) {
