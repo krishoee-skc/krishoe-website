@@ -1,6 +1,7 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { useEffect, type MouseEvent } from "react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
@@ -17,6 +18,15 @@ import { useLanguage } from "@/components/LanguageProvider";
  */
 export default function SkipToContent() {
   const { text } = useLanguage();
+  const pathname = usePathname();
+
+  // The link also needs a real target for its href: browsers, screen readers
+  // and Lighthouse all follow "#main" and found nothing there ("No skip link
+  // target"). Each page brings its own <main>, so name it after every move.
+  useEffect(() => {
+    if (document.getElementById("main")) return;
+    document.querySelector("main")?.setAttribute("id", "main");
+  }, [pathname]);
 
   function skip(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();

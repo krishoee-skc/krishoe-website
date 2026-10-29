@@ -318,9 +318,9 @@ export default async function ProductPage({ params }: Props) {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                   <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-sm">
-                    <h4 className="font-black text-brand-green-ink">
+                    <h3 className="mb-3 text-[1.25rem] font-black text-brand-green-ink">
                       <T en="Highlights" ne="मुख्य कुरा" />
-                    </h4>
+                    </h3>
                     <ul className="mt-4 grid gap-2 text-sm text-brand-muted">
                       {product.highlights.map((highlight) => (
                         <li key={highlight} className="flex gap-2">
@@ -331,9 +331,9 @@ export default async function ProductPage({ params }: Props) {
                     </ul>
                   </div>
                   <div className="rounded-lg border border-black/10 bg-brand-paper p-5 shadow-sm">
-                    <h4 className="font-black text-brand-green-ink">
+                    <h3 className="mb-3 text-[1.25rem] font-black text-brand-green-ink">
                       <T en="Care" ne="हेरचाह" />
-                    </h4>
+                    </h3>
                     <ul className="mt-4 grid gap-2 text-sm text-brand-muted">
                       {product.care.map((item) => (
                         <li key={item} className="flex gap-2">

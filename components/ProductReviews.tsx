@@ -252,9 +252,9 @@ export default function ProductReviews({
                       />
                     ))}
                   </div>
-                  <h5 className="font-bold text-brand-green-ink">
+                  <h4 className="mb-0 text-[length:inherit] font-bold text-brand-green-ink">
                     {review.name || text("Customer", "ग्राहक")}
-                  </h5>
+                  </h4>
                   {review.verifiedPurchase ? (
                     <span className="rounded-full bg-brand-green-mist px-2 py-1 text-[10px] font-black uppercase tracking-wide text-brand-green">
                       {text("Verified purchase", "किनेको पुष्टि")}

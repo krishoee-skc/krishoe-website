@@ -73,7 +73,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
                 className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-black transition ${
                   active
                     ? "-translate-y-1 bg-brand-green text-white shadow-[0_10px_24px_rgba(11,77,59,0.25)]"
-                    : "text-brand-muted-deep"
+                    : "text-brand-muted"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -84,7 +84,7 @@ export default function AdminQuickDock({ adminRole }: { adminRole: AdminRole }) 
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(OPEN_ADMIN_MENU))}
-            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-black text-brand-muted-deep"
+            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-xs font-black text-brand-muted"
           >
             <span aria-hidden="true" className="text-lg leading-5">☰</span>
             {text("More", "अरू")}

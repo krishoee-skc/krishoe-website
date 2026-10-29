@@ -1153,10 +1153,10 @@ export default function WorkEntryForm({
                 ))}
               </select>
               <p className={`${HINT} flex flex-wrap gap-x-3`}>
-                <button type="button" onClick={() => setShowAddProduct(true)} className="font-bold text-brand-green hover:underline">
+                <button type="button" onClick={() => setShowAddProduct(true)} className="inline-flex min-h-6 items-center font-bold text-brand-green hover:underline">
                   ➕ {text("New shoe", "नयाँ जुत्ता")}
                 </button>
-                <Link href="/admin/factory/items" className="font-bold text-brand-green hover:underline">
+                <Link href="/admin/factory/items" className="inline-flex min-h-6 items-center font-bold text-brand-green hover:underline">
                   {text("Items and rates", "item र दर")}
                 </Link>
               </p>

@@ -75,7 +75,7 @@ export function StatStrip({ items }: { items: StatItem[] }) {
               <span className="truncate font-display text-lg font-black leading-tight tabular-nums sm:text-2xl" data-figure-hidden={item.money && !shown ? "" : undefined}>
                 {value}
               </span>
-              <span className="text-xs font-bold leading-tight opacity-80 sm:text-xs">{text(item.en, item.ne)}</span>
+              <span className="text-xs font-bold leading-tight opacity-90 sm:text-xs">{text(item.en, item.ne)}</span>
             </div>
           );
         })}

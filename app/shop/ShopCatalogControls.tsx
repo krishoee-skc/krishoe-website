@@ -384,11 +384,16 @@ export default function ShopCatalogControls({
           </div>
         </div>
       ) : visibleProducts.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
-          {visibleProducts.map((product, index) => (
-            <ProductCard key={product.id} product={product} intent="shop" eager={index < 4} />
-          ))}
-        </div>
+        <>
+          {/* The cards are h3s; without an h2 the page jumped from the h1
+              straight to them, and a screen reader's outline lost a level. */}
+          <h2 className="sr-only text-brand-green-ink">{text("Shoes", "जुत्ता")}</h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+            {visibleProducts.map((product, index) => (
+              <ProductCard key={product.id} product={product} intent="shop" eager={index < 4} />
+            ))}
+          </div>
+        </>
       ) : (
         <div className="rounded-lg border border-dashed border-brand-green/20 bg-brand-paper p-8 text-center shadow-sm md:p-10">
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-gold-deep">{text("No match", "भेटिएन")}</p>

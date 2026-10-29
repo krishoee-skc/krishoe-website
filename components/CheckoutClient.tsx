@@ -12,6 +12,7 @@ import { submitCheckout, type FormState } from "@/app/actions";
 import type { SafeUser } from "@/lib/user-store";
 import { ArrowRightIcon, CheckIcon } from "@/components/Icons";
 import OrderSummary from "@/components/OrderSummary";
+import SafeImage from "@/components/SafeImage";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import OtherPairs from "@/components/OtherPairs";
 import PaymentInstructions, { type BankDetails } from "@/components/PaymentInstructions";
@@ -870,8 +871,8 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
           2026-10-24): they were only at the very end, under the form. */}
       <a href="#order-review" data-checkout-strip className="flex items-center gap-3 rounded-2xl bg-brand-green-ink p-3 text-white shadow-md lg:hidden">
         <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white/10">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={first.image} alt="" className="h-full w-full object-cover" />
+          {/* A 48px thumbnail from the optimiser, not the full photo. */}
+          <SafeImage src={first.image} alt="" fill sizes="48px" className="object-cover" />
         </span>
         <span className="min-w-0 flex-1 leading-tight">
           <span className="block truncate text-sm font-black">{first.name}{cartItems.length > 1 ? text(` + ${cartItems.length - 1} more`, ` + ${cartItems.length - 1} अरू`) : ""}</span>

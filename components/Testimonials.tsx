@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AutoScrollRow from "@/components/AutoScrollRow";
+import SafeImage from "@/components/SafeImage";
 import ReviewFilter, { type ReviewChip } from "@/components/ReviewFilter";
 import T from "@/components/T";
 import { StoreIcon } from "@/components/Icons";
@@ -196,8 +197,9 @@ export default function Testimonials({ products = [], shopReviews = [] }: { prod
                   className="mt-auto flex items-center gap-3 border-t border-brand-green-line pt-3 text-base font-bold text-brand-green hover:text-brand-green-ink"
                 >
                   {review.shoe.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={review.shoe.image} alt="" loading="lazy" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
+                    // A 44px picture, not the full product photo (about 125 KB each): the
+                    // optimiser sends a thumbnail. Lighthouse, 2026-10-29.
+                    <SafeImage src={review.shoe.image} alt="" width={44} height={44} sizes="44px" className="h-11 w-11 shrink-0 rounded-lg object-cover" />
                   ) : null}
                   <span className="min-w-0">
                     {review.shoe.name}
