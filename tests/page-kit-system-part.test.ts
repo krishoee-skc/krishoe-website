@@ -22,12 +22,15 @@ describe("Report", () => {
 });
 
 describe("Settings", () => {
-  it("shows only what is left to fill, the filled ones folded, the robot below", async () => {
+  it("shows only what is left to fill, the filled ones folded, the robot in Setup and system", async () => {
     const sections = await read("app/admin/settings/SettingsSections.tsx");
     expect(sections).toContain("{todos.filter((todo) => !todo.done).map((todo) => (");
     expect(sections).toContain('text(`✓ ${done} filled`, `✓ ${done} भरियो`)');
     const page = await read("app/admin/settings/page.tsx");
-    expect(page.indexOf("<SettingsSections")).toBeLessThan(page.indexOf('id="photo-robot"'));
+    // The robot is a card in Setup and system, the size of the others (owner, 2026-10-29).
+    const system = page.slice(page.indexOf("const systemBody = ("), page.indexOf("const sections: SettingsSection[]"));
+    expect(system).toContain('id="photo-robot"');
+    expect(sections).toContain('"photo-robot": "system"');
   });
 });
 

@@ -20,14 +20,14 @@ import {
  */
 
 /** A small copy for the robot: the stored photo stays as it is. */
-async function small(url: string, side: number): Promise<AskImage | null> {
+async function small(url: string, side: number, quality = 70): Promise<AskImage | null> {
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (!response.ok) return null;
     const bytes = await sharp(Buffer.from(await response.arrayBuffer()), { failOn: "none" })
       .rotate()
       .resize(side, side, { fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 70 })
+      .jpeg({ quality })
       .toBuffer();
     return { mimeType: "image/jpeg", data: bytes.toString("base64") };
   } catch {
@@ -47,13 +47,21 @@ export async function robotLookAtPhoto(photoId: string, options: { force?: boole
       getFactoryItems().catch(() => ({ items: [] })),
       factoryItemHistory(),
       robotExamplePhotos(),
-      small(photo.imageUrl, 768),
+      // Larger and sharper than it was (768 px, quality 70): colour was lost in
+      // the copy (owner, 2026-10-29). Still a reduced copy, never the original.
+      small(photo.imageUrl, 1024, 85),
     ]);
     if (!picture) return null;
     const shoes = await Promise.all(
       loaded.items.slice(0, 12).map(async (item) => {
         const example = examples.find((row) => row.itemId === item.id && row.imageUrl !== photo.imageUrl);
-        return { id: item.id, name: item.name, example: example ? ((await small(example.imageUrl, 384)) ?? undefined) : undefined };
+        return {
+          id: item.id,
+          name: item.name,
+          example: example ? ((await small(example.imageUrl, 512, 80)) ?? undefined) : undefined,
+          // The colours this shoe has been made in, from the books.
+          colours: (history[item.id]?.colors ?? []).slice(0, 8),
+        };
       }),
     );
     const colours = [...new Set(Object.values(history).flatMap((known) => known.colors))].slice(0, 20);

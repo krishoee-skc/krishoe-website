@@ -26,7 +26,7 @@ export type SettingsTodo = {
 
 const REMEMBER_KEY = "krishoe:settings-section";
 // Older links go straight to one part of the page.
-const HASH_TO_SECTION: Record<string, string> = { goals: "goal", delivery: "delivery" };
+const HASH_TO_SECTION: Record<string, string> = { goals: "goal", delivery: "delivery", "photo-robot": "system" };
 
 /**
  * Settings the way a phone's settings read: a list of parts on the left, one
@@ -147,7 +147,10 @@ export default function SettingsSections({
         </section>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      {/* One column on a phone that never grows past the screen: the row of part
+          names scrolls inside it, and no longer stretches the part below it off
+          the edge (2026-10-29). */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]">
         <nav aria-label={text("Parts of settings", "सेटिङका भाग")} className="lg:sticky lg:top-4 lg:self-start">
           <ul className="flex list-none gap-1.5 overflow-x-auto pb-1 pl-0 lg:flex-col lg:overflow-visible">
             {sections.map((section) => {

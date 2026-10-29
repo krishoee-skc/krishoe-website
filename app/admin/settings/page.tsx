@@ -656,6 +656,24 @@ export default async function AdminSettingsPage({
           ))}
         </div>
 
+      {/* The photo robot, switched now and then: a card in Setup and system the
+          size of the others (owner, 2026-10-29: "robot ko size kam garna paryo").
+          It sat on its own across the foot of the page, the width of everything. */}
+      {photoRobot ? (
+        <section id="photo-robot" className="mt-4 max-w-2xl rounded-2xl border border-brand-green-line bg-brand-paper p-4">
+          <h3 className="text-base font-black text-brand-green-ink">
+            🤖 <T en="Photo robot" ne="फोटो हेर्ने रोबोट" />
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-brand-muted">
+            <T
+              en="Guesses the shoe, its colour and about how many pairs from a worker's photo, for you to check — never onto the books. It picks a colour only from those the shoe is made in, and leaves it blank when unsure. A reduced copy of the photo goes to Google's free robot, which may learn from it — no name, phone or wage."
+              ne="कामदारको फोटोबाट जुत्ता, रङ र लगभग कति जोडी भनेर अनुमान लेख्छ, तपाईंले जाँच्न — हिसाबमा आफैँ चढाउँदैन। त्यो जुत्ता बन्ने रङमध्येबाट मात्र रोज्छ, पक्का नभए खाली छाड्छ। फोटोको सानो copy Google को निःशुल्क रोबोटमा जान्छ, जसले त्यसबाट सिक्न सक्छ — नाम, फोन र ज्याला होइन।"
+            />
+          </p>
+          <PhotoRobotSwitch on={photoRobot.on} connected={photoRobot.connected} />
+        </section>
+      ) : null}
+
       <Link href="/admin/settings/whatsapp" className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-brand-green-line px-4 text-sm font-bold text-brand-green-ink hover:bg-brand-mist">
         💬 <T en="WhatsApp settings" ne="WhatsApp सेटिङ" />
       </Link>
@@ -1106,24 +1124,6 @@ export default async function AdminSettingsPage({
 
       <SettingsSections sections={sections} todos={todos} />
 
-      {/* Switched now and then, so after the parts of settings rather than
-          above what is still to fill (owner, 2026-10-12). */}
-      <div className="mt-6 grid">
-      {photoRobot ? (
-        <section id="photo-robot" className="self-start rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
-          <h2 className="text-lg font-black text-brand-green-ink">
-            🤖 <T en="Photo robot" ne="फोटो हेर्ने रोबोट" />
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-brand-muted">
-            <T
-              en="Looks at a worker's photo and guesses the shoe, the colour and about how many pairs, for you to check. It never puts anything on the books. Google's free robot may learn from the photos it is sent, so only a small copy of the photo goes — no name, phone or wage."
-              ne="कामदारको फोटो हेरेर जुत्ता, रङ र लगभग कति जोडी भनेर अनुमान लेख्छ, तपाईंले जाँच्न। हिसाबमा आफैँ केही चढाउँदैन। Google को निःशुल्क रोबोटले पठाएको फोटोबाट सिक्न सक्छ, त्यसैले फोटोको सानो copy मात्र जान्छ — नाम, फोन र ज्याला होइन।"
-            />
-          </p>
-          <PhotoRobotSwitch on={photoRobot.on} connected={photoRobot.connected} />
-        </section>
-      ) : null}
-      </div>
     </section>
   );
 }
