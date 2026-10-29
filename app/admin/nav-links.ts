@@ -149,7 +149,7 @@ export const adminNavGroups: AdminNavGroup[] = [
       // Photos is reached from the Products screen, which is where a photo is
       // actually missing from and where the owner is already standing when
       // they notice.
-      { href: "/admin/products", label: "Products", nepali: "सामान · फोटो · मूल्य", icon: TagIcon },
+      { href: "/admin/products", label: "Item / Goods", nepali: "सामान · फोटो · मूल्य", icon: TagIcon },
       { href: "/admin/stock", label: "Stock", nepali: "कति माल छ", icon: LayersIcon },
     ],
   },

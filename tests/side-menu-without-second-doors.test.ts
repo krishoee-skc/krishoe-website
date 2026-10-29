@@ -34,7 +34,7 @@ describe("the side menu, as sample ख draws it", () => {
   // Transactions joined Money last, not first (owner, 2026-10-28).
   it("Shop: twelve names", () => {
     expect(side("shop")).toEqual([
-      "Orders", "Cut a bill", "Products", "Stock",
+      "Orders", "Cut a bill", "Item / Goods", "Stock", // renamed by the owner 2026-10-29
       "Customers", "Customer Voice",
       "Payments", "Credit / Dues", "Transactions",
       "Dashboard", "Report", "Settings",

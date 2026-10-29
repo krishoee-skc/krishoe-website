@@ -15,7 +15,7 @@ import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
 export const metadata = {
-  title: "Products | KRISHOE Admin",
+  title: "Item / Goods | KRISHOE Admin",
 };
 
 type AdminProductsPageProps = {
@@ -81,7 +81,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             <T en="Catalog" ne="सामान · फोटो" />
           </p>
           <h1 className="mt-2 font-display text-3xl font-black leading-tight text-brand-green-ink">
-            <T en="Products" ne="सामान" />
+            <T en="Item / Goods" ne="सामान" />
           </h1>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-brand-muted">
             <T

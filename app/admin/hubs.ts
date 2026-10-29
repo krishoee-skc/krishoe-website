@@ -79,7 +79,7 @@ export const HUB_PAGES: Record<string, HubPage> = Object.fromEntries(
       { href: "/admin/reviews", en: "Reviews", ne: "राय", icon: StarIcon },
       { href: "/admin/feedback", en: "Feedback", ne: "सुझाव", icon: MessageSquareIcon },
       { href: "/admin/messages", en: "Messages", ne: "सन्देश", icon: MessageSquareIcon },
-      { href: "/admin/products", en: "Products", ne: "सामान · मूल्य", icon: TagIcon },
+      { href: "/admin/products", en: "Item / Goods", ne: "सामान · मूल्य", icon: TagIcon },
       { href: "/admin/products/photos", en: "Product photos", ne: "सामानको फोटो", icon: ImageIcon },
       { href: "/admin/products/codes", en: "Codes", ne: "कोड", icon: TagIcon },
       { href: "/admin/products/labels", en: "Labels", ne: "लेबल", icon: TagIcon },
