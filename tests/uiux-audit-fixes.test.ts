@@ -48,3 +48,13 @@ describe("UI/UX audit fixes", () => {
     expect(bubble).toContain("max-md:translate-x-16 max-md:opacity-0");
   });
 });
+
+/** Owner, 2026-10-29: Enter on the new item's price did nothing in Chrome. */
+describe("the Enter walk and a shut fold", () => {
+  it("treats a box inside a closed <details> as hidden, not as the next stop", () => {
+    const walk = read("components/admin/EnterWalkForm.tsx");
+    expect(walk).toContain("hidden: element.getClientRects().length === 0 || folded(element),");
+    expect(walk).toContain('const shut = element.closest("details:not([open])");');
+    expect(walk).toContain("!box.checkVisibility()");
+  });
+});

@@ -33,6 +33,19 @@ import {
 /** Two submits closer than this are one press pressed twice. */
 const DOUBLE_PRESS_MS = 800;
 
+/**
+ * Inside a shut "+ more" fold. Chrome now keeps a closed <details> laid out
+ * (its content is only made invisible), so such a box still reports a size —
+ * and Enter on the box before it sent the cursor to a box that cannot take
+ * it: nothing moved and nothing saved (owner, POS new item, 2026-10-29).
+ */
+function folded(element: Element) {
+  const box = element as HTMLElement & { checkVisibility?: () => boolean };
+  if (typeof box.checkVisibility === "function" && !box.checkVisibility()) return true;
+  const shut = element.closest("details:not([open])");
+  return Boolean(shut && !element.closest("summary"));
+}
+
 export function describe(element: Element): WalkField {
   const el = element as HTMLInputElement;
   return {
@@ -40,7 +53,7 @@ export function describe(element: Element): WalkField {
     type: element.tagName === "INPUT" ? el.type : undefined,
     disabled: Boolean((el as { disabled?: boolean }).disabled),
     readOnly: Boolean((el as { readOnly?: boolean }).readOnly),
-    hidden: element.getClientRects().length === 0,
+    hidden: element.getClientRects().length === 0 || folded(element),
     walk: element.hasAttribute("data-enter-walk"),
     skip: Boolean(element.closest("[data-enter-skip]")),
     untabbable: (element as HTMLElement).tabIndex < 0,
