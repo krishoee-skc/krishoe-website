@@ -30,10 +30,11 @@ describe("the bill has the whole screen", () => {
 
   it("puts the strip on the bill view only, with a way back and the reports", async () => {
     const page = await readFile("app/admin/pos/page.tsx", "utf8");
-    expect(page).toContain("{showReports ? null : <CounterBar />}");
+    expect(page).toContain('{showReports ? null : <CounterBar fromTransactions={query?.from === "transactions"} />}');
     const bar = await readFile("app/admin/pos/_components/CounterBar.tsx", "utf8");
     expect(bar).toContain("data-counter-mode");
-    expect(bar).toContain('href="/admin"');
+    // Back to the admin — or to Transactions, when the bill was opened from there.
+    expect(bar).toContain('href={fromTransactions ? "/admin/transactions" : "/admin"}');
     expect(bar).toContain('reportsHref = "/admin/pos?view=reports"');
     expect(bar).toContain("requestFullscreen");
   });

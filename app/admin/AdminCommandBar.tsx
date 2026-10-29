@@ -6,6 +6,7 @@ import { SearchIcon } from "@/components/Icons";
 import { useLanguage } from "@/components/LanguageProvider";
 import SearchAsYouType from "@/app/admin/search/SearchAsYouType";
 import AdminAskPanel from "./AdminAskPanel";
+import { VOUCHER_EVENT, VOUCHER_HREF, voucherForKey } from "@/app/admin/transactions/voucher-keys";
 
 type Mode = "find" | "ask";
 
@@ -45,6 +46,20 @@ export default function AdminCommandBar() {
         (target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
           target.isContentEditable);
+
+      const voucher = voucherForKey(event);
+      if (voucher) {
+        // Not from the counter bill or the purchase bill: a half-made bill
+        // would be left behind by a key pressed by habit.
+        if (document.querySelector("[data-counter-mode]")) return;
+        event.preventDefault();
+        if (window.location.pathname === "/admin/transactions" && (voucher === "in" || voucher === "out")) {
+          window.dispatchEvent(new CustomEvent(VOUCHER_EVENT, { detail: voucher }));
+        } else {
+          router.push(VOUCHER_HREF[voucher]);
+        }
+        return;
+      }
 
       if ((event.key === "k" || event.key === "K") && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();

@@ -31,10 +31,13 @@ export default function CounterBar({
   title = { en: "🧾 Cut a bill", ne: "🧾 बिल काट्ने" },
   reportsHref = "/admin/pos?view=reports",
   reportsLabel = { en: "Reports", ne: "रिपोर्ट" },
+  fromTransactions = false,
 }: {
   title?: Words;
   reportsHref?: string;
   reportsLabel?: Words;
+  /** Opened from the Transactions page: the way back is to it, not the admin home. */
+  fromTransactions?: boolean;
 } = {}) {
   const { text } = useLanguage();
   // Read from the browser, not copied into state: false on the server, the
@@ -56,11 +59,11 @@ export default function CounterBar({
       className="sticky top-0 z-40 -mx-4 -mt-4 mb-3 flex items-center justify-between gap-2 bg-brand-green px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] text-sm font-black text-white max-md:-order-3 sm:-mx-6 sm:-mt-6 sm:px-6 print:hidden"
     >
       <Link
-        href="/admin"
+        href={fromTransactions ? "/admin/transactions" : "/admin"}
         className="inline-flex min-h-10 items-center rounded-full px-2 hover:bg-white/10"
-        title={text("Back to the admin", "Admin मा फर्कने")}
+        title={fromTransactions ? text("Back to Transactions", "कारोबारमा फर्कने") : text("Back to the admin", "Admin मा फर्कने")}
       >
-        ← Admin
+        {fromTransactions ? "← Transactions" : "← Admin"}
       </Link>
       <span className="truncate">{text(title.en, title.ne)}</span>
       <span className="flex items-center gap-1">

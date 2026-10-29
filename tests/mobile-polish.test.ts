@@ -169,7 +169,7 @@ describe("the admin on a phone", () => {
     expect(pos).toContain("max-md:-order-1");
     expect(pos).toContain('ne="⋯ थप: रिपोर्ट र दिन बन्द"');
     // And the reports themselves wait behind one link, not under the bill.
-    expect(pos).toContain('const showReports = (await searchParams)?.view === "reports";');
+    expect(pos).toContain('const showReports = query?.view === "reports";');
     expect(pos).toContain('<T en="📊 Reports and day close" ne="📊 रिपोर्ट र दिन बन्द" />');
   });
 

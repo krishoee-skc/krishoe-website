@@ -45,6 +45,7 @@ export const pageGroups = {
       { href: "/admin/dues", en: "Credit / Dues", ne: "उधारो" },
       { href: "/admin/cheques", en: "Cheques", ne: "चेक खाता" },
       { href: "/admin/coupons", en: "Discount codes", ne: "छुटको कोड" },
+      { href: "/admin/transactions", en: "Transactions", ne: "कारोबार" },
     ],
   },
   customers: {

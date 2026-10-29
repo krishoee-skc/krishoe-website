@@ -32,11 +32,12 @@ describe("the side menu, as sample ख draws it", () => {
     ]);
   });
 
-  it("Shop: eleven names", () => {
+  // Transactions joined Money last, not first (owner, 2026-10-28).
+  it("Shop: twelve names", () => {
     expect(side("shop")).toEqual([
       "Orders", "Cut a bill", "Products", "Stock",
       "Customers", "Customer Voice",
-      "Payments", "Credit / Dues",
+      "Payments", "Credit / Dues", "Transactions",
       "Dashboard", "Report", "Settings",
     ]);
   });
@@ -68,7 +69,7 @@ describe("the pages that left the menu are not lost", () => {
 
 describe("the rows they moved to", () => {
   it("Money and Customers rows, in the sample's order", () => {
-    expect(pageGroups.money.links.map((link) => link.en)).toEqual(["Payments", "Credit / Dues", "Cheques", "Discount codes"]);
+    expect(pageGroups.money.links.map((link) => link.en)).toEqual(["Payments", "Credit / Dues", "Cheques", "Discount codes", "Transactions"]);
     expect(pageGroups.customers.links.map((link) => link.en)).toEqual(["Customers", "Customer Voice", "Wholesale"]);
   });
 

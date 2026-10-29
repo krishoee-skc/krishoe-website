@@ -18,6 +18,7 @@ import {
   BarChartIcon,
   GearIcon,
   CameraIcon,
+  CashIcon,
 } from "@/components/Icons";
 
 /**
@@ -175,6 +176,9 @@ export const adminNavGroups: AdminNavGroup[] = [
     links: [
       { href: "/admin/payments", label: "Payments", nepali: "भुक्तानी", icon: CreditCardIcon },
       { href: "/admin/dues", label: "Credit / Dues", nepali: "उधारो", icon: CoinsIcon },
+      // Sale, purchase, money in and out, and the day's book (owner,
+      // 2026-10-28): last in the group, not first — his choice.
+      { href: "/admin/transactions", label: "Transactions", nepali: "कारोबार", icon: CashIcon },
       // Cheques and Discount codes are on the Money row now (owner,
       // 2026-10-20, sample ख).
     ],

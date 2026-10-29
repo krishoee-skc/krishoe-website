@@ -113,7 +113,7 @@ async function loadPurchasing() {
 export default async function AdminPurchasingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ show?: string; view?: string }>;
+  searchParams?: Promise<{ show?: string; view?: string; from?: string }>;
 }) {
   const params = await searchParams;
   // Two views of one page, as on the counter bill: the purchase bill, full
@@ -235,6 +235,7 @@ export default async function AdminPurchasingPage({
           title={{ en: "🛒 Purchase bill", ne: "🛒 खरिद बिल" }}
           reportsHref="/admin/purchasing?view=accounts"
           reportsLabel={{ en: "Accounts and suppliers", ne: "हिसाब र साहु" }}
+          fromTransactions={params?.from === "transactions"}
         />
       )}
       <div className={`flex flex-wrap items-start justify-between gap-4 ${showAccounts ? "" : "hidden"}`}>

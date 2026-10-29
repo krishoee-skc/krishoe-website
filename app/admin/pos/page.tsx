@@ -191,14 +191,15 @@ async function loadPos() {
 export default async function AdminPosPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ view?: string }>;
+  searchParams?: Promise<{ view?: string; from?: string }>;
 }) {
   // Two views of one page. The counter opens on the bill; the day close,
   // profit and the other once-a-day reports sit behind "Reports and day
   // close". They used to follow the bill on the same page — eight blocks,
   // 3,600px on a computer and 7,100px on a phone — scrolled past with a
   // customer waiting.
-  const showReports = (await searchParams)?.view === "reports";
+  const query = await searchParams;
+  const showReports = query?.view === "reports";
   const loaded = await loadPos();
   // Only a role that may write to operations can open a customer account from
   // the bill; the others are told who to ask instead of meeting a refusal.
@@ -392,7 +393,7 @@ export default async function AdminPosPage({
     <section className="p-4 max-md:flex max-md:flex-col sm:p-6">
       {/* The bill view is the counter: full screen, with one strip on top in
           place of the admin frame, the page title and the reports link. */}
-      {showReports ? null : <CounterBar />}
+      {showReports ? null : <CounterBar fromTransactions={query?.from === "transactions"} />}
       <div className={`flex flex-wrap items-start justify-between gap-4 max-md:-order-2 ${showReports ? "" : "hidden"}`}>
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
