@@ -263,6 +263,8 @@ export function buildDayBook(sources: DayBookSources): DayBookRow[] {
     if (!words) continue;
     const amount = n(line.amount);
     const method = words.money ? (line.type === "Cash Payment" ? "Cash" : "Cheque") : "";
+    // A cheque taken on the account sits in the cheque book under this line.
+    const lineBounced = method === "Cheque" && bounced.has(`manual:${line.id}`);
     rows.push(
       row({
         id: `customer:${line.id}`,
@@ -274,10 +276,11 @@ export function buildDayBook(sources: DayBookSources): DayBookRow[] {
         party: line.name,
         href: `/admin/operations/ledger/${line.account_id}`,
         method,
-        moneyIn: words.money ? amount : 0,
+        moneyIn: words.money && !lineBounced ? amount : 0,
         moneyOut: 0,
         cashIn: method === "Cash" ? amount : 0,
         due: line.type === "Credit Sale" || line.type === "Manual Adjustment" ? amount : 0,
+        bounced: lineBounced,
       }),
     );
   }

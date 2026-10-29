@@ -4,6 +4,8 @@ import { getAdminSession } from "@/lib/admin-auth";
 import { canAccessAdminPath, canAdmin, getSessionAdminRole, type AdminPermission } from "@/lib/admin-role-permissions";
 import { toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import { getDayBook, getParties } from "@/lib/day-book";
+import { chequeBookReady, getUsedBanks } from "@/lib/cheque-book";
+import { getCashDay } from "@/lib/cash-days";
 import { isDayKey, shiftDay, type DayBookArea } from "@/lib/day-book-rules";
 import { nepalDay } from "@/lib/nepal-day";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -52,7 +54,14 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
 
   let loaded;
   try {
-    loaded = await Promise.all([getDayBook(day), getParties()]);
+    loaded = await Promise.all([
+      getDayBook(day),
+      getParties(),
+      // The cheque book, for a cheque taken in Money in. Never fatal.
+      can("operations:write") ? chequeBookReady().catch(() => false) : Promise.resolve(false),
+      // The drawer's morning cash and evening count; null until its table is there.
+      getCashDay(day).catch(() => null),
+    ]);
   } catch (error) {
     reportError("load the transactions page", error);
     return (
@@ -63,7 +72,10 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       />
     );
   }
-  const [rows, parties] = loaded;
+  const [rows, parties, chequeReady, cashDay] = loaded;
+  // The drawer check writes back with ?tab=book and no ?v=.
+  const drawerMessage = params.tab === "book" && !params.v && Boolean(params.saved || params.said);
+  const usedBanks = chequeReady ? await getUsedBanks("in").catch(() => []) : [];
 
   return (
     <TransactionsHub
@@ -78,6 +90,17 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       parties={(parties ?? []).filter((party) => (party.side === "customer" ? can("dues:read") : can("purchasing:read")))}
       saved={params.saved ?? ""}
       said={params.said ?? ""}
+      cheque={{ ready: chequeReady, usedBanks, todayKey: today }}
+      drawerMessage={drawerMessage}
+      drawer={{
+        ready: cashDay !== null,
+        opening: cashDay?.opening ?? null,
+        counted: cashDay?.counted ?? null,
+        mayWrite: can("pos:write"),
+        mayPrepare: can("settings:write"),
+        saved: drawerMessage ? params.saved ?? "" : "",
+        said: drawerMessage ? params.said ?? "" : "",
+      }}
       may={{
         sale: can("pos:write"),
         purchase: can("purchasing:write"),

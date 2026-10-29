@@ -46,6 +46,11 @@ const CORE = [
 /** Left out on purpose: each is rebuilt by use, belongs to one device, or is a log. */
 const NOT_BACKED_UP: Record<string, string> = {
   admin_staff_tokens: "one-time invite and reset links; a restored one would reopen a used link",
+  // Not yet (2026-10-29): adding it to the shop group would make every backup
+  // taken before today fail to restore ("missing data.shop.cash_days"). It
+  // joins once restore accepts a backup made before a table existed. Two
+  // numbers a day, written again from the drawer if lost.
+  cash_days: "the drawer's morning cash and evening count; waits for restore to accept older backups",
   admin_staff_sessions: "who is signed in now; everyone signs in again after a restore",
   admin_staff_access_history: "a log of sign-ins, kept in the live database",
   admin_passkeys: "a passkey belongs to one phone; it is set up again on that phone",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import T from "@/components/T";
 import WorkEntryForm from "@/app/admin/factory/add-work/WorkEntryForm";
 import LoadFailure from "@/components/admin/LoadFailure";
 import type { FactoryWorker } from "@/lib/factory-board";
@@ -192,11 +193,17 @@ export default async function FactoryAddWorkPage() {
   }
 
   return (
-    <WorkEntryForm
-      initialWorkers={loaded.workers}
-      initialItems={loaded.items}
-      initialRates={loaded.rates}
-      canFix={canFix}
-    />
+    <>
+      {/* The page's name for a screen reader; the form carries its own words (2026-10-29). */}
+      <h1 className="sr-only">
+        <T en="Add work" ne="काम टिप्ने" />
+      </h1>
+      <WorkEntryForm
+        initialWorkers={loaded.workers}
+        initialItems={loaded.items}
+        initialRates={loaded.rates}
+        canFix={canFix}
+      />
+    </>
   );
 }

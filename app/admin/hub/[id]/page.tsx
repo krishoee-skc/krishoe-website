@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getAdminSession } from "@/lib/admin-auth";
 import { getSessionAdminRole } from "@/lib/admin-role-permissions";
 import { workerInboxCounts } from "@/lib/worker-portal";
+import { getHubCounts } from "@/lib/hub-counts";
 import { ALL_PAGE_GROUPS, HUBS, hubButtonOpen, type HubId } from "@/app/admin/hubs";
 import HubScreen from "@/app/admin/hub/HubScreen";
 
@@ -31,9 +32,12 @@ export default async function HubPage({ params }: Props) {
   const may = (href: string) => hubButtonOpen(role, href);
 
   // What waits behind a button, as the menu already counts it. Never fatal.
-  const inbox = may("/admin/factory/photos")
-    ? await workerInboxCounts().catch(() => ({ photos: 0, requests: 0 }))
-    : { photos: 0, requests: 0 };
+  const [inbox, others] = await Promise.all([
+    may("/admin/factory/photos")
+      ? workerInboxCounts().catch(() => ({ photos: 0, requests: 0 }))
+      : Promise.resolve({ photos: 0, requests: 0 }),
+    getHubCounts({ orders: may("/admin/orders"), cheques: may("/admin/cheques"), dues: may("/admin/dues") }).catch(() => ({})),
+  ]);
   const waiting = inbox.photos + inbox.requests;
 
   return (
@@ -42,7 +46,7 @@ export default async function HubPage({ params }: Props) {
       big={hub.big.filter(may)}
       rest={hub.rest.filter(may)}
       groups={hub.id === "all" ? ALL_PAGE_GROUPS.map((group) => ({ ...group, pages: group.pages.filter(may) })).filter((group) => group.pages.length > 0) : []}
-      counts={waiting > 0 ? { "/admin/factory/photos": waiting } : {}}
+      counts={{ ...others, ...(waiting > 0 ? { "/admin/factory/photos": waiting } : {}) }}
     />
   );
 }

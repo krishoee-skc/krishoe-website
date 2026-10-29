@@ -146,7 +146,10 @@ export async function addCheque(input: NewCheque) {
   if (!(await chequeBookReady())) return null;
   if (!(input.amount > 0)) return null;
   const id = `CHQ-${randomUUID()}`;
-  const sourceId = input.source === "manual" ? id : input.sourceId;
+  // A manual cheque carries its own id, unless it was taken on a customer's
+  // account (Transactions › Money in, 2026-10-29): then the account line's id,
+  // so the Day Book can tell when that payment bounced.
+  const sourceId = input.source === "manual" && !input.sourceId ? id : input.sourceId;
   const chequeDate = /^\d{4}-\d{2}-\d{2}$/.test(input.chequeDate) ? input.chequeDate : null;
   const rows = await queryPostgres<ChequeRow>(
     STORE,

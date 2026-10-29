@@ -38,6 +38,7 @@ import {
   revokeAllAdminStaffSessions,
 } from "@/lib/admin-staff-security";
 import { emailLinkBaseUrl } from "@/lib/email-links";
+import { prepareCashDaysDatabase } from "@/lib/cash-days";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
 import { temporaryPasswordProblem } from "@/lib/temporary-password";
@@ -404,6 +405,26 @@ export async function prepareChequesDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for the cheque book.");
+}
+
+/** The Owner's "OK" on the cash drawer's table (2026-10-29): the morning's cash and the evening's count. */
+export async function prepareCashDaysDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the table.");
+    }
+    const { applied } = await prepareCashDaysDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_cash_days_ready",
+      applied.length
+        ? `Database prepared for the cash drawer: ${applied.join(", ")}.`
+        : "Database was already ready for the cash drawer.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for the cash drawer.");
 }
 
 /** The Owner's "OK" on the worker app's three tables: photos, requests, leave. */

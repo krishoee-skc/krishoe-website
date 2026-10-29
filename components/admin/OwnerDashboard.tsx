@@ -274,6 +274,9 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
 
   return (
     <div className="grid gap-4">
+      {/* The page's name for a screen reader and a search engine; the eye reads
+          the greeting below (2026-10-29). */}
+      <h1 className="sr-only">{text("Dashboard", "मुख्य पाना")}</h1>
       {/* ── Hello, and the day's jobs ──────────────────────────────── */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">

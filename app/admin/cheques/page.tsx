@@ -89,7 +89,9 @@ function Timeline({ cheque, todayKey }: { cheque: Cheque; todayKey: string }) {
     {
       ...(out
         ? { en: `Given with ${cheque.sourceNumber || "a purchase"}`, ne: `${cheque.sourceNumber || "खरिद"} सँगै दिइयो` }
-        : { en: `Taken with ${cheque.sourceNumber || "a bill"}`, ne: `${cheque.sourceNumber || "बिल"} सँगै लिइयो` }),
+        : cheque.source === "manual"
+          ? { en: "Taken on the customer's account", ne: "ग्राहकको खातामा लिइयो" }
+          : { en: `Taken with ${cheque.sourceNumber || "a bill"}`, ne: `${cheque.sourceNumber || "बिल"} सँगै लिइयो` }),
       when: bs(nepalDayKey(cheque.createdAt)),
       tone: "done",
     },

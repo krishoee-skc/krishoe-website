@@ -1,4 +1,8 @@
-import { readFile } from "node:fs/promises";
+import { readFile as readRaw } from "node:fs/promises";
+
+// Read as the repository keeps it: a Windows checkout turns line ends into
+// CRLF, and the line ends in the expectations below would then never match.
+const readFile = async (path: string, encoding: "utf8") => (await readRaw(path, encoding)).replace(/\r\n/g, "\n");
 import { describe, expect, it } from "vitest";
 import { colourSwatch, compactSizes } from "@/lib/shoe-colour";
 

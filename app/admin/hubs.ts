@@ -209,12 +209,21 @@ function owns(pathname: string, href: string) {
  * button page, or the one of Sales, Money, Factory that lists it, or Home for
  * the dashboard; anything else is under All pages.
  */
+/**
+ * Screens reached from a menu name without a button of their own. A
+ * customer's account sits under /admin/operations, which is Factory's, but is
+ * opened from Credit / Dues and Parties: it belongs to Money (2026-10-29).
+ */
+const ALSO_UNDER: Partial<Record<HubId, string[]>> = {
+  money: ["/admin/operations/ledger"],
+};
+
 export function hubForPath(pathname: string): HubId {
   const own = HUBS.find((hub) => pathname === hub.href);
   if (own) return own.id;
   let best: { id: HubId; length: number } | null = null;
   for (const hub of HUBS.filter((h) => h.id === "sales" || h.id === "money" || h.id === "factory")) {
-    for (const href of [...hub.big, ...hub.rest]) {
+    for (const href of [...hub.big, ...hub.rest, ...(ALSO_UNDER[hub.id] ?? [])]) {
       const length = hubPath(href).length;
       if (owns(pathname, href) && length > (best?.length ?? -1)) best = { id: hub.id, length };
     }

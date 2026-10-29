@@ -2024,3 +2024,13 @@ CREATE TABLE IF NOT EXISTS factory_worker_leave (
   set_by TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- The cash drawer: the morning's cash and the evening's count (20261029_cash_days.sql).
+CREATE TABLE IF NOT EXISTS cash_days (
+  day date PRIMARY KEY,
+  opening numeric(12, 2) CHECK (opening IS NULL OR opening >= 0),
+  counted numeric(12, 2) CHECK (counted IS NULL OR counted >= 0),
+  note text NOT NULL DEFAULT '',
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by text NOT NULL DEFAULT ''
+);

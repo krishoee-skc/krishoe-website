@@ -14,16 +14,30 @@ type Props = {
   counts: Record<string, number>;
 };
 
-/** A count on a button: what waits behind it (workers' photos). */
-function Waiting({ count }: { count: number }) {
+/** What a count on a button stands for, said in words beside the number. */
+const WAIT_WORDS: Record<string, (n: number) => { en: string; ne: string }> = {
+  "/admin/orders": (n) => ({ en: `${n} not billed yet`, ne: `${n} बिल काट्न बाँकी` }),
+  "/admin/cheques": (n) => ({ en: `${n} bounced`, ne: `${n} बाउन्स` }),
+  "/admin/dues": (n) => ({ en: `${n} owing over 30 days`, ne: `${n} खाता ३० दिन नाघे` }),
+  "/admin/factory/photos": (n) => ({ en: `${n} waiting`, ne: `${n} बाँकी` }),
+};
+
+function waitWords(href: string, count: number) {
+  const words = WAIT_WORDS[href.split("?")[0]];
+  return words ? words(count) : { en: `${count} waiting`, ne: `${count} बाँकी` };
+}
+
+/** A count on a button: what waits behind it, as a number and in words. */
+function Waiting({ href, count }: { href: string; count: number }) {
   const { text } = useLanguage();
   if (count <= 0) return null;
+  const words = waitWords(href, count);
   return (
     <>
       <span aria-hidden="true" className="absolute right-2 top-2 grid h-6 min-w-6 place-items-center rounded-full bg-brand-clay px-1.5 text-xs font-black text-white">
         {count > 99 ? "99+" : count}
       </span>
-      <span className="sr-only">{text(`${count} waiting`, `${count} बाँकी`)}</span>
+      <span className="text-xs font-black text-brand-clay">{text(words.en, words.ne)}</span>
     </>
   );
 }
@@ -36,7 +50,7 @@ function BigButton({ href, count }: { href: string; count: number }) {
   return (
     <Link
       href={href}
-      className="relative grid min-h-28 content-center gap-2 rounded-3xl border-2 border-brand-green/40 bg-brand-green-wash p-4 text-brand-green-ink shadow-sm transition hover:-translate-y-0.5 hover:border-brand-green hover:shadow-md focus-visible:outline focus-visible:outline-4 focus-visible:outline-brand-gold dark:text-white"
+      className="relative grid h-full min-h-28 content-center gap-2 rounded-3xl border-2 border-brand-green/40 bg-brand-green-wash p-4 text-brand-green-ink shadow-sm transition hover:-translate-y-0.5 hover:border-brand-green hover:shadow-md focus-visible:outline focus-visible:outline-4 focus-visible:outline-brand-gold dark:text-white"
     >
       <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-green text-white">
         <Icon className="h-6 w-6" />
@@ -44,8 +58,8 @@ function BigButton({ href, count }: { href: string; count: number }) {
       <span className="grid leading-tight">
         <span className="text-lg font-black sm:text-xl">{language === "ne" ? page.ne : page.en}</span>
         {language === "ne" ? <span className="text-xs font-bold text-brand-muted">{page.en}</span> : null}
+        <Waiting href={href} count={count} />
       </span>
-      <Waiting count={count} />
       <span className="sr-only">{text("Open", "खोल्ने")}</span>
     </Link>
   );
@@ -67,8 +81,8 @@ function SmallButton({ href, count }: { href: string; count: number }) {
       <span className="grid min-w-0 leading-tight">
         <span className="truncate font-black">{language === "ne" ? page.ne : page.en}</span>
         {language === "ne" ? <span className="truncate text-xs font-semibold text-brand-muted">{page.en}</span> : null}
+        <Waiting href={href} count={count} />
       </span>
-      <Waiting count={count} />
     </Link>
   );
 }
@@ -136,7 +150,13 @@ export default function HubScreen({ id, big, rest, groups, counts }: Props) {
             <div className="grid gap-2">
               {id === "home" ? <p className={label}>{text("Today's work", "आजको काम")}</p> : null}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {big.map((href) => <BigButton key={href} href={href} count={count(href)} />)}
+                {big.map((href, index) => (
+                  // An odd count on a phone left the last button alone on its row;
+                  // the first spans the row instead (2026-10-29).
+                  <div key={href} className={big.length % 2 === 1 && index === 0 ? "col-span-2 sm:col-span-1" : undefined}>
+                    <BigButton href={href} count={count(href)} />
+                  </div>
+                ))}
               </div>
             </div>
           ) : null}

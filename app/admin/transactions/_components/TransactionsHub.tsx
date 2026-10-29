@@ -6,9 +6,11 @@ import T from "@/components/T";
 import { useLanguage } from "@/components/LanguageProvider";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
+import ChequeFields, { type ChequeDetails } from "@/components/admin/ChequeFields";
 import PrintButton from "@/components/admin/PrintButton";
 import { Amount, AmountsToggle, PageHead } from "@/components/admin/PageKit";
-import { recordMoneyInAction, recordMoneyOutAction } from "@/app/admin/transactions/actions";
+import { recordDrawerAction, recordMoneyInAction, recordMoneyOutAction } from "@/app/admin/transactions/actions";
+import { drawerCheck } from "@/lib/cash-days-rules";
 import { dayBookTotals, type DayBookFilter, type DayBookRow } from "@/lib/day-book-rules";
 import type { PartyRow } from "@/lib/day-book";
 import { money } from "@/lib/format-money";
@@ -41,7 +43,13 @@ type Props = {
   parties: PartyRow[];
   saved: string;
   said: string;
+  /** The message came from the drawer check, not a money form. */
+  drawerMessage: boolean;
   may: May;
+  /** The drawer's morning cash and evening count. */
+  drawer: Drawer;
+  /** The cheque book, for a cheque taken in Money in. */
+  cheque: { ready: boolean; usedBanks: string[]; todayKey: string };
 };
 
 const inputClass =
@@ -255,7 +263,9 @@ function AccountPayment({
   );
 }
 
-function MoneyInForm({ parties, raw, refused, presetId }: { parties: PartyRow[]; raw: string; refused: boolean; presetId: string }) {
+type ChequeBook = { ready: boolean; usedBanks: string[]; todayKey: string };
+
+function MoneyInForm({ parties, raw, refused, presetId, cheque }: { parties: PartyRow[]; raw: string; refused: boolean; presetId: string; cheque: ChequeBook }) {
   const { text } = useLanguage();
   const owing = useMemo(() => parties.filter((p) => p.side === "customer" && p.due > 0), [parties]);
   const preset = owing.find((p) => p.id === presetId);
@@ -263,6 +273,7 @@ function MoneyInForm({ parties, raw, refused, presetId }: { parties: PartyRow[];
   const [amount, setAmount] = useState(preset ? String(preset.due) : "");
   const [touched, setTouched] = useState(false);
   const [type, setType] = useState("Cash Payment");
+  const [details, setDetails] = useState<ChequeDetails>({ bank: "", date: "", name: "" });
 
   function choose(id: string) {
     setChosen(id);
@@ -312,11 +323,36 @@ function MoneyInForm({ parties, raw, refused, presetId }: { parties: PartyRow[];
               ]}
             />
           </div>
+          {/* A cheque goes into the cheque book too (2026-10-29): its bank and
+              date, as a purchase asks, so it is deposited and a bounce noticed. */}
+          {type === "Cheque Payment" && cheque.ready ? (
+            <div className="grid gap-3 rounded-2xl border border-brand-green-line bg-brand-paper-deep p-3">
+              <ChequeFields
+                direction="in"
+                value={details}
+                onChange={setDetails}
+                usedBanks={cheque.usedBanks}
+                todayKey={cheque.todayKey}
+                inputClass={inputClass}
+              />
+              <label className={labelClass}>
+                {text("Cheque no.", "चेक नं.")}
+                <input name="chequeNo" inputMode="numeric" autoComplete="off" className={inputClass} />
+              </label>
+              <input type="hidden" name="partyPhone" value={owing.find((p) => p.id === chosen)?.phone ?? ""} />
+            </div>
+          ) : null}
           <label className={labelClass}>
             {text("Note", "टिपोट")}
             <input
               name="note"
-              placeholder={type === "Cheque Payment" ? text("Bank and cheque no.", "बैंक र चेक नं.") : text("Voucher, reference or remark", "भौचर, नम्बर वा टिपोट")}
+              placeholder={
+                type === "Cheque Payment"
+                  ? cheque.ready
+                    ? text("Remark", "टिपोट")
+                    : text("Bank and cheque no.", "बैंक र चेक नं.")
+                  : text("Voucher, reference or remark", "भौचर, नम्बर वा टिपोट")
+              }
               className={inputClass}
             />
           </label>
@@ -448,7 +484,131 @@ function downloadCsv(rows: DayBookRow[], day: string) {
   URL.revokeObjectURL(url);
 }
 
-function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may }: Pick<Props, "rows" | "day" | "dayBs" | "today" | "previousDay" | "nextDay" | "may">) {
+
+type Drawer = {
+  ready: boolean;
+  opening: number | null;
+  counted: number | null;
+  mayWrite: boolean;
+  mayPrepare: boolean;
+  /** A message the drawer's own forms left. */
+  saved: string;
+  said: string;
+};
+
+/**
+ * The drawer check (owner, 2026-10-29): the morning's cash, the day's cash in
+ * and out, what should be in the drawer, the evening's count, and the
+ * difference. The counter bills' cash is shown apart — the figure the POS
+ * cashier close counts — so the two can be read side by side.
+ */
+function DrawerCheck({ drawer, day, cashIn, cashOut, rows }: { drawer: Drawer; day: string; cashIn: number; cashOut: number; rows: DayBookRow[] }) {
+  const { text } = useLanguage();
+  if (!drawer.ready) {
+    return drawer.mayPrepare ? (
+      <p className="rounded-2xl border border-dashed border-brand-gold/60 bg-brand-cream-soft px-4 py-3 text-sm font-bold text-brand-gold-ink print:hidden">
+        💵 {text("To keep the morning's cash and the evening count, press OK once in Settings.", "बिहानको नगद र साँझको गन्ती राख्न Settings मा एक पटक OK थिच्नुहोस्।")}{" "}
+        <Link href="/admin/settings#cash-days-database" className="underline underline-offset-4">
+          {text("Open Settings →", "Settings खोल्ने →")}
+        </Link>
+      </p>
+    ) : null;
+  }
+  const check = drawerCheck(drawer.opening, cashIn, cashOut, drawer.counted);
+  const posCash = rows.filter((r) => r.area === "pos").reduce((sum, r) => sum + r.cashIn - r.cashOut, 0);
+  const otherCash = cashIn - cashOut - posCash;
+  const line = "flex flex-wrap items-baseline justify-between gap-2 py-1.5";
+  const form = (field: "opening" | "counted", label: { en: string; ne: string }, value: number | null) =>
+    drawer.mayWrite ? (
+      <EnterWalkForm action={recordDrawerAction} oncePerPress className="flex flex-wrap items-center gap-1.5 print:hidden">
+        <input type="hidden" name="day" value={day} />
+        <input type="hidden" name="field" value={field} />
+        <input
+          name="amount"
+          type="number"
+          inputMode="numeric"
+          min="0"
+          required
+          defaultValue={value ?? ""}
+          aria-label={text(label.en, label.ne)}
+          placeholder={text("Rs.", "रु.")}
+          className="h-10 w-32 rounded-xl border border-brand-green-line bg-brand-paper px-3 text-base outline-none focus:border-brand-green"
+        />
+        <FormSubmitButton
+          pendingLabel={text("Saving…", "राख्दै…")}
+          className="min-h-10 rounded-full border border-brand-green bg-brand-green-wash px-3 text-sm font-black text-brand-green disabled:opacity-60"
+        >
+          {value == null ? text("Write", "टिप्ने") : text("Change", "बदल्ने")}
+        </FormSubmitButton>
+      </EnterWalkForm>
+    ) : null;
+  const differenceTone =
+    check.difference == null ? "text-brand-muted" : check.difference === 0 ? "text-brand-green" : "text-brand-clay";
+
+  return (
+    <div className="grid gap-1 rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-3">
+      <h3 className="text-base font-black text-brand-green-ink">💵 {text("Drawer check", "गल्ला मिलान")}</h3>
+      <Banner raw={drawer.saved || drawer.said} refused={Boolean(drawer.said)} />
+      <div className={line}>
+        <span className="font-bold text-brand-green-ink">{text("Morning cash", "बिहानको नगद")}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-black tabular-nums">{drawer.opening == null ? text("not written", "टिपिएको छैन") : <Amount>{money(drawer.opening)}</Amount>}</span>
+          {form("opening", { en: "Morning cash", ne: "बिहानको नगद" }, drawer.opening)}
+        </span>
+      </div>
+      <div className={`${line} text-sm`}>
+        <span className="text-brand-muted">{text("+ cash in today", "+ आज आएको नगद")}</span>
+        <span className="font-black tabular-nums text-brand-green"><Amount>{money(cashIn)}</Amount></span>
+      </div>
+      <div className={`${line} text-sm`}>
+        <span className="text-brand-muted">{text("− cash out today", "− आज गएको नगद")}</span>
+        <span className="font-black tabular-nums text-brand-clay"><Amount>{money(cashOut)}</Amount></span>
+      </div>
+      <div className={`${line} border-t border-brand-green-line`}>
+        <span className="font-black text-brand-green-ink">{text("Should be in the drawer", "गल्लामा हुनुपर्ने")}</span>
+        <span className="font-display text-xl font-black tabular-nums">
+          {check.expected == null ? (
+            <span className="text-sm text-brand-muted">{text("write the morning cash first", "पहिले बिहानको नगद टिप्नुहोस्")}</span>
+          ) : (
+            <Amount>{money(check.expected)}</Amount>
+          )}
+        </span>
+      </div>
+      <div className={line}>
+        <span className="font-bold text-brand-green-ink">{text("Counted at close", "साँझ गनेको")}</span>
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-black tabular-nums">{drawer.counted == null ? text("not written", "टिपिएको छैन") : <Amount>{money(drawer.counted)}</Amount>}</span>
+          {form("counted", { en: "Counted at close", ne: "साँझ गनेको" }, drawer.counted)}
+        </span>
+      </div>
+      {check.difference != null ? (
+        <p
+          role="status"
+          className={`rounded-xl px-3 py-2 text-sm font-black ${differenceTone} ${check.difference === 0 ? "bg-brand-green-wash" : "bg-brand-clay-tint"}`}
+        >
+          {check.difference === 0 ? (
+            text("✓ The drawer agrees with the books.", "✓ गल्ला हिसाबसँग मिल्यो।")
+          ) : check.difference < 0 ? (
+            <>
+              {text("Short by", "कम छ:")} <Amount>{money(-check.difference)}</Amount>
+            </>
+          ) : (
+            <>
+              {text("More than the books by", "हिसाबभन्दा बढी:")} <Amount>{money(check.difference)}</Amount>
+            </>
+          )}
+        </p>
+      ) : null}
+      <p className="text-xs font-semibold text-brand-muted">
+        {text("Of today's cash: counter bills (the POS cashier close)", "आजको नगदमध्ये: बिल काटेको (POS को Cashier close)")} <Amount>{money(posCash)}</Amount>
+        {" · "}
+        {text("everything else", "अरू सबै")} <Amount>{money(otherCash)}</Amount>
+      </p>
+    </div>
+  );
+}
+
+function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }: Pick<Props, "rows" | "day" | "dayBs" | "today" | "previousDay" | "nextDay" | "may" | "drawer">) {
   const { text } = useLanguage();
   const [filter, setFilter] = useState<"all" | DayBookFilter>("all");
   const all = useMemo(() => rows ?? [], [rows]);
@@ -511,6 +671,8 @@ function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may }: Pick<Pr
               </span>
             ) : null}
           </div>
+
+          <DrawerCheck drawer={drawer} day={day} cashIn={totals.cashIn} cashOut={totals.cashOut} rows={all} />
 
           <div role="group" aria-label={text("Show only", "मात्र देखाउने")} className="flex flex-wrap gap-1.5 print:hidden">
             {FILTERS.map((f) => {
@@ -786,8 +948,9 @@ export default function TransactionsHub(props: Props) {
   }, []);
 
   // A message belongs to the form that wrote it.
-  const savedFor = (v: HubView) => (props.initialView === v ? props.saved || props.said : "");
-  const refusedFor = (v: HubView) => props.initialView === v && Boolean(props.said);
+  // A message belongs to the form that wrote it; the drawer's go to the drawer.
+  const savedFor = (v: HubView) => (props.initialView === v && !props.drawerMessage ? props.saved || props.said : "");
+  const refusedFor = (v: HubView) => props.initialView === v && !props.drawerMessage && Boolean(props.said);
 
   const vouchers: Array<{ key: HubView; en: string; ne: string; keys: string; order: string; href?: string; allowed: boolean }> = [
     { key: "sale", en: "Sale", ne: "बिक्री", keys: "Alt 1", order: "order-3 sm:order-1", href: "/admin/pos?from=transactions", allowed: may.sale },
@@ -845,7 +1008,7 @@ export default function TransactionsHub(props: Props) {
             {shownView === "out" ? (
               <MoneyOutForm key={`out:${presetId}`} parties={props.parties} raw={savedFor("out")} refused={refusedFor("out")} may={may} presetId={presetId} />
             ) : (
-              <MoneyInForm key={`in:${presetId}`} parties={props.parties} raw={savedFor("in")} refused={refusedFor("in")} presetId={presetId} />
+              <MoneyInForm key={`in:${presetId}`} parties={props.parties} raw={savedFor("in")} refused={refusedFor("in")} presetId={presetId} cheque={props.cheque} />
             )}
           </div>
         ) : null}
@@ -873,7 +1036,7 @@ export default function TransactionsHub(props: Props) {
             ))}
           </div>
           {tab === "book" ? (
-            <DayBook rows={props.rows} day={props.day} dayBs={props.dayBs} today={props.today} previousDay={props.previousDay} nextDay={props.nextDay} may={may} />
+            <DayBook rows={props.rows} day={props.day} dayBs={props.dayBs} today={props.today} previousDay={props.previousDay} nextDay={props.nextDay} may={may} drawer={props.drawer} />
           ) : (
             <Parties
               parties={props.parties}
