@@ -175,8 +175,12 @@ function AccountPayment({
   const shown = useMemo(() => {
     const words = find.trim().toLowerCase();
     if (!words) return parties;
-    return parties.filter((party) => party.name.toLowerCase().includes(words) || party.phone.replace(/\D/g, "").includes(words.replace(/\D/g, "") || "\u0000"));
-  }, [find, parties]);
+    const digits = words.replace(/\D/g, "");
+    // The one already chosen stays in the list, so typing more never un-chooses it.
+    return parties.filter(
+      (party) => party.id === chosen || party.name.toLowerCase().includes(words) || (digits !== "" && party.phone.replace(/\D/g, "").includes(digits)),
+    );
+  }, [find, parties, chosen]);
   const party = parties.find((p) => p.id === chosen);
   const typed = Math.max(0, Math.round(Number(amount) || 0));
 
@@ -795,7 +799,8 @@ export default function TransactionsHub(props: Props) {
     `grid min-h-16 content-center rounded-2xl border-2 px-3 py-2 text-center text-base font-black leading-tight transition ${
       on ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink hover:border-brand-green"
     }`;
-  const shownView = view === "in" && !may.moneyIn && (may.moneyOut || may.wages) ? "out" : view;
+  // Only a form this person may use: Money in needs the customer books, Money out the buying ones.
+  const shownView: "in" | "out" = view === "out" ? (may.moneyOut || may.wages ? "out" : "in") : may.moneyIn ? "in" : "out";
 
   return (
     <section className="report-print p-4 sm:p-6">

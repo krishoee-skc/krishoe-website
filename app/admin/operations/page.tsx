@@ -82,11 +82,15 @@ export default async function AdminOperationsPage({
           looking identical, so there was no way to tell it apart from a button
           that did nothing. */}
       {saved.en || saved.ne ? (
+        // A ⚠ message is a refusal (more paid than owed), not a save: it reads as one.
         <p
-          role="status"
-          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-base font-bold text-emerald-900"
+          role={saved.en.startsWith("⚠") ? "alert" : "status"}
+          className={`mb-5 rounded-xl border px-4 py-3 text-base font-bold ${
+            saved.en.startsWith("⚠") ? "border-brand-clay/40 bg-brand-clay-tint text-brand-clay" : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          }`}
         >
-          ✅ <T en={saved.en} ne={saved.ne} />
+          {saved.en.startsWith("⚠") ? null : "✅ "}
+          <T en={saved.en} ne={saved.ne} />
         </p>
       ) : null}
       <PageHead

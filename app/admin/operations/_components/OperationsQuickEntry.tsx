@@ -379,7 +379,7 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add ledger" />
           </EnterWalkForm>
 
-          <EnterWalkForm action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
+          <EnterWalkForm action={createLedgerTransactionAction} oncePerPress className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">
               <T en="Ledger transaction" ne="खाताको कारोबार" />
             </h3>

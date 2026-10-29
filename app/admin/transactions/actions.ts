@@ -24,12 +24,22 @@ function textValue(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** Whole rupees, as the books keep them. */
 function amountValue(formData: FormData) {
   return Math.max(0, Math.round(Number(textValue(formData, "amount")) || 0));
 }
 
 /** The account's own "no" — more than is owed — said on the form, not an error page. */
-const ACCOUNT_RULE = / has only Rs\. [\d.,-]+ (supplier )?due\. Cannot post Rs\. [\d.,]+\.$/;
+const ACCOUNT_RULE = / has only Rs\. ([\d.,-]+) (supplier )?due\. Cannot post Rs\. [\d.,]+\.$/;
+
+/** The account's refusal in both languages, for the form that asked. */
+function refusal(message: string, amount: number) {
+  const owed = ACCOUNT_RULE.exec(message)?.[1] ?? "";
+  return pair({
+    en: `${message} Lower the amount and press again.`,
+    ne: `बाँकी रु. ${owed} मात्र छ, रु. ${amount} लेखियो। रकम घटाएर फेरि थिच्नुहोस्।`,
+  });
+}
 
 function back(view: "in" | "out", key: "saved" | "said", message: string): never {
   redirect(`/admin/transactions?v=${view}&${key}=${encodeURIComponent(message.slice(0, 240))}`);
@@ -59,7 +69,7 @@ export async function recordMoneyInAction(formData: FormData) {
   try {
     transaction = await addLedgerTransaction({ ledgerId, type, amount, note: textValue(formData, "note") });
   } catch (error) {
-    if (error instanceof Error && ACCOUNT_RULE.test(error.message)) back("in", "said", error.message);
+    if (error instanceof Error && ACCOUNT_RULE.test(error.message)) back("in", "said", refusal(error.message, amount));
     throw error;
   }
 
@@ -90,7 +100,7 @@ export async function recordMoneyOutAction(formData: FormData) {
   try {
     transaction = await addSupplierTransaction({ supplierLedgerId, type, amount, note: textValue(formData, "note") });
   } catch (error) {
-    if (error instanceof Error && ACCOUNT_RULE.test(error.message)) back("out", "said", error.message);
+    if (error instanceof Error && ACCOUNT_RULE.test(error.message)) back("out", "said", refusal(error.message, amount));
     throw error;
   }
 

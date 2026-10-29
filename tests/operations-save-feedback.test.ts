@@ -40,7 +40,8 @@ describe("operations save feedback", () => {
   it("renders the message where it will be read", async () => {
     const page = await readFile("app/admin/operations/page.tsx", "utf8");
     expect(page).toContain("(await searchParams)?.saved");
-    expect(page).toContain('role="status"');
+    // A save reads as a status; a refusal (⚠, more paid than owed) as an alert.
+    expect(page).toContain('role={saved.en.startsWith("⚠") ? "alert" : "status"}');
   });
 });
 

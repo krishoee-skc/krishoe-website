@@ -282,7 +282,7 @@ export default async function CustomerLedgerDetailPage({ params, searchParams }:
                 en: "💵 Take money",
                 ne: "💵 पैसा लिने",
                 content: (
-                  <EnterWalkForm action={createLedgerTransactionAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
+                  <EnterWalkForm action={createLedgerTransactionAction} oncePerPress className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4 print:hidden">
                     <h2 className="font-black text-brand-green-ink"><T en="New line on the account" ne="खातामा नयाँ हिसाब" /></h2>
                     <input type="hidden" name="ledgerId" value={ledger.id} />
                     <input type="hidden" name="returnTo" value={returnTo} />

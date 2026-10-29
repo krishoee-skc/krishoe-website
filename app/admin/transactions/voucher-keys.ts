@@ -24,6 +24,8 @@ export const VOUCHER_HREF: Record<VoucherKey, string> = {
 export function voucherForKey(event: Pick<KeyboardEvent, "altKey" | "ctrlKey" | "metaKey" | "shiftKey" | "code" | "key">): VoucherKey | null {
   // AltGr reads as Ctrl + Alt on Windows; it types characters and is not ours.
   if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return null;
-  const digit = /^(?:Digit|Numpad)([1-4])$/.exec(event.code)?.[1] ?? (/^[1-4]$/.test(event.key) ? event.key : "");
+  // The number row only: Alt with the number pad types a character on Windows
+  // (Alt + 0169 is ©), and that must stay typing.
+  const digit = /^Digit([1-4])$/.exec(event.code)?.[1] ?? (!event.code && /^[1-4]$/.test(event.key) ? event.key : "");
   return BY_DIGIT[digit] ?? null;
 }

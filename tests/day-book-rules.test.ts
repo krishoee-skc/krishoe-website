@@ -156,7 +156,10 @@ describe("Alt + 1–4", () => {
   const key = (code: string, extra: Partial<KeyboardEvent> = {}) =>
     voucherForKey({ altKey: true, ctrlKey: false, metaKey: false, shiftKey: false, code, key: code.slice(-1), ...extra } as KeyboardEvent);
   it("opens the four doors", () => {
-    expect([key("Digit1"), key("Digit2"), key("Digit3"), key("Numpad4")]).toEqual(["sale", "buy", "in", "out"]);
+    expect([key("Digit1"), key("Digit2"), key("Digit3"), key("Digit4")]).toEqual(["sale", "buy", "in", "out"]);
+  });
+  it("leaves Alt with the number pad to type its characters", () => {
+    expect(key("Numpad1")).toBeNull();
   });
   it("leaves AltGr, other digits and plain digits alone", () => {
     expect(key("Digit1", { ctrlKey: true })).toBeNull();

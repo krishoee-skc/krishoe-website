@@ -563,17 +563,37 @@ export async function createLedgerTransactionAction(formData: FormData) {
 
   const ledgerId = textValue(formData, "ledgerId");
   const amount = numberValue(formData, "amount");
+  const back = operationsReturnPath(formData);
 
   if (!ledgerId || amount <= 0) {
-    throw new Error("Customer ledger and positive amount are required.");
+    refreshOperationsPage(
+      pairedMessage({ en: "⚠ Choose the customer and an amount above 0.", ne: "⚠ ग्राहक र ० भन्दा बढी रकम लेख्नुहोस्।" }),
+      back,
+    );
   }
 
-  await addLedgerTransaction({
-    ledgerId,
-    type: optionValue(textValue(formData, "type"), ledgerTransactionTypes, "Cash Payment"),
-    amount,
-    note: textValue(formData, "note"),
-  });
+  try {
+    await addLedgerTransaction({
+      ledgerId,
+      type: optionValue(textValue(formData, "type"), ledgerTransactionTypes, "Cash Payment"),
+      amount,
+      note: textValue(formData, "note"),
+    });
+  } catch (error) {
+    // More than the customer owes: the account's own "no", said on the page
+    // that asked, not an error page (2026-10-29, as the supplier side does).
+    const owed = error instanceof Error ? / has only Rs\. ([\d.,-]+) due\. Cannot post Rs\. [\d.,]+\.$/.exec(error.message) : null;
+    if (owed) {
+      refreshOperationsPage(
+        pairedMessage({
+          en: `⚠ Not saved: ${error instanceof Error ? error.message : ""} Lower the amount and press again.`,
+          ne: `⚠ टिपिएन: बाँकी रु. ${owed[1]} मात्र छ, रु. ${amount} लेखियो। रकम घटाएर फेरि थिच्नुहोस्।`,
+        }),
+        back,
+      );
+    }
+    throw error;
+  }
   await auditOperationsAction(
     "operations_create_ledger_transaction",
     `Ledger ${ledgerId} transaction recorded for Rs. ${amount}.`,
