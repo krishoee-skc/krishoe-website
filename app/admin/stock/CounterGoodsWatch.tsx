@@ -137,7 +137,12 @@ export default function CounterGoodsWatch({
             {stockToFill.map((item) => {
               const days = daysSince(item.createdAt);
               const late = days >= STOCK_TO_FILL_DAYS;
-              const sold = Object.entries(item.soldSizes).map(([size, pairs]) => `${size}×${pairs}`).join(", ");
+              const sold = Object.entries(item.soldSizes)
+                .filter(([size]) => size !== "Mixed")
+                .map(([size, pairs]) => `${size}×${pairs}`)
+                .join(", ");
+              // Sold with sizes not known (owner, 2026-10-29): its purchase bill asks which sizes.
+              const unsized = item.soldSizes.Mixed ?? 0;
               return (
                 <li key={item.id} className="grid gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-base">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -146,6 +151,11 @@ export default function CounterGoodsWatch({
                       <T en={`${item.soldPairs} sold`} ne={`${item.soldPairs} जोडी बिकेको`} />
                       {sold ? <span className="text-sm text-brand-muted"> ({sold})</span> : null}
                     </span>
+                    {unsized > 0 ? (
+                      <span className="rounded-full bg-brand-cream-soft px-3 py-0.5 text-sm font-black text-brand-gold-ink">
+                        <T en={`sizes to match · ${unsized}`} ne={`साइज मिलाउन बाँकी · ${unsized}`} />
+                      </span>
+                    ) : null}
                     <span className={`rounded-full px-3 py-0.5 text-sm font-black ${late ? "bg-brand-clay-tint text-brand-clay" : "bg-brand-cream-soft text-brand-gold-ink"}`}>
                       <T en={`${days} days waiting`} ne={`${days} दिन भयो`} />
                     </span>

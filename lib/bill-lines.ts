@@ -86,9 +86,13 @@ export function sortSizes<T extends SizeCount>(sizes: T[]): T[] {
  * "36-40 ×1 each" when every size from 36 to 40 is there once (or twice…);
  * otherwise each size with its pairs — "36×2, 38×1, 41×1". A single size is
  * just the size, as it always was.
+ *
+ * "Mixed" — pairs sold from the uncounted pile, or with sizes not known — is
+ * the shop's own word, not the customer's: the bill leaves it out (owner,
+ * 2026-10-29) and shows the pairs alone.
  */
 export function sizeSummary(sizes: SizeCount[]): string {
-  const known = sortSizes(sizes.filter((row) => row.size.trim() && row.pairs > 0));
+  const known = sortSizes(sizes.filter((row) => row.size.trim() && row.size.trim().toLowerCase() !== "mixed" && row.pairs > 0));
   if (known.length === 0) return "";
   if (known.length === 1) {
     return known[0].pairs > 1 ? `${known[0].size} ×${known[0].pairs}` : known[0].size;

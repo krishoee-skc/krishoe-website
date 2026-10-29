@@ -153,6 +153,13 @@ export default function PosNewItemSheet({
   // now, not the shelf's count. The shoe's stock is filled later from its
   // purchase bill or a count of the shelf (Stock → "Sold first").
   const [rows, setRows] = useState<Array<{ size: string; pairs: string }>>([blankRow()]);
+  // Sizes not known (owner, 2026-10-29): only the total pairs are typed; they
+  // sell as "Mixed" and the purchase bill asks which sizes they went from.
+  // It opens chosen, because that is how the counter mostly sells new goods.
+  const [mode, setMode] = useState<"unknown" | "sizes">("unknown");
+  const [total, setTotal] = useState("");
+  const totalBox = useRef<HTMLInputElement>(null);
+  const modeButtons = useRef<Array<HTMLButtonElement | null>>([]);
   const [price, setPrice] = useState("");
   const [wholesale, setWholesale] = useState("");
   const [minPairs, setMinPairs] = useState("");
@@ -174,8 +181,8 @@ export default function PosNewItemSheet({
   const [saving, startSaving] = useTransition();
 
   const lookAlikes = useMemo(() => similarNames(name, knownNames), [name, knownNames]);
-  const sizes = tidySizes(rows);
-  const pilePairs = 0;
+  const sizes = mode === "sizes" ? tidySizes(rows) : {};
+  const pilePairs = mode === "unknown" ? Math.max(0, Math.round(Number(total) || 0)) : 0;
   const retailPrice = Number(price) || 0;
   const wholesalePrice = Number(wholesale) || 0;
   const minWholesaleQty = Math.max(1, Math.round(Number(minPairs) || 1));
@@ -217,12 +224,14 @@ export default function PosNewItemSheet({
   // Enter on the last box takes the cursor to it. A pairs box left empty
   // stays empty: nothing is sold in that size (owner: "khali nai manne").
   const sizeWithoutPairs = rows.findIndex((row) => row.size.trim() && !(Number(row.pairs) > 0));
-  const point: { box: "name" | "size" | "pairs" | "price" | "loss" | "doubts"; row: number } | null = !problem
+  const point: { box: "name" | "total" | "size" | "pairs" | "price" | "loss" | "doubts"; row: number } | null = !problem
     ? null
     : !name.trim()
       ? { box: "name", row: 0 }
       : pairs <= 0
-        ? sizeWithoutPairs >= 0
+        ? mode === "unknown"
+          ? { box: "total", row: 0 }
+          : sizeWithoutPairs >= 0
           ? { box: "pairs", row: sizeWithoutPairs }
           : { box: "size", row: 0 }
         : !(billPrice > 0)
@@ -233,7 +242,9 @@ export default function PosNewItemSheet({
               ? { box: "doubts", row: 0 }
               : { box: "size", row: 0 };
   const why =
-    point?.box === "pairs"
+    point?.box === "total"
+      ? text("Type the total pairs", "जम्मा जोडी लेख्नुहोस्")
+      : point?.box === "pairs"
       ? text(`Type the pairs for size ${rows[point.row].size.trim()}`, `साइज ${rows[point.row].size.trim()} को जोडी लेख्नुहोस्`)
       : problem
         ? text(problem.en, problem.ne)
@@ -245,7 +256,9 @@ export default function PosNewItemSheet({
     const target =
       point.box === "name"
         ? nameBox.current
-        : point.box === "size"
+        : point.box === "total"
+          ? totalBox.current
+          : point.box === "size"
           ? sizeBoxes.current[point.row]
           : point.box === "pairs"
             ? pairBoxes.current[point.row]
@@ -398,7 +411,64 @@ export default function PosNewItemSheet({
           />
 
           <div className={label}>
-            {text("Selling now — size and pairs", "अहिले बेच्ने — साइज र जोडी")}
+            {text("Selling now", "अहिले बेच्ने")}
+            <div role="group" aria-label={text("How the pairs are typed", "जोडी कसरी लेख्ने")} className="grid grid-cols-2 gap-1 rounded-xl bg-brand-mist p-1">
+              {(
+                [
+                  ["sizes", text("By size", "साइज अनुसार")],
+                  ["unknown", text("Sizes not known", "साइज थाहा छैन")],
+                ] as const
+              ).map(([id, title], index) => (
+                <button
+                  key={id}
+                  ref={(element) => {
+                    modeButtons.current[index] = element;
+                  }}
+                  type="button"
+                  aria-pressed={mode === id}
+                  // Only the chosen one is a stop for Enter; ← → switches.
+                  data-enter-walk={mode === id ? "" : undefined}
+                  tabIndex={mode === id ? 0 : -1}
+                  onClick={() => setMode(id)}
+                  onKeyDown={(event) => {
+                    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = mode === "sizes" ? "unknown" : "sizes";
+                    setMode(next);
+                    window.setTimeout(() => modeButtons.current[next === "sizes" ? 0 : 1]?.focus(), 0);
+                  }}
+                  className={`min-h-11 rounded-lg px-2 text-sm font-black ${mode === id ? "bg-brand-green text-white" : "text-brand-green-ink"}`}
+                >
+                  {title}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {mode === "unknown" ? (
+            <div className="grid gap-2">
+              <label className={label}>
+                {text("Total pairs", "जम्मा जोडी")}
+                <input
+                  ref={totalBox}
+                  value={total}
+                  inputMode="numeric"
+                  data-summary="pairs"
+                  onChange={(event) => setTotal(event.target.value)}
+                  className={box + ring("total")}
+                />
+              </label>
+              {/* For the counter only — the customer's bill shows the pairs, not this. */}
+              <div className="rounded-xl bg-brand-cream-soft px-3 py-2 text-sm font-bold text-brand-gold-ink">
+                {text(
+                  "Sizes: to be matched when its purchase bill comes.",
+                  "साइज: खरिद बिल आएपछि मिलाइन्छ।",
+                )}
+              </div>
+            </div>
+          ) : (
+          <div className={label}>
+            {text("Size and pairs", "साइज र जोडी")}
             <div className="grid gap-1.5">
               {rows.map((row, index) => (
                 <div key={index} className="grid grid-cols-2 gap-2">
@@ -436,6 +506,8 @@ export default function PosNewItemSheet({
               ))}
             </div>
           </div>
+
+          )}
 
           {/* The bill's own price, the one that must be typed, stands open;
               the rest are optional and fold under "+ more", where Enter does

@@ -133,6 +133,12 @@ export type CreatePurchaseInvoiceItemInput = {
    * so a caller without sizes still posts the plain pair count.
    */
   sizeBreakdown?: Record<string, number>;
+  /**
+   * A shoe sold first with no sizes (owner, 2026-10-29): which of this bill's
+   * sizes those pairs went from, or left to a count of the shelf.
+   */
+  soldMixedFrom?: Record<string, number>;
+  soldMixedLater?: boolean;
 };
 
 export type PurchaseInvoice = {
@@ -614,6 +620,8 @@ export function normalizePurchaseItems(items: CreatePurchaseInvoiceItemInput[]) 
       rate: cleanNumber(item.rate),
       note: cleanText(item.note),
       sizeBreakdown: kind === "Trading Goods" ? normaliseSizeCounts(item.sizeBreakdown ?? {}) : {},
+      soldMixedFrom: kind === "Trading Goods" ? normaliseSizeCounts(item.soldMixedFrom ?? {}) : {},
+      soldMixedLater: kind === "Trading Goods" && Boolean(item.soldMixedLater),
     };
 
     // The size split is written on the line too, where the bill can be read

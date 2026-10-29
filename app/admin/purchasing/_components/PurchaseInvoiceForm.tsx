@@ -19,6 +19,8 @@ import { type ChequeDetails } from "@/components/admin/ChequeFields";
 import PurchasePayment from "@/app/admin/purchasing/_components/PurchasePayment";
 import PurchaseTotals from "@/app/admin/purchasing/_components/PurchaseTotals";
 import PurchaseReceipt, { type Receipt } from "@/app/admin/purchasing/_components/PurchaseReceipt";
+import SoldMixedQuestion, { type SoldMixedAnswer } from "@/app/admin/purchasing/_components/SoldMixedQuestion";
+import { MIXED } from "@/lib/counter-item-rules";
 import type { RawMaterial } from "@/lib/operations";
 
 type PurchaseInvoiceFormProps = {
@@ -123,6 +125,8 @@ export default function PurchaseInvoiceForm({
   // as small as the smallest bill.
   const [rows, setRows] = useState<ItemRow[]>([emptyRow(0)]);
   const [nextKey, setNextKey] = useState(1);
+  // Per line: the answer to "which sizes did the pairs sold with no size go from?"
+  const [mixedAnswers, setMixedAnswers] = useState<Record<number, SoldMixedAnswer>>({});
   const [discount, setDiscount] = useState("");
   const [tax, setTax] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<SupplierPaymentMethod>("Cash");
@@ -413,7 +417,12 @@ export default function PurchaseInvoiceForm({
         design: item.design,
         sizeRun: "Mixed",
         place: "Shop",
-        sizes: Object.fromEntries(Object.entries(item.sizes).map(([size, pairs]) => [size, String(pairs)])),
+        // "Mixed" is not a size to fill in; it is asked about under the line.
+        sizes: Object.fromEntries(
+          Object.entries(item.sizes)
+            .filter(([size]) => size !== MIXED)
+            .map(([size, pairs]) => [size, String(pairs)]),
+        ),
         quantity: String(item.pairs),
         counterItemId: item.id,
       };
@@ -1282,6 +1291,21 @@ export default function PurchaseInvoiceForm({
                               : text("Bill to come — pairs already in stock", "बिल आउन बाँकी — जोडी पहिले नै स्टकमा")}
                           </span>
                         ) : null}
+                        {(() => {
+                          const counterItem = row.counterItemId ? billToCome.find((item) => item.id === row.counterItemId) : undefined;
+                          const mixedSold = counterItem?.soldFirst ? counterItem.sizes[MIXED] ?? 0 : 0;
+                          if (!counterItem || mixedSold <= 0) return null;
+                          return (
+                            <SoldMixedQuestion
+                              index={index}
+                              mixedSold={mixedSold}
+                              billSizes={sizesPayload(row)}
+                              soldBySize={Object.fromEntries(Object.entries(counterItem.sizes).filter(([size]) => size !== MIXED))}
+                              answer={mixedAnswers[row.key] ?? { from: {}, later: false }}
+                              onAnswer={(answer) => setMixedAnswers((current) => ({ ...current, [row.key]: answer }))}
+                            />
+                          );
+                        })()}
                       </>
                     ) : (
                       <>

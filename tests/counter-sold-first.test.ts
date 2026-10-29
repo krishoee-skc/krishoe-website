@@ -64,7 +64,10 @@ describe("the counter's form", () => {
     const sheet = await read("app/admin/pos/_components/PosNewItemSheet.tsx");
     expect(sheet).not.toContain("pileBox");
     expect(sheet).not.toContain("HOWS");
-    expect(sheet).toContain('text("Selling now — size and pairs", "अहिले बेच्ने — साइज र जोडी")');
+    // 2026-10-29: "Selling now" chooses By size or Sizes not known (a total,
+    // kept as Mixed — tests/sold-without-sizes.test.ts); By size keeps the rows.
+    expect(sheet).toContain('text("Selling now", "अहिले बेच्ने")');
+    expect(sheet).toContain('text("Size and pairs", "साइज र जोडी")');
     expect(sheet).toContain("→ the bill`");
     expect(sheet).toContain('text("Add to the bill", "बिलमा थप्ने")');
     expect(sheet).toContain("<EnterWalkForm");

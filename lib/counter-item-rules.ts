@@ -112,6 +112,14 @@ export function soldFirstExtras(input: {
   billSizes: Record<string, number>;
   soldPairs: number;
   soldSizes: Record<string, number>;
+  /**
+   * Pairs sold with no size ("Sizes not known", owner 2026-10-29) sit under
+   * "Mixed" in soldSizes. When the bill has sizes, the person says which sizes
+   * they went from — typed, or shared evenly — or leaves them to a count of
+   * the shelf, and the rest of the bill goes in uncounted.
+   */
+  mixedFrom?: Record<string, number>;
+  mixedLater?: boolean;
 }):
   | { ok: true; extras: Record<string, number>; pairs: number }
   | { ok: false; en: string; ne: string } {
@@ -129,8 +137,10 @@ export function soldFirstExtras(input: {
     // No sizes on the bill: the rest are uncounted pairs of this shoe.
     return { ok: true, extras: quantity > sold ? { Mixed: quantity - sold } : {}, pairs: quantity - sold };
   }
+  const mixedSold = Math.max(0, Math.round(input.soldSizes[MIXED] ?? 0));
+  const soldBySize = Object.entries(input.soldSizes).filter(([size]) => size !== MIXED);
   const extras: Record<string, number> = {};
-  for (const [size, soldOfSize] of Object.entries(input.soldSizes)) {
+  for (const [size, soldOfSize] of soldBySize) {
     const onBill = Math.round(input.billSizes[size] ?? 0);
     if (onBill < soldOfSize) {
       return {
@@ -140,12 +150,68 @@ export function soldFirstExtras(input: {
       };
     }
   }
+  if (mixedSold > 0) {
+    if (input.mixedLater) {
+      // Left to a count of the shelf: what is left goes in uncounted, and the
+      // count sets each size.
+      return { ok: true, extras: quantity > sold ? { Mixed: quantity - sold } : {}, pairs: quantity - sold };
+    }
+    const taken = Object.entries(input.mixedFrom ?? {}).filter(([, pairs]) => Math.round(pairs) > 0);
+    const takenTotal = taken.reduce((sum, [, pairs]) => sum + Math.round(pairs), 0);
+    if (takenTotal !== mixedSold) {
+      return {
+        ok: false,
+        en: `${mixedSold} pairs were sold before this bill with no size. Say which sizes they went from (${takenTotal} of ${mixedSold} so far), share them evenly, or count the shelf later.`,
+        ne: `यो बिलअघि साइज थाहा नभई ${mixedSold} जोडी बिकेको छ। कुन साइजबाट गयो लेख्नुहोस् (अहिले ${mixedSold} मध्ये ${takenTotal}), बराबर बाँड्नुहोस्, वा पछि र्‍याक गन्नुहोस्।`,
+      };
+    }
+    for (const [size, pairs] of taken) {
+      const room = Math.round(input.billSizes[size] ?? 0) - Math.round(input.soldSizes[size] ?? 0);
+      if (Math.round(pairs) > room) {
+        return {
+          ok: false,
+          en: `size ${size}: ${Math.round(pairs)} taken, but only ${Math.max(0, room)} of that size are on the bill. Check the sizes.`,
+          ne: `साइज ${size}: ${Math.round(pairs)} जोडी लेखियो, तर बिलमा त्यो साइज ${Math.max(0, room)} मात्र छ। साइज हेर्नुहोस्।`,
+        };
+      }
+    }
+  }
   for (const [size, onBill] of billSizes) {
-    const rest = Math.round(onBill) - Math.round(input.soldSizes[size] ?? 0);
+    const rest =
+      Math.round(onBill) - Math.round(input.soldSizes[size] ?? 0) - (mixedSold > 0 ? Math.round(input.mixedFrom?.[size] ?? 0) : 0);
     if (rest > 0) extras[size] = rest;
   }
   const pairs = Object.values(extras).reduce((sum, value) => sum + value, 0);
   return { ok: true, extras, pairs };
+}
+
+/** The stock row for pairs whose size nobody knows. */
+export const MIXED = "Mixed";
+
+/**
+ * Pairs sold with no size, shared across the bill's sizes one at a time, in
+ * size order, never more of a size than the bill left free (owner, 2026-10-29:
+ * "Share evenly"). Whatever cannot be placed is left out, and the form shows it.
+ */
+export function shareEvenly(total: number, room: Record<string, number>) {
+  const sizes = Object.keys(room)
+    .filter((size) => size !== MIXED && room[size] > 0)
+    .sort((left, right) => Number(left) - Number(right) || left.localeCompare(right));
+  const shares: Record<string, number> = {};
+  let left = Math.max(0, Math.round(total || 0));
+  while (left > 0) {
+    let placed = false;
+    for (const size of sizes) {
+      if (left <= 0) break;
+      if ((shares[size] ?? 0) < room[size]) {
+        shares[size] = (shares[size] ?? 0) + 1;
+        left -= 1;
+        placed = true;
+      }
+    }
+    if (!placed) break;
+  }
+  return shares;
 }
 
 /** A selling price below what one pair cost. No cost known is not a loss. */

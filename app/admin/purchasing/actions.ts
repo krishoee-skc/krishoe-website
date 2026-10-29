@@ -118,6 +118,8 @@ function purchaseItems(formData: FormData): CreatePurchaseInvoiceItemInput[] {
       rate: numberValue(formData, `item${index}Rate`),
       note: textValue(formData, `item${index}Note`),
       sizeBreakdown: sizeCountsFrom(textValue(formData, `item${index}Sizes`)),
+      soldMixedFrom: sizeCountsFrom(textValue(formData, `item${index}MixedFrom`)),
+      soldMixedLater: textValue(formData, `item${index}MixedLater`) === "1",
     };
   });
 }

@@ -2019,6 +2019,11 @@ export default function PosBillForm({
                 if (canAddPair(item, size, next)) next = addPair(next, item, channel, size, "");
               }
             }
+            // Sold with no sizes (owner, 2026-10-29): one line of the total,
+            // drawn from the uncounted pile.
+            for (let pair = 0; pair < created.pilePairs; pair += 1) {
+              if (canAddPair(item, "", next)) next = addPair(next, item, channel, "", "");
+            }
             setCart(next);
             setStartedAt((value) => value ?? Date.now());
             if (!(rateForChannel(channel, item) > 0)) setAskRateFor(item.design);

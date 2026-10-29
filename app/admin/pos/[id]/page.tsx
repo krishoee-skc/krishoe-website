@@ -223,7 +223,10 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
                   <span className="shrink-0 font-bold tabular-nums">{amount(total)}</span>
                 </div>
                 <p className="text-xs text-brand-muted">
-                  Size {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))} · {pairs} × {amount(group.rate)} · HS <span className="font-mono">{HS_CODE}</span>
+                  {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))
+                    ? `Size ${sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))} · `
+                    : ""}
+                  {pairs} × {amount(group.rate)} · HS <span className="font-mono">{HS_CODE}</span>
                 </p>
               </li>
             );

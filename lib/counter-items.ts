@@ -214,7 +214,9 @@ export async function createCounterItem(input: CounterItemInput) {
     if (soldFirst) {
       await db.query(
         `INSERT INTO counter_sold_first (counter_item_id, sold_pairs, sold_sizes) VALUES ($1, $2, $3::jsonb)`,
-        [id, pairs, JSON.stringify(sizes)],
+        // Pairs sold with no size are kept as "Mixed", so the purchase bill
+        // knows to ask which sizes they went from (owner, 2026-10-29).
+        [id, pairs, JSON.stringify(pilePairs > 0 ? { ...sizes, Mixed: pilePairs } : sizes)],
       );
     }
   });

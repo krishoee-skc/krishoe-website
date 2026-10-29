@@ -548,6 +548,8 @@ export async function createPurchaseInvoiceInPostgres(input: CreatePurchaseInvoi
           soldSizes: Object.fromEntries(
             Object.entries(soldFirst.sold_sizes ?? {}).map(([size, value]) => [size, Math.round(Number(value) || 0)]),
           ),
+          mixedFrom: row.line.soldMixedFrom,
+          mixedLater: row.line.soldMixedLater,
         });
         if (!answer.ok) throw new Error(`Item ${index + 1}: ${answer.en}`);
         soldFirstExtrasByCounterItem.set(row.line.counterItemId, answer.extras);
