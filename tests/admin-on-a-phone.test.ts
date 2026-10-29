@@ -34,10 +34,14 @@ describe("the admin screens on a phone", () => {
 
   it("gives the thumb the day's work without opening a menu", async () => {
     const dock = await readFile("app/admin/AdminQuickDock.tsx", "utf8");
+    // The dock's jobs live in app/admin/hubs.ts since the simple menu
+    // (owner, 2026-10-29): Bill · Sales · Stock · Add work · More.
+    const jobs = await readFile("app/admin/hubs.ts", "utf8");
 
     // Read at a glance while standing on the factory floor, so Nepali.
-    expect(dock).toContain("काम टिप्ने");
-    expect(dock).toContain("बिल");
+    expect(jobs).toContain("काम टिप्ने");
+    expect(jobs).toContain("बिल");
+    expect(dock).toContain("DOCK.map(");
     expect(dock).toContain("canAccessAdminPath");
   });
 

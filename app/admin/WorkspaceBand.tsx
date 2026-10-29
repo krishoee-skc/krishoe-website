@@ -61,7 +61,8 @@ export default function WorkspaceBand() {
   const shown = useShownWorkspace();
   const pathSide = workspaceForPath(pathname);
   const side = pathSide === "both" ? shown : pathSide;
-  const workspace = adminWorkspaces.find((option) => option.id === side);
+  // The five menu-name pages hold both sides: they name no side (2026-10-29).
+  const workspace = pathname.startsWith("/admin/hub/") ? undefined : adminWorkspaces.find((option) => option.id === side);
   const section = shortcutForPath(pathname);
   const sub = subPageFor(pathname);
   // A named sub-page deeper than its menu section: say its name, not both.

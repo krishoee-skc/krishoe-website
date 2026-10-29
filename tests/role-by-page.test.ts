@@ -51,6 +51,9 @@ const OPEN_ON_PURPOSE = [
   "/admin/accept-invite",
   "/admin/change-password",
   "/admin/forbidden",
+  // The five menu-name pages (owner, 2026-10-29): open to every signed-in
+  // role, each showing only the buttons that role may open.
+  "/admin/hub/x",
 ];
 
 /**

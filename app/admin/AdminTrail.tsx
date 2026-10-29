@@ -54,6 +54,9 @@ export function adminTrail(pathname: string): TrailStep[] {
 
   // Anything not under /admin, and /admin itself, has nothing to retrace.
   if (parts[0] !== "admin") return [];
+  // The five menu-name pages are the top of the menu; /admin/hub alone is not
+  // a page, and a step to it was a link to nothing (2026-10-29).
+  if (parts[1] === "hub") return [];
 
   const steps: TrailStep[] = [];
   let href = "/admin";

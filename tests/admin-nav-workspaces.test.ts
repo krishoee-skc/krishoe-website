@@ -108,15 +108,15 @@ describe("workspaceForPath", () => {
  * cannot appear in two menus out of three.
  */
 describe("the three menus", () => {
-  it("all draw from the same hook", async () => {
-    for (const file of [
-      "app/admin/AdminNav.tsx",
-      "app/admin/AdminMobileNav.tsx",
-      "app/admin/components/AdminDrawer.tsx",
-    ]) {
+  // The simple menu (owner, 2026-10-29, "kha garau"): the sidebar and the
+  // phone sheet both draw the five names from one list, app/admin/hubs.ts.
+  // (AdminDrawer is not mounted anywhere.)
+  it("all draw from the same list", async () => {
+    for (const file of ["app/admin/AdminNav.tsx", "app/admin/AdminMobileNav.tsx"]) {
       const source = await readFile(file, "utf8");
-      expect(source, file).toContain("useAdminWorkspace(adminRole, pathname)");
-      expect(source, file).toContain("WorkspaceSwitch");
+      expect(source, file).toContain('from "@/app/admin/hubs"');
+      expect(source, file).toContain("hubsFor(adminRole).map(");
+      expect(source, file).toContain("hubForPath(pathname)");
     }
   });
 });

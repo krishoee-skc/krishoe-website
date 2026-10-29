@@ -23,8 +23,11 @@ describe("workers' photos are easy to find", () => {
     const layout = await read("app/admin/layout.tsx");
     expect(layout).toContain('canAccessAdminPath(adminRole, "/admin/factory/photos")');
     expect(layout).toContain("counts={counts}");
-    expect(await read("app/admin/AdminNav.tsx")).toContain("const waiting = counts?.[href] ?? 0;");
-    expect(await read("app/admin/AdminMobileNav.tsx")).toContain("const waiting = counts?.[href] ?? 0;");
+    // The simple menu (owner, 2026-10-29): the count rides the menu name that
+    // holds the page — Factory — added up over its pages.
+    expect(await read("app/admin/AdminNav.tsx")).toContain("waiting += counts?.[href] ?? 0;");
+    expect(await read("app/admin/AdminMobileNav.tsx")).toContain("pagesOfHub(id).reduce((sum, page) => sum + (counts?.[page] ?? 0), 0)");
+    expect(await read("app/admin/hubs.ts")).toContain('"/admin/factory/photos", "/admin/factory/workers"');
   });
 
   it("is on the factory row and the factory board", async () => {

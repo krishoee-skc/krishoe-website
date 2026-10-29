@@ -106,7 +106,7 @@ describe("the phone menu", () => {
     expect(sheet).toContain("mt-4 grid grid-cols-4 gap-1.5");
     expect(sheet).toContain('text("☆ Add", "☆ थप्ने")');
     expect(sheet).not.toContain("XIcon");
-    expect(sheet.indexOf("usePins()")).toBeLessThan(sheet.indexOf("<WorkspaceSwitch"));
+    expect(sheet.indexOf("usePins()")).toBeLessThan(sheet.indexOf("hubsFor(adminRole).map("));
   });
 
   it("leaves the dock five buttons, search being the bar's 🔍", async () => {

@@ -31,7 +31,9 @@ describe("menu icon colours", () => {
   it("draws the tile in the sidebar and the phone menu, filled for the open page", async () => {
     for (const file of ["app/admin/AdminNav.tsx", "app/admin/AdminMobileNav.tsx"]) {
       const source = await read(file);
-      expect(source, file).toContain("adminNavToneClasses[adminNavTone(group.id)]");
+      // The simple menu (owner, 2026-10-29): each of the five names keeps the colour of its work.
+      expect(source, file).toContain("HUB_TONE");
+      expect(source, file).toMatch(/adminNavToneClasses\[(tone|HUB_TONE\[id\])\]\[(isActive|active) \? "active" : "tile"\]/);
     }
   });
 });

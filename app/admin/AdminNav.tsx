@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 import { logoutAdminAction } from "@/app/admin/login/actions";
 import { ChevronLeftIcon, ChevronRightIcon, LogOutIcon } from "@/components/Icons";
 import { useSidebar } from "@/components/admin/SidebarProvider";
-import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
-import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { HUBS, hubForPath, hubsFor, pagesOfHub } from "@/app/admin/hubs";
 import { useLanguage } from "@/components/LanguageProvider";
 import { TABLET_QUERY, useMediaQuery } from "@/lib/use-media-query";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
@@ -16,6 +15,9 @@ import { adminNavTone, adminNavToneClasses, navGroupForHref, type AdminNavLink, 
 import { shortcutLink, usePins } from "@/app/admin/admin-shortcuts";
 import { AdminAccountPanel, AdminAvatar, type AdminIdentity } from "@/app/admin/AdminAccount";
 import { useEffect, useRef, useState } from "react";
+
+/** Each menu name keeps the colour of the work it holds. */
+const HUB_TONE: Record<(typeof HUBS)[number]["id"], AdminNavTone> = { home: "blue", sales: "green", money: "gold", factory: "green", all: "blue" };
 
 export default function AdminNav({
   attention,
@@ -52,7 +54,19 @@ export default function AdminNav({
   // form at 768px. The rail does, and every screen stays one tap away.
   const onTablet = useMediaQuery(TABLET_QUERY);
   const isCollapsed = chosenCollapsed || onTablet;
-  const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
+  // The five names of the simple menu (owner, 2026-10-29, "kha garau").
+  const activeHub = hubForPath(pathname);
+  const RANK = { critical: 3, warning: 2, info: 1 } as const;
+  const hubMarks = (id: (typeof HUBS)[number]["id"]) => {
+    let waiting = 0;
+    let needs: AttentionLevel | undefined;
+    for (const href of pagesOfHub(id)) {
+      waiting += counts?.[href] ?? 0;
+      const level = attention?.get(href);
+      if (level && (!needs || RANK[level] > RANK[needs])) needs = level;
+    }
+    return { waiting, needs };
+  };
   const { language, text } = useLanguage();
   const pins = usePins();
   const pinnedLinks = pins.flatMap((href): Array<{ link: AdminNavLink; tone: AdminNavTone }> => {
@@ -97,7 +111,7 @@ export default function AdminNav({
           {/* The shop's own mark, not a letter in a gradient box. It stays
               when the sidebar collapses, where the header used to hold nothing
               but the toggle arrow. */}
-          <Link href="/admin" className="flex min-w-0 items-center gap-2.5">
+          <Link href="/admin/hub/home" className="flex min-w-0 items-center gap-2.5">
             <Image
               src="/images/logo-mark.png"
               alt={isCollapsed ? "KRISHOE" : ""}
@@ -131,14 +145,8 @@ export default function AdminNav({
             the round initials at the foot (owner, 2026-10-14): it took a menu
             row's room all day for something read once. */}
 
-        {/* Which half of the business this menu is showing. */}
-        <div className={`border-b border-admin-border pb-2.5 pt-2.5 dark:border-admin-border-dark ${isCollapsed ? "px-2" : "px-3"}`}>
-          <WorkspaceSwitch
-            workspace={workspace}
-            onChoose={chooseWorkspace}
-            compact={isCollapsed}
-          />
-        </div>
+        {/* The Factory / Shop switch left with the simple menu (owner,
+            2026-10-29): five names hold both sides now. */}
 
         {/* ★ Favourites (owner, 2026-10-14): the screens this person pinned with
             the ☆ beside a page's name, above the groups, on whichever side. */}
@@ -186,20 +194,15 @@ export default function AdminNav({
             all eleven pages fit without scrolling this box on his screen. */}
         <div className="flex-1 overflow-auto py-2.5">
           <nav className={`grid items-start gap-3 ${isCollapsed ? "px-2" : "px-3"}`}>
-            {groups.map((group) => (
-              <div key={group.id} className="grid gap-0.5">
-                {!isCollapsed && (
-                  <p className="px-3 pb-0.5 text-xs font-black uppercase tracking-[0.14em] text-brand-muted-soft dark:text-white/60">
-                    {text(group.titleEn, group.titleNe)}
-                  </p>
-                )}
-                {group.links.map(({ href, label, nepali, icon: Icon }) => {
-                  const isActive = pathname === href;
-                  const needs = attention?.get(href);
-                  const waiting = counts?.[href] ?? 0;
+            <div className="grid gap-1">
+                {hubsFor(adminRole).map(({ id, href, en: label, ne: nepali, icon: Icon }) => {
+                  const isActive = activeHub === id;
+                  const { waiting, needs } = hubMarks(id);
+                  const tone = HUB_TONE[id];
                   return (
                     <Link
-                      key={`${group.id}-${href}`}
+                      key={href}
+                      aria-current={isActive ? "page" : undefined}
                       href={href}
                       title={isCollapsed ? text(label, `${nepali} · ${label}`) : undefined}
                       className={`flex min-h-10 items-center gap-3 rounded-md px-2 py-0.5 font-bold transition-all duration-200 ${
@@ -216,7 +219,7 @@ export default function AdminNav({
                           still says which part of the business each is. */}
                       <span
                         className={`relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] transition-colors ${
-                          adminNavToneClasses[adminNavTone(group.id)][isActive ? "active" : "tile"]
+                          adminNavToneClasses[tone][isActive ? "active" : "tile"]
                         }`}
                       >
                         <Icon className="h-5 w-5" />
@@ -269,8 +272,7 @@ export default function AdminNav({
                     </Link>
                   );
                 })}
-              </div>
-            ))}
+            </div>
           </nav>
           {/* A soft fade at the foot says more names wait below, where the
               browser's own small arrow was the only sign. */}

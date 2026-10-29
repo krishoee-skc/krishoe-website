@@ -11,11 +11,12 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSwitch from "@/components/LanguageSwitch";
 import AdminTextSize from "@/components/admin/AdminTextSize";
 import { SearchIcon } from "@/components/Icons";
-import WorkspaceSwitch from "@/app/admin/WorkspaceSwitch";
-import { useAdminWorkspace } from "@/app/admin/useAdminWorkspace";
+import { HUBS, hubForPath, hubsFor, pagesOfHub } from "@/app/admin/hubs";
 import { useLanguage } from "@/components/LanguageProvider";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
-import { adminNavTone, adminNavToneClasses } from "@/app/admin/nav-links";
+import { adminNavToneClasses, type AdminNavTone } from "@/app/admin/nav-links";
+
+const HUB_TONE: Record<(typeof HUBS)[number]["id"], AdminNavTone> = { home: "blue", sales: "green", money: "gold", factory: "green", all: "blue" };
 
 /**
  * The phone's whole menu, from the bottom (owner, 2026-10-14, the menu sample).
@@ -44,7 +45,7 @@ export default function AdminMobileNav({
     return () => window.removeEventListener(OPEN_ADMIN_MENU, openMenu);
   }, []);
   const [lastPath, setLastPath] = useState(pathname);
-  const { workspace, chooseWorkspace, groups } = useAdminWorkspace(adminRole, pathname);
+  const activeHub = hubForPath(pathname);
   const { language, text } = useLanguage();
   const pins = usePins().filter((href) => canAccessAdminPath(adminRole, href));
   const recent = useRecent().filter((href) => canAccessAdminPath(adminRole, href));
@@ -139,20 +140,16 @@ export default function AdminMobileNav({
           </>
         ) : null}
 
-        <div className="mt-3">
-          <WorkspaceSwitch workspace={workspace} onChoose={chooseWorkspace} />
-        </div>
 
-        {/* Every page of the side on show, in one grid of tiles, as the sample
-            draws it; the colour of each icon still says which part it is. */}
+        {/* The five names of the simple menu (owner, 2026-10-29, "kha garau"),
+            as tiles; All pages holds every screen. */}
         <div className="mt-3 grid grid-cols-3 gap-1.5">
-          {groups.map((group) =>
-          group.links.map(({ href, label, nepali, icon: Icon }) => {
-            const active = pathname === href;
-            const waiting = counts?.[href] ?? 0;
+          {hubsFor(adminRole).map(({ id, href, en: label, ne: nepali, icon: Icon }) => {
+            const active = activeHub === id;
+            const waiting = pagesOfHub(id).reduce((sum, page) => sum + (counts?.[page] ?? 0), 0);
             return (
               <Link
-                key={`${group.id}-${href}`}
+                key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={`relative flex min-h-[5.25rem] flex-col items-center justify-center gap-1.5 rounded-2xl border px-1 py-2 text-center text-sm font-black leading-tight transition ${
@@ -161,11 +158,7 @@ export default function AdminMobileNav({
                     : "border-transparent bg-brand-mist text-brand-green-ink"
                 }`}
               >
-                <span
-                  className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                    adminNavToneClasses[adminNavTone(group.id)][active ? "active" : "tile"]
-                  }`}
-                >
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${adminNavToneClasses[HUB_TONE[id]][active ? "active" : "tile"]}`}>
                   <Icon className="h-5 w-5" />
                 </span>
                 <span>{language === "ne" ? nepali : label}</span>
@@ -176,8 +169,7 @@ export default function AdminMobileNav({
                 ) : null}
               </Link>
             );
-          }),
-          )}
+          })}
         </div>
 
         {/* The look and Sign out, at the foot where the thumb already is. */}

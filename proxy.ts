@@ -183,7 +183,10 @@ export async function proxy(request: NextRequest) {
     isProtectedAdmin(pathname) &&
     adminSession &&
     getSessionAdminRole(adminSession) === "Factory" &&
-    !pathname.startsWith("/admin/factory")
+    !pathname.startsWith("/admin/factory") &&
+    // The Factory menu name of the simple menu (owner, 2026-10-29) lists only
+    // factory pages, filtered to what this role may open.
+    pathname !== "/admin/hub/factory"
   ) {
     return NextResponse.redirect(new URL("/admin/factory", request.url));
   }

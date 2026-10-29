@@ -127,7 +127,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             under the red notice below it and the two texts sat on each other. */}
         <header data-admin-chrome className="sticky top-0 z-40 border-b border-brand-green-line bg-brand-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur lg:relative lg:bg-brand-paper print:hidden dark:bg-admin-sidebar-dark/95">
           <div className="relative flex h-16 items-center gap-2 px-3 sm:px-4 lg:h-[4.5rem] lg:gap-3 lg:px-6">
-            <Link href="/admin" aria-label="KRISHOE" className="shrink-0 md:hidden">
+            <Link href="/admin/hub/home" aria-label="KRISHOE" className="shrink-0 md:hidden">
               <Image src="/images/logo-mark.png" alt="" width={72} height={72} className="h-9 w-9" />
             </Link>
             <WorkspaceBand />

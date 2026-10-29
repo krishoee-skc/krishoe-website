@@ -246,7 +246,16 @@ export const adminOffMenuGroups: AdminNavGroup[] = [
     titleEn: "Everywhere",
     titleNe: "सबैतिर",
     workspace: "both",
-    links: [{ href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon }],
+    links: [
+      { href: "/admin/search", label: "Search", nepali: "खोज्ने", icon: SearchIcon },
+      // The five names of the simple menu (owner, 2026-10-29): listed here so
+      // the top bar names their pages and a ☆ can keep one.
+      { href: "/admin/hub/home", label: "Home", nepali: "आजको काम", icon: HomeIcon },
+      { href: "/admin/hub/sales", label: "Sales", nepali: "बिक्री र ग्राहक", icon: ShoppingCartIcon },
+      { href: "/admin/hub/money", label: "Money", nepali: "पैसा र खरिद", icon: CashIcon },
+      { href: "/admin/hub/factory", label: "Factory", nepali: "कारखाना र ज्याला", icon: FactoryIcon },
+      { href: "/admin/hub/all", label: "All pages", nepali: "सबै page", icon: LayersIcon },
+    ],
   },
 ];
 

@@ -47,6 +47,8 @@ describe("the pages that left the menu are not lost", () => {
   it("keep their side, their name and their colour", () => {
     expect(adminOffMenuLinks.map((link) => link.href)).toEqual([
       "/admin/factory/photos", "/admin/wholesale", "/admin/cheques", "/admin/coupons", "/admin/search",
+      // The five names of the simple menu (owner, 2026-10-29).
+      "/admin/hub/home", "/admin/hub/sales", "/admin/hub/money", "/admin/hub/factory", "/admin/hub/all",
     ]);
     expect(workspaceForPath("/admin/factory/photos")).toBe("factory");
     expect(workspaceForPath("/admin/cheques")).toBe("shop");

@@ -2,12 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  CreditCardIcon,
-  HomeIcon,
-  PackageIcon,
-  UserIcon,
-} from "@/components/Icons";
+import { PackageIcon } from "@/components/Icons";
+import { DOCK } from "@/app/admin/hubs";
 import { canAccessAdminPath, type AdminRole } from "@/lib/admin-role-permissions";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useKeyboardOpen } from "@/lib/use-keyboard-open";
@@ -23,14 +19,10 @@ import { useKeyboardOpen } from "@/lib/use-keyboard-open";
  * Labels are Nepali, because this bar is read at a glance while standing on the
  * factory floor.
  */
-const links = [
-  { href: "/admin", labelEn: "Home", labelNe: "घर", Icon: HomeIcon },
-  { href: "/admin/factory/add-work", labelEn: "Add work", labelNe: "काम टिप्ने", Icon: UserIcon },
-  { href: "/admin/pos", labelEn: "Bill", labelNe: "बिल", Icon: CreditCardIcon },
-  { href: "/admin/stock", labelEn: "Stock", labelNe: "स्टक", Icon: PackageIcon },
-  // Search left the dock (owner, 2026-10-14): it is the 🔍 in the one top
-  // bar, and was the same box twice on a phone.
-];
+// Bill · Sales · Stock · Add work · More (owner, 2026-10-29, the app-model
+// namuna): the main jobs, not Money. Home is the KRISHOE mark at the top. Search
+// left the dock on 2026-10-14: it is the 🔍 in the one top bar.
+const links = DOCK.map(({ href, en, ne, icon }) => ({ href, labelEn: en, labelNe: ne, Icon: icon }));
 
 /**
  * "More" opens the whole menu from the bottom, where the thumb already is
