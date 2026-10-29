@@ -2034,3 +2034,11 @@ CREATE TABLE IF NOT EXISTS cash_days (
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by text NOT NULL DEFAULT ''
 );
+
+-- Made or bought, said by hand (20261029_product_origins.sql).
+CREATE TABLE IF NOT EXISTS product_origins (
+  product_id text PRIMARY KEY,
+  origin text NOT NULL CHECK (origin IN ('made', 'bought')),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by text NOT NULL DEFAULT ''
+);

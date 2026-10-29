@@ -51,6 +51,8 @@ const NOT_BACKED_UP: Record<string, string> = {
   // joins once restore accepts a backup made before a table existed. Two
   // numbers a day, written again from the drawer if lost.
   cash_days: "the drawer's morning cash and evening count; waits for restore to accept older backups",
+  // Same reason (2026-10-29): only a word per shoe, said again in its form if lost.
+  product_origins: "made or bought, said by hand; waits for restore to accept older backups",
   admin_staff_sessions: "who is signed in now; everyone signs in again after a restore",
   admin_staff_access_history: "a log of sign-ins, kept in the live database",
   admin_passkeys: "a passkey belongs to one phone; it is set up again on that phone",

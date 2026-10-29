@@ -117,6 +117,25 @@ export async function clearUnbackedRatingsAction(): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+/**
+ * "Put in Draft" for a shoe on the website with no pairs left (owner,
+ * 2026-10-29): shoppers saw it as sold out. Only a shoe that is on the
+ * website and has none is moved; anything else is left as it is.
+ */
+export async function unpublishEmptyAction(id: string): Promise<PublishState> {
+  await requireAdminPermission("products:write");
+  const product = (await getProducts({ includeDrafts: true })).find((item) => item.id === id);
+  if (!product) return { ok: false, en: "That shoe was not found.", ne: "त्यो जुत्ता भेटिएन।" };
+  if (product.status !== "Active") return { ok: true, en: `${product.name} is already in Draft.`, ne: `${product.name} पहिल्यै Draft मा छ।` };
+  if (product.stock > 0) {
+    return { ok: false, en: `${product.name} has pairs again — it stays on the website.`, ne: `${product.name} मा फेरि जोडी छन् — website मै रहन्छ।` };
+  }
+  await setProductStatus(product.id, "Draft");
+  await recordAdminAuditEvent("product_unpublished_empty", `${product.name} put in Draft: on the website with no pairs.`);
+  revalidatePath("/", "layout");
+  return { ok: true, en: `${product.name} is in Draft now.`, ne: `${product.name} अब Draft मा छ।` };
+}
+
 /** What the drafts panel hears back, in both languages. */
 export type PublishState = { ok: boolean; en: string; ne: string };
 

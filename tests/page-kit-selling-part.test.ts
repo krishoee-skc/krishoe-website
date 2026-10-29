@@ -50,7 +50,8 @@ describe("Products", () => {
   it("shows a photo card a shoe on a phone, and website or draft", async () => {
     const list = await read("app/admin/ProductsClient.tsx");
     expect(list).toContain('className="grid list-none gap-2 pl-0 md:hidden"');
-    expect(list).toContain('{ key: "draft", en: "📝 Draft", ne: "📝 Draft", count: draftCount }');
+    // 2026-10-29: the tab counts follow the stock filter (With pairs / Out of stock / Work to do).
+    expect(list).toContain('{ key: "draft", en: "📝 Draft", ne: "📝 Draft", count: byStock.filter((product) => !isWeb(product)).length }');
     expect(list).toContain('text("Add a photo → put on sale", "फोटो राखेर बिक्रीमा →")');
     const page = await read("app/admin/products/page.tsx");
     expect(page).toContain('<T en="Labels · codes · sync" ne="स्टिकर · कोड · मिलाउने" />');

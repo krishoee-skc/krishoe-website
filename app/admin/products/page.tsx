@@ -11,6 +11,9 @@ import { getProducts } from "@/lib/product-store";
 import { getFinishedStock, getStockOrigins } from "@/lib/operations";
 import { shoeReadiness } from "@/lib/product-readiness";
 import { stockSizesOf } from "@/lib/stock-by-size";
+import { getChosenOrigins, productOriginsReady } from "@/lib/product-origins";
+import { designKey } from "@/lib/design-name";
+import { originOf } from "@/lib/stock-origin";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 
@@ -59,7 +62,21 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
   // skips the size check; the rest needs nothing but the product.
   const finishedStock = await getFinishedStock();
   // 🏭 made / 🛒 bought, from each shoe's stock history (owner, 2026-10-29).
-  const origins = Object.fromEntries(await getStockOrigins());
+  const history = Object.fromEntries(await getStockOrigins());
+  // Said by hand where the history is silent (owner, 2026-10-29).
+  const chosen = await getChosenOrigins();
+  const canChooseOrigin = await productOriginsReady();
+  const origins = { ...history };
+  for (const product of products) {
+    const said = chosen[product.id];
+    if (said && !originOf(history, product.name)) {
+      origins[designKey(product.name)] = { made: said === "made", bought: said === "bought" };
+    }
+  }
+  // What each shoe still needs, on its own line in the list (owner, 2026-10-29).
+  const needs = Object.fromEntries(
+    products.map((product) => [product.id, shoeReadiness(product, stockSizesOf(finishedStock, product.name))]),
+  );
   const drafts = products
     .filter((product) => product.status === "Draft")
     .map((product) => ({
@@ -141,11 +158,16 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
             categories={categories}
             takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
             autoDraft={Boolean(editingProduct) && resolvedSearchParams?.ai === "1"}
+            origin={{
+              history: originOf(history, editingProduct.name),
+              chosen: chosen[editingProduct.id] ?? "",
+              canChoose: canChooseOrigin,
+            }}
           />
         </div>
       ) : null}
 
-      <ProductsClient products={products} editingId={editingProduct?.id ?? null} origins={origins} />
+      <ProductsClient products={products} editingId={editingProduct?.id ?? null} origins={origins} needs={needs} />
 
       <DraftsPanel drafts={drafts} />
 
@@ -160,6 +182,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
               product={null}
               categories={categories}
               takenCodes={products.map(({ id, sku, name }) => ({ id, sku, name }))}
+              origin={{ chosen: "", canChoose: canChooseOrigin }}
             />
           </div>
         </details>

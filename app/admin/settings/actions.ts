@@ -39,6 +39,7 @@ import {
 } from "@/lib/admin-staff-security";
 import { emailLinkBaseUrl } from "@/lib/email-links";
 import { prepareCashDaysDatabase } from "@/lib/cash-days";
+import { prepareProductOriginsDatabase } from "@/lib/product-origins";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
 import { temporaryPasswordProblem } from "@/lib/temporary-password";
@@ -425,6 +426,26 @@ export async function prepareCashDaysDatabaseAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Database ready for the cash drawer.");
+}
+
+/** The Owner's "OK" on the made-or-bought table (2026-10-29), for shoes whose stock history does not say. */
+export async function prepareProductOriginsDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the table.");
+    }
+    const { applied } = await prepareProductOriginsDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_product_origins_ready",
+      applied.length
+        ? `Database prepared for made or bought: ${applied.join(", ")}.`
+        : "Database was already ready for made or bought.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for made or bought.");
 }
 
 /** The Owner's "OK" on the worker app's three tables: photos, requests, leave. */

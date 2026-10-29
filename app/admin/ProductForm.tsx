@@ -13,6 +13,8 @@ import AiDraftButton from "./AiDraftButton";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
 import { codeProblem, codeTakenBy, nextShoeCode } from "@/lib/shoe-code";
 import { colourList, colourSwap, coloursNotOnShoe, swapColourWords } from "@/lib/colour-words";
+import type { StockOrigin } from "@/lib/stock-origin";
+import type { ChosenOrigin } from "@/lib/product-origins";
 
 /** The four boxes that describe the shoe, where its colour is said again. */
 const DESCRIPTION_FIELDS = ["description", "descriptionNe", "longDescription", "longDescriptionNe"] as const;
@@ -24,6 +26,11 @@ type ProductFormProps = {
   takenCodes?: Array<{ id: string; sku: string; name: string }>;
   /** Start the AI draft as the form opens (the Drafts panel's "✨ AI" link). */
   autoDraft?: boolean;
+  /**
+   * Made or bought (owner, 2026-10-29): the stock history's word when it has
+   * one, otherwise what the Owner says here — once its table is there.
+   */
+  origin?: { history?: StockOrigin; chosen: ChosenOrigin | ""; canChoose: boolean };
 };
 
 /** Rupees as typed, shown the way the storefront will show them. */
@@ -31,7 +38,7 @@ function rupeeLabel(rupees: number) {
   return formatPrice(Math.round(rupees * 100));
 }
 
-export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false }: ProductFormProps) {
+export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false, origin }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -467,6 +474,26 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
             <option value="Draft">{text("Draft — hidden", "लुकाइएको")}</option>
           </select>
         </label>
+        {origin?.history ? (
+          <div className="grid gap-1.5">
+            <span className="text-sm font-medium">{text("How it came", "कसरी आयो")}</span>
+            <span className="form-input flex items-center bg-brand-mist">
+              {[origin.history.made ? text("🏭 Made", "🏭 बनाएको") : "", origin.history.bought ? text("🛒 Bought", "🛒 किनेको") : ""]
+                .filter(Boolean)
+                .join(" · ")}{" "}
+              <span className="ml-1 text-xs text-brand-muted">{text("— from its stock history", "— स्टक इतिहासबाट")}</span>
+            </span>
+          </div>
+        ) : origin?.canChoose ? (
+          <label className="grid gap-1.5">
+            <span className="text-sm font-medium">{text("How it came", "कसरी आयो")}</span>
+            <select name="origin" defaultValue={origin.chosen} className="form-input">
+              <option value="">{text("Not said", "भनिएको छैन")}</option>
+              <option value="made">{text("🏭 Made in our factory", "🏭 हाम्रो कारखानामा बनाएको")}</option>
+              <option value="bought">{text("🛒 Bought ready-made", "🛒 तयारी किनेको")}</option>
+            </select>
+          </label>
+        ) : null}
         <div className="flex items-center gap-8 pt-5">
           <label className="flex items-center gap-2">
             <input type="checkbox" name="featured" defaultChecked={product?.featured} />

@@ -12,6 +12,33 @@ import ActionMessage from "@/components/admin/ActionMessage";
 import { deleteProductAction, type ActionState } from "@/app/admin/actions";
 import { useLanguage } from "@/components/LanguageProvider";
 import { StatStrip } from "@/components/admin/PageKit";
+import type { ShoeReadiness } from "@/lib/product-readiness";
+import { unpublishEmptyAction } from "@/app/admin/products/actions";
+
+/**
+ * What a shoe still needs, on its own line (owner, 2026-10-29): red keeps it
+ * off the shop, gold would sell it better, green is ready.
+ */
+function NeedChips({ need, text }: { need?: ShoeReadiness; text: (en: string, ne: string) => string }) {
+  if (!need) return null;
+  if (need.ready && need.advice.length === 0) {
+    return <span className="mt-1 inline-block rounded-full bg-brand-green-wash px-2 py-0.5 text-xs font-black text-brand-green">✓ {text("ready", "तयार")}</span>;
+  }
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      {need.blocking.map((item) => (
+        <span key={item.key} className="rounded-full bg-brand-clay-tint px-2 py-0.5 text-xs font-black text-brand-clay">
+          {text(item.en, item.ne)}
+        </span>
+      ))}
+      {need.advice.map((item) => (
+        <span key={item.key} className="rounded-full bg-brand-cream-soft px-2 py-0.5 text-xs font-bold text-brand-gold-ink">
+          {text(item.en, item.ne)}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function StatusBadge({ status }: { status: string }) {
   const { text } = useLanguage();
@@ -33,9 +60,11 @@ type ProductsClientProps = {
   editingId?: string | null;
   /** Made or bought, by shoe (lib/stock-origin.ts). */
   origins?: Record<string, StockOrigin>;
+  /** What each shoe still needs, by product id (lib/product-readiness.ts). */
+  needs?: Record<string, ShoeReadiness>;
 };
 
-export default function ProductsClient({ products, editingId = null, origins = {} }: ProductsClientProps) {
+export default function ProductsClient({ products, editingId = null, origins = {}, needs = {} }: ProductsClientProps) {
   const { text } = useLanguage();
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -43,6 +72,11 @@ export default function ProductsClient({ products, editingId = null, origins = {
   // Website or draft (owner, 2026-10-12): the ten drafts holding 399 pairs
   // were found only by reading the whole list.
   const [filter, setFilter] = useState<Filter>("all");
+  // Shoes with pairs first (owner, 2026-10-29): eleven sold-out drafts sat
+  // among the ones that could sell. The rest are one press away.
+  const [stockFilter, setStockFilter] = useState<"pairs" | "out" | "todo">("pairs");
+  const [unpublishing, startUnpublishing] = useTransition();
+  const [unpublishNote, setUnpublishNote] = useState<{ ok: boolean; en: string; ne: string } | null>(null);
 
   // A delete that failed used to replace the whole page with the app's error
   // screen. Report it above the table instead and leave the list standing.
@@ -91,15 +125,33 @@ export default function ProductsClient({ products, editingId = null, origins = {
   const wrongInDraft = wrongPhotos.filter((product) => !isWeb(product));
   const pairsOf = (list: Product[]) => list.reduce((total, product) => total + product.stock, 0);
   const webCount = products.filter(isWeb).length;
-  const draftCount = products.length - webCount;
   const draftsWithPairs = products.filter((product) => !isWeb(product) && product.stock > 0).length;
   const noPhoto = products.filter((product) => product.stock > 0 && (isSamplePhoto(product.image) || hasNoPhoto(product.image))).length;
-  const shown = products.filter((product) => (filter === "web" ? isWeb(product) : filter === "draft" ? !isWeb(product) : true));
-  const filters: Array<{ key: Filter; en: string; ne: string; count: number }> = [
-    { key: "all", en: "All", ne: "सबै", count: products.length },
-    { key: "web", en: "🌐 Website", ne: "🌐 वेबसाइट", count: webCount },
-    { key: "draft", en: "📝 Draft", ne: "📝 Draft", count: draftCount },
+  // "Work to do": pairs to sell and something still keeping the shoe back.
+  const hasWork = (product: Product) =>
+    product.stock > 0 && (needs[product.id]?.blocking ?? []).some((item) => item.key !== "stock");
+  const byStock = products.filter((product) =>
+    stockFilter === "pairs" ? product.stock > 0 : stockFilter === "out" ? !(product.stock > 0) : hasWork(product),
+  );
+  const stockFilters = [
+    { key: "pairs" as const, en: "📦 With pairs", ne: "📦 जोडी भएका", count: products.filter((product) => product.stock > 0).length },
+    { key: "out" as const, en: "Out of stock", ne: "स्टक सकिएका", count: products.filter((product) => !(product.stock > 0)).length },
+    { key: "todo" as const, en: "⚠ Work to do", ne: "⚠ काम बाँकी", count: products.filter(hasWork).length },
   ];
+  const shown = byStock.filter((product) => (filter === "web" ? isWeb(product) : filter === "draft" ? !isWeb(product) : true));
+  const filters: Array<{ key: Filter; en: string; ne: string; count: number }> = [
+    { key: "all", en: "All", ne: "सबै", count: byStock.length },
+    { key: "web", en: "🌐 Website", ne: "🌐 वेबसाइट", count: byStock.filter(isWeb).length },
+    { key: "draft", en: "📝 Draft", ne: "📝 Draft", count: byStock.filter((product) => !isWeb(product)).length },
+  ];
+  // On the website with nothing to sell (owner, 2026-10-29: halka fom).
+  const webEmpty = products.filter((product) => isWeb(product) && !(product.stock > 0));
+  const unpublish = (product: Product) =>
+    startUnpublishing(async () => {
+      const result = await unpublishEmptyAction(product.id);
+      setUnpublishNote(result);
+      if (result.ok) router.refresh();
+    });
 
   return (
     <div className="mt-6 space-y-4">
@@ -129,6 +181,51 @@ export default function ProductsClient({ products, editingId = null, origins = {
           </button>
         ))}
       </div>
+
+      <div role="group" aria-label={text("Which shoes, by stock", "स्टक अनुसार कुन जुत्ता")} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+        {stockFilters.map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            aria-pressed={stockFilter === entry.key}
+            onClick={() => setStockFilter(entry.key)}
+            className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-black ${
+              stockFilter === entry.key ? "border-brand-gold bg-brand-cream-soft text-brand-gold-ink" : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+            }`}
+          >
+            {text(entry.en, entry.ne)} <span className="tabular-nums opacity-80">{entry.count}</span>
+          </button>
+        ))}
+      </div>
+
+      {webEmpty.length > 0 ? (
+        <div className="rounded-lg border border-brand-clay bg-brand-clay-tint p-4">
+          <h2 className="text-sm font-black text-brand-clay">
+            🌐 {text(`${webEmpty.length} on the website with no pairs — shoppers see it sold out`, `${webEmpty.length} जुत्ता website मा छन् तर स्टक छैन — ग्राहकले "सकियो" देख्छन्`)}
+          </h2>
+          <ul className="mt-2 grid gap-1.5">
+            {webEmpty.map((product) => (
+              <li key={product.id} className="flex flex-wrap items-center gap-2 text-sm font-bold text-brand-clay">
+                <span>{product.name}</span>
+                <button
+                  type="button"
+                  disabled={unpublishing}
+                  onClick={() => unpublish(product)}
+                  className="min-h-9 rounded-full border border-brand-clay bg-brand-paper px-3 text-sm font-black text-brand-clay disabled:opacity-50"
+                >
+                  {text("Put in Draft", "Draft मा राख्ने")}
+                </button>
+                <Link href={`/admin/products?edit=${encodeURIComponent(product.id)}`} className="text-sm font-black text-brand-green underline">
+                  {text("Edit", "मिलाउने")}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {unpublishNote ? (
+            <p className={`mt-2 text-sm font-bold ${unpublishNote.ok ? "text-brand-green" : "text-brand-clay"}`}>{text(unpublishNote.en, unpublishNote.ne)}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {betterPhotos.length > 0 ? (
         <details className="rounded-lg border border-brand-gold bg-brand-cream-soft p-4">
@@ -201,6 +298,7 @@ export default function ProductsClient({ products, editingId = null, origins = {
                     {product.stock > 0 ? text(`${product.stock} pairs`, `${product.stock} जोडी`) : text("out", "सकियो")}
                   </span>
                 </p>
+                <NeedChips need={needs[product.id]} text={text} />
                 <div className="flex flex-wrap items-center gap-2">
                   {product.stock > 0 && (missingPhoto || !isWeb(product)) ? (
                     <Link
@@ -299,6 +397,7 @@ export default function ProductsClient({ products, editingId = null, origins = {
                     ⚠️ {text("No photo", "फोटो छैन")}
                   </span>
                 ) : null}
+                <NeedChips need={needs[product.id]} text={text} />
               </td>
               <td data-label={text("Code", "कोड")} className="whitespace-nowrap px-4 py-3 font-mono text-brand-muted-deep">{product.sku}</td>
               <td data-label={text("Price", "मूल्य")} className="whitespace-nowrap px-4 py-3 text-brand-muted-deep">{product.price}</td>

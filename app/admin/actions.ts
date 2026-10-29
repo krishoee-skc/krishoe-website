@@ -56,6 +56,7 @@ import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { parseCheckoutItems } from "@/lib/order-pricing";
 import { placeCheckoutOrder } from "@/lib/checkout-order";
 import { whatsappOrderKey } from "@/lib/whatsapp-order";
+import { setChosenOrigin } from "@/lib/product-origins";
 
 export type ActionState = {
   ok: boolean;
@@ -532,7 +533,7 @@ export async function upsertProductAction(
   _previousState: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireAdminPermission("products:write");
+  const access = await requireAdminPermission("products:write");
 
   const categorySlug = textValue(formData, "categorySlug") || categories[0].slug;
   const category = categories.find((item) => item.slug === categorySlug) ?? categories[0];
@@ -666,6 +667,15 @@ export async function upsertProductAction(
     }
     reportError(`save product ${product.sku}`, error);
     return { ok: false, message: saveFailureMessage(error, "Could not save this product.") };
+  }
+
+  // Made or bought, when the form asked (owner, 2026-10-29). A failure here
+  // leaves the shoe saved; only the mark is missing, and it is said again.
+  if (formData.has("origin")) {
+    const origin = textValue(formData, "origin");
+    await setChosenOrigin(product.id, origin === "made" || origin === "bought" ? origin : "", access?.session?.name || access?.session?.email || "Owner").catch((error) =>
+      reportError(`save made or bought for ${product.sku}`, error),
+    );
   }
 
   await auditAdminAction("product_upsert", `Product ${product.sku} (${product.id}) saved as ${product.status}.`);
