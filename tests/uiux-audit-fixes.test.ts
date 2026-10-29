@@ -36,6 +36,12 @@ describe("UI/UX audit fixes", () => {
     expect(size).not.toMatch(/>\s*अ\s*</);
   });
 
+  it("dashboard money figures shrink to their cell instead of running into the next one", () => {
+    const board = read("components/admin/OwnerDashboard.tsx");
+    expect(board.match(/\[container-type:inline-size\]/g)?.length).toBe(2);
+    expect(board.match(/whitespace-nowrap font-display text-\[length:min\(1\.875rem,13\.5cqi\)\]/g)?.length).toBe(2);
+  });
+
   it("6: the chat bubble steps aside on a phone while the customer scrolls down", () => {
     const bubble = read("components/AiAssistant.tsx");
     expect(bubble).toContain("setTucked(y > lastY && y > 80)");

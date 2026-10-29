@@ -332,9 +332,10 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
       {/* The day as one journey (owner, 2026-10-27, the dashboard sample):
           made → sent to the shop → sold → taken in, and the goal. On a phone
           What now comes first, above it (owner, 2026-10-01, asked again
-          2026-10-27). */}
+          2026-10-27). Five across only from 1280px (xl): narrower, the
+          figures and the period buttons ran into the next cell (2026-10-29). */}
       <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-brand-green-line bg-brand-green-line shadow-sm lg:grid-cols-[repeat(4,minmax(0,1fr))_10rem]">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-brand-green-line bg-brand-green-line shadow-sm xl:grid-cols-[repeat(4,minmax(0,1fr))_10rem]">
           {/* 🏭 Made */}
           <div className="relative grid content-start gap-1 bg-brand-paper p-4">
             <span className="text-xs font-black uppercase tracking-wide text-brand-muted">{text("🏭 Made · today", "🏭 बन्यो · आज")}</span>
@@ -355,7 +356,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
               </p>
             ) : null}
             <Link href="/admin/factory/add-work" className="text-sm font-black text-brand-green">{text("Add work →", "काम टिप्ने →")}</Link>
-            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold lg:block">→</span>
+            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold xl:block">→</span>
           </div>
 
           {/* 🚚 Sent to the shop */}
@@ -378,14 +379,17 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
             ) : (
               <p className="text-sm font-bold text-brand-green">{text("✓ Every website shoe is at the shop", "✓ वेबसाइटका सबै जुत्ता पसलमा छन्")}</p>
             )}
-            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold lg:block">→</span>
+            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold xl:block">→</span>
           </div>
 
           {/* 🛒 Sold */}
-          <div className="relative col-span-2 grid content-start gap-1 bg-brand-paper p-4 lg:col-span-1">
+          {/* The cell is a size container and the figure is at most 13.5% of
+              its width (owner, 2026-10-29): on a 1366px screen "Rs. 11,300"
+              ran over the arrow into Taken in. Wide cells keep the full size. */}
+          <div className="relative col-span-2 grid content-start gap-1 bg-brand-paper p-4 [container-type:inline-size] xl:col-span-1">
             <div className="grid gap-1">
               <span className="text-xs font-black uppercase tracking-wide text-brand-muted">🛒 {periodLabel}</span>
-              <div role="group" aria-label={text("Period", "अवधि")} className="inline-flex w-fit rounded-lg bg-brand-green-wash p-0.5">
+              <div role="group" aria-label={text("Period", "अवधि")} className="inline-flex w-fit max-w-full flex-wrap rounded-lg bg-brand-green-wash p-0.5">
                 {(["today", "week", "month"] as const).map((key) => (
                   <button
                     key={key}
@@ -399,7 +403,7 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
                 ))}
               </div>
             </div>
-            <Money value={money} className="font-display text-3xl font-black leading-tight text-brand-green-ink" />
+            <Money value={money} className="whitespace-nowrap font-display text-[length:min(1.875rem,13.5cqi)] font-black leading-tight text-brand-green-ink" />
             {period === "today" ? (
               <p className="flex flex-wrap gap-x-3 text-xs font-bold text-brand-muted">
                 <span>{text("Retail", "खुद्रा")} <b className="tabular-nums">{rupees(props.today.retail, language)}</b></span>
@@ -407,13 +411,13 @@ export default function OwnerDashboard(props: OwnerDashboardProps) {
                 <span>{text("Online", "अनलाइन")} <b className="tabular-nums">{rupees(props.today.online, language)}</b></span>
               </p>
             ) : null}
-            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold lg:block">→</span>
+            <span aria-hidden="true" className="absolute -right-2.5 top-1/2 z-10 hidden -translate-y-1/2 font-black text-brand-gold xl:block">→</span>
           </div>
 
           {/* 💰 Taken in */}
-          <div className="grid content-start gap-1 bg-brand-paper p-4">
+          <div className="grid content-start gap-1 bg-brand-paper p-4 [container-type:inline-size]">
             <span className="text-xs font-black uppercase tracking-wide text-brand-muted">{text("💰 Taken in · today", "💰 हातमा आएको · आज")}</span>
-            <span className="font-display text-3xl font-black leading-tight tabular-nums text-brand-green-ink">{rupees(props.collected, language)}</span>
+            <span className="whitespace-nowrap font-display text-[length:min(1.875rem,13.5cqi)] font-black leading-tight tabular-nums text-brand-green-ink">{rupees(props.collected, language)}</span>
           </div>
 
           {/* 🎯 The goal */}
