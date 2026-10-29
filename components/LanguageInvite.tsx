@@ -87,7 +87,10 @@ export default function LanguageInvite() {
     try {
       // Already answered, or already chose a language some other way.
       if (window.localStorage.getItem(ASKED_KEY)) return;
-      if (window.localStorage.getItem(SAVED_KEY)) return;
+      // Only Nepali counts as a choice here: LanguageProvider writes "en" on
+      // every first page by itself, so a visitor who landed on a shoe (where
+      // the card waits) would otherwise never be asked at all.
+      if (window.localStorage.getItem(SAVED_KEY) === "ne") return;
       timer = window.setTimeout(() => {
         if (quietPage(window.location.pathname)) return;
         // Just under the header, wherever its height has settled.

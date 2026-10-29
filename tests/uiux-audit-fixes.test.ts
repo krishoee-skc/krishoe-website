@@ -15,6 +15,8 @@ describe("UI/UX audit fixes", () => {
     const card = read("components/LanguageInvite.tsx");
     expect(card).toContain("const STAY_MS = 10_000;");
     expect(card).toContain("const MAX_SHOWINGS = 2;");
+    // The provider saves "en" by itself, so only "ne" means already chosen.
+    expect(card).toContain('getItem(SAVED_KEY) === "ne") return;');
   });
 
   it("5: no shop text under 12px in the trust cards, the delivery facts or the language switch", () => {
