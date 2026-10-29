@@ -18,6 +18,10 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
  * the page. Driving the column from the same state fixes that — the page grows
  * to fill the freed space the moment the rail collapses.
  *
+ * The open width is 15rem (240px at normal size), so it grows with the अ/A
+ * text size: at a fixed 240px the larger sizes cut "KRISHOE" to "KRISH…"
+ * (owner's screenshot, 2026-10-29).
+ *
  * The grid lives here (a client component) rather than in the async layout so it
  * can read the collapse state; `children` is still the server-rendered page.
  */
@@ -33,7 +37,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       <div
         data-admin-shell
         className={`grid min-h-screen w-full md:grid-cols-[80px_1fr] print:block ${
-          isCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[240px_1fr]"
+          isCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[15rem_1fr]"
         }`}
       >
         {children}

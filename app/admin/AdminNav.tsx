@@ -100,7 +100,7 @@ export default function AdminNav({
   }, [accountOpen]);
 
   return (
-    <div data-admin-chrome className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:sticky md:top-0 md:h-dvh md:self-start md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[240px]"}`}>
+    <div data-admin-chrome className={`hidden overflow-hidden border-r border-admin-border bg-admin-sidebar transition-all duration-300 md:sticky md:top-0 md:h-dvh md:self-start md:block md:w-20 lg:overflow-visible print:hidden dark:border-admin-border-dark dark:bg-admin-sidebar-dark ${chosenCollapsed ? "lg:w-20" : "lg:w-[15rem]"}`}>
       {/* The menu stays on screen (owner, 2026-10-01): it used to scroll away
           with a long page, leaving a blank strip under Sign out and sending
           him back to the top to open another page. The sidebar is sticky and
@@ -324,7 +324,9 @@ export default function AdminNav({
                 <span className="truncate text-sm font-black text-brand-green-ink dark:text-white">
                   {adminRole}{adminRole === "Owner" ? " 👑" : ""}
                 </span>
-                <span className="truncate text-xs font-semibold text-brand-muted dark:text-white/60">
+                {/* Wraps to a second line rather than "Main Factory · al…"
+                    (owner, 2026-10-29). */}
+                <span className="break-words text-xs font-semibold text-brand-muted dark:text-white/60">
                   {[branchName || branchId || "", seesAllBranches ? text("all branches", "सबै शाखा") : ""].filter(Boolean).join(" · ")}
                 </span>
               </span>

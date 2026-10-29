@@ -99,7 +99,8 @@ export default function AdminTextSize({
   const label = (index: number) => text(NAMES[index].en, NAMES[index].ne);
 
   // One "अ" in the top bar, as the menu sample draws it (owner, 2026-10-14):
-  // each press takes the next size, and the letter grows with it.
+  // each press takes the next size, and the letter grows with it. "A" while
+  // the screen is in English, "अ" in Nepali (owner, 2026-10-29).
   if (single) {
     const next = (step + 1) % SIZES.length;
     return (
@@ -111,7 +112,7 @@ export default function AdminTextSize({
         className={className}
         style={{ fontSize: `${1 + step * 0.15}rem` }}
       >
-        {children ?? "अ"}
+        {children ?? text("A", "अ")}
       </button>
     );
   }
@@ -129,7 +130,7 @@ export default function AdminTextSize({
           className={`grid h-11 min-w-11 place-items-center px-2 font-black ${step === index ? "bg-brand-green text-white" : "bg-brand-paper text-brand-green-ink"}`}
           style={{ fontSize: `${0.85 + index * 0.18}rem` }}
         >
-          अ
+          {text("A", "अ")}
         </button>
       ))}
     </div>

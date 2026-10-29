@@ -27,6 +27,15 @@ describe("UI/UX audit fixes", () => {
     expect(read("components/NavbarControls.tsx")).toContain("[&>button]:text-xs");
   });
 
+  it("admin sidebar grows with the text size, and the size letter follows the language", () => {
+    expect(read("app/admin/AdminNav.tsx")).toContain('"lg:w-[15rem]"');
+    expect(read("app/admin/AdminNav.tsx")).toContain('<span className="break-words text-xs font-semibold');
+    expect(read("components/admin/SidebarProvider.tsx")).toContain('"lg:grid-cols-[15rem_1fr]"');
+    const size = read("components/admin/AdminTextSize.tsx");
+    expect(size).toContain('{children ?? text("A", "अ")}');
+    expect(size).not.toMatch(/>\s*अ\s*</);
+  });
+
   it("6: the chat bubble steps aside on a phone while the customer scrolls down", () => {
     const bubble = read("components/AiAssistant.tsx");
     expect(bubble).toContain("setTucked(y > lastY && y > 80)");
