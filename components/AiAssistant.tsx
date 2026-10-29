@@ -32,6 +32,22 @@ export default function AiAssistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [turns, busy, open]);
 
+  // On a phone the bubble steps aside while the customer scrolls down through
+  // the shoes and comes back on a scroll up (UI/UX audit 6, 2026-10-29): over
+  // the tab bar it sat on the cards' corners and their prices.
+  const [tucked, setTucked] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - lastY) < 12) return;
+      setTucked(y > lastY && y > 80);
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   if (HIDDEN_PREFIXES.some((prefix) => pathname?.startsWith(prefix))) {
     return null;
   }
@@ -90,7 +106,7 @@ export default function AiAssistant() {
           aria-label={text("Open KRISHOE assistant", "KRISHOE सहायक खोल्नुहोस्")}
           // Smaller and at the very edge on a phone (owner's phone sample 9 ख,
           // 2026-10-24): at 48px, 16px in, it sat over the cards' corners.
-          className={`fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom))] right-2 z-40 flex h-10 w-10 md:right-4 md:bottom-5 md:h-12 md:w-12 lg:h-14 lg:w-14 ${buyingPage ? "max-lg:hidden" : ""} items-center justify-center rounded-full bg-brand-green-ink text-white shadow-xl ring-2 ring-brand-gold/60 transition hover:scale-105`}
+          className={`fixed bottom-[calc(6.75rem+env(safe-area-inset-bottom))] right-2 z-40 flex h-10 w-10 md:right-4 md:bottom-5 md:h-12 md:w-12 lg:h-14 lg:w-14 ${buyingPage ? "max-lg:hidden" : ""} ${tucked ? "max-md:pointer-events-none max-md:translate-x-16 max-md:opacity-0" : ""} items-center justify-center rounded-full bg-brand-green-ink text-white shadow-xl ring-2 ring-brand-gold/60 transition duration-200 hover:scale-105 motion-reduce:transition-none`}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5 md:h-6 md:w-6" fill="none" stroke="currentColor" strokeWidth="2">
             <path

@@ -94,7 +94,7 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       {/* On a phone and tablet, a small one in the bar itself (owner's shop
           sample, 5, 2026-10-26): the question that used to be asked in a strip
           over the logo now points here, and the switch is always one tap away. */}
-      <LanguageSwitch className="!h-8 lg:hidden [&>button]:!min-h-0 [&>button]:!min-w-0 [&>button]:px-2 [&>button]:text-[11px] [&_svg]:hidden" compact />
+      <LanguageSwitch className="!h-8 lg:hidden [&>button]:!min-h-0 [&>button]:!min-w-0 [&>button]:px-2 [&>button]:text-xs [&_svg]:hidden" compact />
 
 
       <span className="hidden lg:block">
@@ -124,14 +124,14 @@ export default function NavbarControls({ isLoggedIn, isAdmin }: NavbarControlsPr
       {isLoggedIn ? (
         <Link
           href={isAdmin ? "/admin" : "/account"}
-          className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
+          className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-xs font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
         >
           {text("My Account", "मेरो खाता")}
         </Link>
       ) : (
         <Link
           href="/account/login"
-          className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
+          className="hidden h-10 items-center rounded-full border border-brand-green/25 px-5 text-xs font-bold uppercase tracking-[0.16em] text-brand-green-ink transition duration-200 hover:border-brand-gold hover:text-brand-green sm:inline-flex"
         >
           {text("Account", "खाता")}
         </Link>

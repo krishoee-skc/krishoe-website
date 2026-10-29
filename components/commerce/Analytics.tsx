@@ -15,9 +15,10 @@ import { activeTrackingIds } from "@/lib/tracking-ids";
 // debugger (Meta Pixel Helper, TikTok Pixel Helper, GA4 DebugView) that hits
 // arrive before trusting an ad spend to them.
 //
-// The vendors' libraries load with lazyOnload — after the page, when the
-// phone is idle. Meta and GA keep a queue from the first moment, so nothing
-// is lost; TikTok's events from before its code arrives are not kept.
+// Meta's and GA's libraries load on the first touch, key or scroll, or after
+// eight seconds; their queues start at once, so nothing is lost. TikTok's
+// loads with lazyOnload, and its events from before its code arrives are not
+// kept.
 export function Analytics() {
   // Nothing fires outside production, so browsing the shop while working on it
   // cannot teach the live ad account anything. See lib/tracking-ids.ts.
@@ -41,7 +42,6 @@ n.queue=[]}(window);
 fbq('init', '${pixelId}');
 fbq('track', 'PageView');`}
           </Script>
-          <Script src="https://connect.facebook.net/en_US/fbevents.js" strategy="lazyOnload" />
           <noscript>
             {/* eslint-disable-next-line @next/next/no-img-element -- Meta Pixel requires a raw 1x1 tracking pixel, not next/image */}
             <img
@@ -57,10 +57,6 @@ fbq('track', 'PageView');`}
 
       {ga4Id ? (
         <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}
-            strategy="lazyOnload"
-          />
           <Script id="ga4" strategy="afterInteractive">
             {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
@@ -70,6 +66,23 @@ gtag('config', '${ga4Id}');`}
         </>
       ) : null}
 
+      {/* The two libraries themselves (Meta about 200 KB, Google about 150 KB)
+          wait for the customer's first touch, key or scroll — or eight seconds,
+          whichever comes first (UI/UX audit 1, 2026-10-29): loaded while the
+          phone was still drawing the shop, they held the main thread for over
+          half a second and the first photo waited behind them. The queues
+          above keep every event from the first moment, so nothing is lost. */}
+      {pixelId || ga4Id ? (
+        <Script id="ad-libraries" strategy="afterInteractive">
+          {adLibraryLoader(
+            [
+              pixelId ? "https://connect.facebook.net/en_US/fbevents.js" : "",
+              ga4Id ? `https://www.googletagmanager.com/gtag/js?id=${ga4Id}` : "",
+            ].filter(Boolean),
+          )}
+        </Script>
+      ) : null}
+
       {tiktokPixelId ? (
         <Script id="tiktok-pixel" strategy="lazyOnload">
           {tiktokPixelSnippet(tiktokPixelId)}
@@ -77,4 +90,12 @@ gtag('config', '${ga4Id}');`}
       ) : null}
     </>
   );
+}
+
+/** Adds each library's script tag once, on the first sign of a person, or after 8 s. */
+export function adLibraryLoader(sources: string[]) {
+  return `(function(){var done=false,events=["pointerdown","keydown","touchstart","scroll"];
+function go(){if(done)return;done=true;events.forEach(function(e){removeEventListener(e,go)});
+${JSON.stringify(sources)}.forEach(function(src){var t=document.createElement("script");t.async=true;t.src=src;document.head.appendChild(t)})}
+events.forEach(function(e){addEventListener(e,go,{passive:true})});setTimeout(go,8000)})();`;
 }

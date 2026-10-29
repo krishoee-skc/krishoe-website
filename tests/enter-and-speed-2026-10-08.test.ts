@@ -73,13 +73,39 @@ describe("the ad libraries wait for the page", () => {
 
   it("loads Meta, GA and TikTok after the page, keeping Meta's and GA's queue from the start", async () => {
     const source = await read("components/commerce/Analytics.tsx");
-    expect(source).toContain('<Script src="https://connect.facebook.net/en_US/fbevents.js" strategy="lazyOnload" />');
     expect(source).toContain('<Script id="meta-pixel" strategy="afterInteractive">');
     expect(source).toContain("n.queue=[]}(window);");
     expect(source).not.toContain("insertBefore");
     expect(source).toContain('<Script id="ga4" strategy="afterInteractive">');
     expect(source).toContain('<Script id="tiktok-pixel" strategy="lazyOnload">');
-    expect(source.match(/strategy="lazyOnload"/g)?.length).toBe(3);
+    expect(source.match(/strategy="lazyOnload"/g)?.length).toBe(1);
+    // UI/UX audit 1, 2026-10-29: Meta's and Google's libraries wait for a touch.
+    expect(source).toContain('<Script id="ad-libraries" strategy="afterInteractive">');
+    expect(source).toContain('"https://connect.facebook.net/en_US/fbevents.js"');
+  });
+
+  it("adds the ad libraries on the first touch, or after eight seconds, once", async () => {
+    const { adLibraryLoader } = await import("@/components/commerce/Analytics");
+    const added: string[] = [];
+    const listeners = new Map<string, () => void>();
+    let timer: (() => void) | undefined;
+    const fakeWindow = {
+      addEventListener: (event: string, fn: () => void) => listeners.set(event, fn),
+      removeEventListener: (event: string) => listeners.delete(event),
+      setTimeout: (fn: () => void) => { timer = fn; },
+      document: {
+        createElement: () => ({}) as { src?: string },
+        head: { appendChild: (tag: { src: string }) => added.push(tag.src) },
+      },
+    };
+    const run = new Function(...Object.keys(fakeWindow), adLibraryLoader(["https://a.example/lib.js"]));
+    run(...Object.values(fakeWindow));
+    expect(added).toEqual([]);
+    listeners.get("touchstart")?.();
+    expect(added).toEqual(["https://a.example/lib.js"]);
+    expect(listeners.size).toBe(0);
+    timer?.();
+    expect(added).toHaveLength(1);
   });
 
   it("does not fetch the sign-in font on every shop page", async () => {

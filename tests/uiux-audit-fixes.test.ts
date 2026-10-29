@@ -1,0 +1,33 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { quietPage } from "@/components/LanguageInvite";
+
+const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+
+/** The owner's UI/UX audit, items 4, 5 and 6 (2026-10-29). */
+describe("UI/UX audit fixes", () => {
+  it("4: the language card leaves the buying pages alone and goes by itself", () => {
+    expect(quietPage("/product/lose-hill-panja-kr-206")).toBe(true);
+    expect(quietPage("/cart")).toBe(true);
+    expect(quietPage("/checkout")).toBe(true);
+    expect(quietPage("/")).toBe(false);
+    expect(quietPage("/shop/ladies-slippers")).toBe(false);
+    const card = read("components/LanguageInvite.tsx");
+    expect(card).toContain("const STAY_MS = 10_000;");
+    expect(card).toContain("const MAX_SHOWINGS = 2;");
+  });
+
+  it("5: no shop text under 12px in the trust cards, the delivery facts or the language switch", () => {
+    for (const file of ["components/TrustStrip.tsx", "app/page.tsx", "components/NavbarControls.tsx"]) {
+      const source = read(file);
+      expect(source, file).not.toMatch(/text-\[(?:9|10|10\.5|11|11\.5)px\][^"]*(?:leading|font-bold|uppercase)/);
+    }
+    expect(read("components/NavbarControls.tsx")).toContain("[&>button]:text-xs");
+  });
+
+  it("6: the chat bubble steps aside on a phone while the customer scrolls down", () => {
+    const bubble = read("components/AiAssistant.tsx");
+    expect(bubble).toContain("setTucked(y > lastY && y > 80)");
+    expect(bubble).toContain("max-md:translate-x-16 max-md:opacity-0");
+  });
+});

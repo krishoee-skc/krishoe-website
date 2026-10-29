@@ -62,8 +62,8 @@ export default function TrustStrip() {
           <span aria-hidden="true" className="mx-auto grid h-7 w-7 place-items-center rounded-lg bg-brand-green-wash text-brand-green sm:h-9 sm:w-9 sm:rounded-xl">
             <item.Icon className="h-5 w-5" />
           </span>
-          <p className="mt-1 text-[11.5px] font-black leading-tight text-brand-green-ink sm:mt-1.5 sm:text-sm">{item.value}</p>
-          <p className="mt-0.5 text-[10.5px] leading-[0.85rem] text-brand-muted sm:text-[13px] sm:leading-[1.15rem]">{item.label}</p>
+          <p className="mt-1 text-[13px] font-black leading-tight text-brand-green-ink sm:mt-1.5 sm:text-sm">{item.value}</p>
+          <p className="mt-0.5 text-xs leading-4 text-brand-muted sm:text-[13px] sm:leading-[1.15rem]">{item.label}</p>
         </li>
       ))}
     </ul>

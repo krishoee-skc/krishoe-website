@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
@@ -16,6 +17,9 @@ import { useLanguage } from "@/components/LanguageProvider";
  * read Nepali. The phone reports the setting, not the preference. So this asks,
  * because a question is never wrong the way a guess can be.
  *
+ * (2026-10-29: never on a shoe, the cart or checkout; it goes by itself on a
+ * scroll or after ten seconds, and stops asking after two unanswered showings.)
+ *
  * It asks once. A choice — or a dismissal — is remembered, and the card never
  * appears again. It waits a few seconds first and hangs under the header, so it
  * interrupts nobody who is already reading, and it is not a modal: a shopper
@@ -25,15 +29,57 @@ import { useLanguage } from "@/components/LanguageProvider";
 
 const ASKED_KEY = "krishoe-language-asked";
 const SAVED_KEY = "krishoe-language";
+/** How many times the card has shown itself and gone unanswered. */
+const SHOWN_KEY = "krishoe-language-shown";
 
 /** Long enough that the page has drawn and the reader has settled. */
 const DELAY_MS = 2500;
+/** It steps aside by itself after this long, or on a scroll (UI/UX audit 4). */
+const STAY_MS = 10_000;
+/** Unanswered this many times, it stops asking; the header switch remains. */
+const MAX_SHOWINGS = 2;
+
+/**
+ * The buying pages are left alone (UI/UX audit 4, 2026-10-29): there the card
+ * covered the shoe's name and the checkout heading at the moment that matters
+ * most. It waits for the next shop page instead.
+ */
+export function quietPage(pathname: string) {
+  return /^\/(product\/|cart$|checkout)/.test(pathname);
+}
 
 export default function LanguageInvite() {
   const { setLanguage } = useLanguage();
+  const pathname = usePathname() ?? "";
   const [show, setShow] = useState(false);
   const [top, setTop] = useState(64);
   const [arrow, setArrow] = useState(72);
+
+  // Once up, it goes by itself — on a scroll, or after STAY_MS — and that
+  // counts as one showing; a reader who scrolls past it twice has said enough.
+  useEffect(() => {
+    if (!show) return;
+    const startY = window.scrollY;
+    const away = () => {
+      setShow(false);
+      try {
+        const shown = Number(window.localStorage.getItem(SHOWN_KEY) ?? "0") + 1;
+        window.localStorage.setItem(SHOWN_KEY, String(shown));
+        if (shown >= MAX_SHOWINGS) window.localStorage.setItem(ASKED_KEY, "1");
+      } catch {
+        // Nothing to remember it in; it simply goes.
+      }
+    };
+    const onScroll = () => {
+      if (Math.abs(window.scrollY - startY) > 120) away();
+    };
+    const timer = window.setTimeout(away, STAY_MS);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [show]);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -43,6 +89,7 @@ export default function LanguageInvite() {
       if (window.localStorage.getItem(ASKED_KEY)) return;
       if (window.localStorage.getItem(SAVED_KEY)) return;
       timer = window.setTimeout(() => {
+        if (quietPage(window.location.pathname)) return;
         // Just under the header, wherever its height has settled.
         const header = document.querySelector(".krs-header");
         // Below the phone's search box too, where the home page has one.
@@ -67,9 +114,12 @@ export default function LanguageInvite() {
     return () => {
       if (timer) window.clearTimeout(timer);
     };
-  }, []);
+    // Again on each new page, so a first visit that lands on a shoe is asked
+    // on the next shop page instead.
+  }, [pathname]);
 
-  if (!show) return null;
+  // Going to a buying page while it is up puts it out of sight there too.
+  if (!show || quietPage(pathname)) return null;
 
   const answer = (choice: "en" | "ne" | null) => {
     try {

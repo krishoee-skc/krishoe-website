@@ -220,22 +220,22 @@ export default async function Home() {
         <div className="mx-auto grid max-w-5xl grid-cols-4 gap-1.5 sm:gap-3">
           <div className="flex flex-col items-center gap-1 rounded-xl border border-brand-green-line bg-brand-paper px-1 py-2.5 text-center shadow-sm sm:gap-2 sm:rounded-2xl sm:p-4">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-5 w-5 sm:h-6 sm:w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h13v10H3zM16 10h3l2 3v4h-5M6 19a2 2 0 1 0 4 0M15 19a2 2 0 1 0 4 0" /></svg>
-            <span className="text-[11px] font-bold leading-tight text-brand-green-ink sm:text-sm"><T en="Delivery across Nepal" ne="नेपालभर डेलिभरी" /></span>
+            <span className="text-xs font-bold leading-tight text-brand-green-ink sm:text-sm"><T en="Delivery across Nepal" ne="नेपालभर डेलिभरी" /></span>
           </div>
           <div className="flex flex-col items-center gap-1 rounded-xl border border-brand-green-line bg-brand-paper px-1 py-2.5 text-center shadow-sm sm:gap-2 sm:rounded-2xl sm:p-4">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-5 w-5 sm:h-6 sm:w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 1 3 6.7M3 12v5m0-5h5" /></svg>
-            <span className="text-[11px] font-bold leading-tight text-brand-green-ink sm:text-sm"><T en="Easy Returns" ne="सजिलो फिर्ता" /></span>
+            <span className="text-xs font-bold leading-tight text-brand-green-ink sm:text-sm"><T en="Easy Returns" ne="सजिलो फिर्ता" /></span>
           </div>
           <div className="flex flex-col items-center gap-1 rounded-xl border border-brand-green-line bg-brand-paper px-1 py-2.5 text-center shadow-sm sm:gap-2 sm:rounded-2xl sm:p-4">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-5 w-5 sm:h-6 sm:w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6l-8-3Z" /></svg>
-            <span className="text-[11px] font-bold leading-tight text-brand-green-ink sm:text-sm"><T en="Premium Quality" ne="उत्कृष्ट गुण" /></span>
+            <span className="text-xs font-bold leading-tight text-brand-green-ink sm:text-sm"><T en="Premium Quality" ne="उत्कृष्ट गुण" /></span>
           </div>
           {/* What a customer can really pay with (owner, 2026-10-13): "Secure
               Payment" promised online paying while only cash on delivery
               worked. It says so again once eSewa or Khalti is live. */}
           <div className="flex flex-col items-center gap-1 rounded-xl border border-brand-green-line bg-brand-paper px-1 py-2.5 text-center shadow-sm sm:gap-2 sm:rounded-2xl sm:p-4">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="#12634A" strokeWidth="1.8" className="h-5 w-5 sm:h-6 sm:w-6"><rect x="3" y="6" width="18" height="13" rx="2" /><path strokeLinecap="round" d="M3 10h18" /></svg>
-            <span className="text-[11px] font-bold leading-tight text-brand-green-ink sm:text-sm">
+            <span className="text-xs font-bold leading-tight text-brand-green-ink sm:text-sm">
               {onlinePaymentLive() ? <T en="Secure Payment" ne="सुरक्षित भुक्तानी" /> : <T en="Cash on delivery" ne="घरमै नगद तिर्ने" />}
             </span>
           </div>
@@ -293,7 +293,7 @@ export default async function Home() {
           itself like the mockup, drawn from the one place these facts live. */}
       <section className="bg-brand-mist px-4 py-8 md:py-12 md:px-8">
         <div className="mx-auto max-w-4xl">
-          <p className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-brand-gold-deep">
+          <p className="text-center text-xs font-black uppercase tracking-[0.24em] text-brand-gold-deep">
             <T en="Reach us" ne="सम्पर्क" />
           </p>
           <h2 className="mt-2 text-center font-display text-3xl font-bold text-brand-green md:text-4xl">

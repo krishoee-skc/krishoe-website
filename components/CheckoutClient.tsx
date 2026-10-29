@@ -857,7 +857,7 @@ export default function CheckoutClient({ user = null, bank, deliveryPricing }: C
         </div>
         {/* The shoes themselves, for someone who has not looked at any yet
             (owner's phone sample 7, 2026-10-24). */}
-        <OtherPairs products={products} exclude={[]} title={text("Pick a pair", "जोडी छान्नुहोस्")} />
+        <OtherPairs products={products} exclude={[]} title={text("Pick a pair", "जोडी छान्नुहोस्")} eager />
         <RecentlyViewed />
       </div>
     );
