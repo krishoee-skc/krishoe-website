@@ -8,7 +8,7 @@ import LoadFailure from "@/components/admin/LoadFailure";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { categories } from "@/lib/products";
 import { getProducts } from "@/lib/product-store";
-import { getFinishedStock } from "@/lib/operations";
+import { getFinishedStock, getStockOrigins } from "@/lib/operations";
 import { shoeReadiness } from "@/lib/product-readiness";
 import { stockSizesOf } from "@/lib/stock-by-size";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -58,6 +58,8 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
   // What each Draft still needs (owner, 2026-10-07). An empty stock read only
   // skips the size check; the rest needs nothing but the product.
   const finishedStock = await getFinishedStock();
+  // 🏭 made / 🛒 bought, from each shoe's stock history (owner, 2026-10-29).
+  const origins = Object.fromEntries(await getStockOrigins());
   const drafts = products
     .filter((product) => product.status === "Draft")
     .map((product) => ({
@@ -143,7 +145,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         </div>
       ) : null}
 
-      <ProductsClient products={products} editingId={editingProduct?.id ?? null} />
+      <ProductsClient products={products} editingId={editingProduct?.id ?? null} origins={origins} />
 
       <DraftsPanel drafts={drafts} />
 

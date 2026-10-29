@@ -25,6 +25,7 @@ import {
   deleteOperationRecordFromPostgres,
   reverseLedgerTransactionInPostgres,
   getFinishedStockFromPostgres,
+  getStockOriginRowsFromPostgres,
   getOperationsDataFromPostgres,
   updateCustomerLedgerToPostgres,
   updateFinishedStockToPostgres,
@@ -45,6 +46,7 @@ import {
 } from "@/lib/stock-rules";
 import { canonicalDesignName, designKey } from "@/lib/design-name";
 import { compactSizeRun } from "@/lib/shoe-sizes";
+import { stockOrigins, type StockOrigin } from "@/lib/stock-origin";
 
 // Re-exported so the rest of the app keeps importing these from here. The rules
 // themselves live in lib/stock-rules.ts, where the Postgres backend can reach
@@ -816,6 +818,24 @@ export async function getFinishedStock(): Promise<FinishedStock[]> {
     });
   } catch {
     return [];
+  }
+}
+
+/**
+ * Made or bought, per shoe, from the stock's history (lib/stock-origin.ts). A
+ * failure returns nothing, so the Products list simply shows no mark.
+ */
+export async function getStockOrigins() {
+  try {
+    return stockOrigins(
+      await runWithDataBackend({
+        storeName: "operations",
+        localJson: async () => (await getOperationsDataFromLocalJson()).stockMovements,
+        postgres: getStockOriginRowsFromPostgres,
+      }),
+    );
+  } catch {
+    return new Map<string, StockOrigin>();
   }
 }
 

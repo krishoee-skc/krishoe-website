@@ -1,5 +1,6 @@
 "use client";
 
+import { originOf, type StockOrigin } from "@/lib/stock-origin";
 import SafeImage from "@/components/SafeImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,9 +31,11 @@ type Filter = "all" | "web" | "draft";
 type ProductsClientProps = {
   products: Product[];
   editingId?: string | null;
+  /** Made or bought, by shoe (lib/stock-origin.ts). */
+  origins?: Record<string, StockOrigin>;
 };
 
-export default function ProductsClient({ products, editingId = null }: ProductsClientProps) {
+export default function ProductsClient({ products, editingId = null, origins = {} }: ProductsClientProps) {
   const { text } = useLanguage();
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -266,6 +269,22 @@ export default function ProductsClient({ products, editingId = null }: ProductsC
                 >
                   {product.stock > 0 ? text(`${product.stock} in stock`, `स्टकमा ${product.stock}`) : text("Out of stock", "स्टक सकियो")}
                 </span>
+                {/* Made in our factory or bought ready-made: both are finished goods,
+                    and both have a card here (owner, 2026-10-29). */}
+                {(() => {
+                  const origin = originOf(origins, product.name);
+                  if (!origin) return null;
+                  return (
+                    <span className="mt-1 flex flex-wrap gap-1">
+                      {origin.made ? (
+                        <span className="rounded-full bg-brand-green-wash px-2 py-0.5 text-xs font-black text-brand-green">🏭 {text("Made", "बनाएको")}</span>
+                      ) : null}
+                      {origin.bought ? (
+                        <span className="rounded-full bg-brand-cream-soft px-2 py-0.5 text-xs font-black text-brand-gold-ink">🛒 {text("Bought", "किनेको")}</span>
+                      ) : null}
+                    </span>
+                  );
+                })()}
                 {/* A stand-in photograph is not a missing one. It looks
                     finished, so nobody goes back to it — which is how three
                     shoes with stock ended up showing a picture of something

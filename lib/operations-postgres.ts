@@ -1100,6 +1100,19 @@ export async function getFinishedStockFromPostgres(): Promise<FinishedStock[]> {
   return rows.map(finishedStockFromRow);
 }
 
+// One row per shoe and way in — made or bought — for the Products list's
+// 🏭/🛒 mark (lib/stock-origin.ts). Grouped, so it stays small however long
+// the history grows.
+export async function getStockOriginRowsFromPostgres(): Promise<Array<{ design: string; type: string }>> {
+  return queryPostgres<{ design: string; type: string }>(
+    "operations",
+    `SELECT design, type FROM stock_movements
+      WHERE type IN ('Production In', 'Purchase In')
+      GROUP BY design, type
+      LIMIT 5000`,
+  );
+}
+
 export async function insertStockMovement(
   db: PostgresExecutor,
   movement: StockMovementInput,
