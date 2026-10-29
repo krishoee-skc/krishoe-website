@@ -104,7 +104,8 @@ describe("Factory mutation idempotency", () => {
 
     const sql = dbQuery.mock.calls.map(([statement]) => String(statement)).join("\n");
     expect(sql).toContain("effective_date <= $3::date");
-    expect(sql).toContain("ROUND($10::numeric * $8::integer, 2)");
+    // The good pairs are paid, not the rejected ones (owner, 2026-10-29).
+    expect(sql).toContain("ROUND($10::numeric * GREATEST($8::integer - $12::integer, 0), 2)");
     expect(sql).toContain("source_work_id");
     expect(sql).toContain("status <> 'reversed'");
     const ledgerInsert = dbQuery.mock.calls.find(([statement]) =>

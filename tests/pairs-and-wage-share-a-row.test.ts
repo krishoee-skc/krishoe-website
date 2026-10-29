@@ -28,14 +28,15 @@ describe("the wage beside the count", () => {
 
     const below = source.slice(pairsAt, pairsAt + 3000);
     expect(below).toMatch(/text\("Wage", "ज्याला"\)/);
-    expect(below).toContain("money(calculatedAmount)");
+    // The good pairs' wage (owner, 2026-10-29: rejected pairs are not paid).
+    expect(below).toContain("money(payable)");
     expect(below, "the per-pair rate stays beside it").toMatch(/Rs\. \$\{selectedRate\}\/pair/);
   });
 
   it("puts the wage on the Save button too", async () => {
     const source = code(await readWorkEntryScreen());
     const save = source.slice(source.indexOf('type="submit"'));
-    expect(save.slice(0, 1500)).toContain("money(calculatedAmount)");
+    expect(save.slice(0, 1500)).toContain("money(payable)");
   });
 });
 

@@ -712,7 +712,7 @@ export default function WorkEntryForm({
       color: entry.color,
       size: entry.size,
       pairs: entry.pairs_count,
-      amount: calculatedAmount,
+      amount: payable,
       pending: true,
     });
 
@@ -857,13 +857,19 @@ export default function WorkEntryForm({
 
   const worker = workers.find((w) => w.id === formData.worker_id);
   const pairsNow = pairsEntered;
+  // The good pairs are paid, not the rejected ones (owner, 2026-10-29,
+  // DEC-002, option b) — the same rule the server books. calculatedAmount stays the
+  // whole count's wage; what is shown and paid is the good pairs' share.
+  const rejectsNow = Math.max(0, Math.min(pairsNow, parseInt(formData.reject_pairs) || 0));
+  const paidPairs = pairsNow - rejectsNow;
+  const payable = pairsNow > 0 ? Math.round(((calculatedAmount * paidPairs) / pairsNow) * 100) / 100 : 0;
   const confirmSummary = [
     worker?.name ?? "",
     currentItem?.name ?? "",
     formData.color,
     compactSizeRun(formData.size),
     text(`${pairsNow} pairs`, `${pairsNow} जोडी`),
-    calculatedAmount > 0 ? money(calculatedAmount) : "",
+    payable > 0 ? money(payable) : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -1204,8 +1210,9 @@ export default function WorkEntryForm({
                 {selectedRate !== null ? (
                   <>
                     {text("Wage", "ज्याला")}{" "}
-                    <b className="tabular-nums text-brand-green-ink">{money(calculatedAmount)}</b>{" "}
-                    ({text(`Rs. ${selectedRate}/pair`, `रु. ${selectedRate}/जोडी`)})
+                    <b className="tabular-nums text-brand-green-ink">{money(payable)}</b>{" "}
+                    ({text(`Rs. ${selectedRate}/pair`, `रु. ${selectedRate}/जोडी`)}
+                    {rejectsNow > 0 ? text(` · ${paidPairs} good pairs paid`, ` · राम्रा ${paidPairs} जोडीको`) : ""})
                   </>
                 ) : formData.worker_id && formData.item_id ? (
                   <button type="button" onClick={() => setShowSetRate(true)} className="font-bold text-orange-700 hover:underline">
@@ -1321,8 +1328,8 @@ export default function WorkEntryForm({
                     // usual lot, and a 12-pair job saved without changing it
                     // books five times the wage. The wage beside it.
                     ? text(
-                        `✅ Save ${pairsNow} pairs${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
-                        `✅ ${pairsNow} जोडी टिप्ने${calculatedAmount > 0 ? ` · ${money(calculatedAmount)}` : ""}`,
+                        `✅ Save ${pairsNow} pairs${payable > 0 ? ` · ${money(payable)}` : ""}${rejectsNow > 0 ? ` (${paidPairs} paid)` : ""}`,
+                        `✅ ${pairsNow} जोडी टिप्ने${payable > 0 ? ` · ${money(payable)}` : ""}${rejectsNow > 0 ? ` (${paidPairs} को)` : ""}`,
                       )
                     : text("Enter the pairs to save", "टिप्न जोडी लेख्नुहोस्")}
               </button>

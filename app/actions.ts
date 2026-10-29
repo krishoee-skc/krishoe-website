@@ -91,7 +91,11 @@ async function submissionKey() {
  *   by phone    — counted on orders actually placed, not attempts, so a buyer
  *                 who is told a size is gone and tries again is not punished.
  */
-const CHECKOUT_IP_LIMIT = { bucket: "submission:checkout-ip", maxAttempts: 20, windowMs: 60 * 60 * 1000 };
+// Sixty an hour from one address (owner, 2026-10-29, DEC-003, option b): Ncell and NTC
+// put many customers behind one mobile-data address, and twenty an hour could
+// turn real shoppers away on a sale day. One browser and one phone keep their
+// own, tighter limits below.
+const CHECKOUT_IP_LIMIT = { bucket: "submission:checkout-ip", maxAttempts: 60, windowMs: 60 * 60 * 1000 };
 const CHECKOUT_PHONE_LIMIT = {
   bucket: "submission:checkout-phone",
   maxAttempts: 5,

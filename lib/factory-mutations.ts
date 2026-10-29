@@ -470,7 +470,9 @@ export async function createFactoryWork(input: FactoryWorkInput) {
         status, rate_applied, amount_earned, work_order_id, reject_pairs, stage,
         size_counts)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-               ROUND($10::numeric * $8::integer, 2), $11, $12, $13, $14::jsonb)
+               -- The good pairs are paid, not the rejected ones (owner,
+               -- 2026-10-29, DEC-002, option b). Older entries keep what they were paid.
+               ROUND($10::numeric * GREATEST($8::integer - $12::integer, 0), 2), $11, $12, $13, $14::jsonb)
        RETURNING id, date, worker_id, item_id, color, size, pairs_count, reject_pairs, status,
                  rate_applied, amount_earned, work_order_id`,
       [
@@ -742,7 +744,8 @@ export async function editFactoryWork(input: FactoryWorkEditInput) {
     }
 
     const rejectPairs = Math.max(0, Math.min(input.pairsCount, Math.round(input.rejectPairs || 0)));
-    const amountEarned = money(rate * input.pairsCount);
+    // A corrected entry is paid by today's rule: the good pairs (DEC-002, option b).
+    const amountEarned = money(rate * Math.max(0, input.pairsCount - rejectPairs));
     const note = `Corrected ${new Date().toISOString().slice(0, 10)}: ${input.reason.trim()} · ${input.editedBy}`;
 
     // 1 — the work itself.

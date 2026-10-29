@@ -61,8 +61,11 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
       (permission) => permission !== "backup:export" && permission !== "settings:write",
     ),
   ),
+  // Activity, Security (CCTV) and Monitoring are the Owner's and the
+  // Manager's (owner, 2026-10-29, the staff-role sample): they show what every
+  // other person did and where the app broke. Devices stays for everyone — it
+  // lists only the person's own sign-ins and passkeys.
   Accountant: new Set([
-    "activity:read",
     "costing:read",
     "costing:write",
     "customers:read",
@@ -80,11 +83,9 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "purchasing:write",
     "readiness:read",
     "search:read",
-    "security:read",
     "stock:read",
   ]),
   HR: new Set([
-    "activity:read",
     "dashboard:read",
     "devices:read",
     "exports:read",
@@ -92,10 +93,8 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "readiness:read",
     "wages:write",
     "search:read",
-    "security:read",
   ]),
   Inventory: new Set([
-    "activity:read",
     "costing:read",
     "costing:write",
     "dashboard:read",
@@ -109,11 +108,9 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "purchasing:write",
     "readiness:read",
     "search:read",
-    "security:read",
     "stock:read",
   ]),
   Sales: new Set([
-    "activity:read",
     "customers:read",
     "dashboard:read",
     "devices:read",
@@ -136,25 +133,26 @@ const permissionsByRole: Record<AdminRole, ReadonlySet<AdminPermission>> = {
     "reviews:read",
     "reviews:write",
     "search:read",
-    "security:read",
     "stock:read",
   ]),
   Factory: new Set([
-    "activity:read",
     "devices:read",
     "production:entry",
     "readiness:read",
-    "security:read",
   ]),
   Worker: new Set(),
   Viewer: new Set(
     adminPermissions.filter(
-      (permission) => permission.endsWith(":read") && permission !== "settings:write",
+      (permission) =>
+        permission.endsWith(":read") && permission !== "activity:read" && permission !== "security:read",
     ),
   ),
 };
 
 const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermission]> = [
+  // Monthly staff salaries are for those who pay wages, not for the factory's
+  // own supervisor (owner, 2026-10-29). Before "/admin/factory": first match wins.
+  ["/admin/factory/salary", "wages:write"],
   ["/admin/factory", "production:entry"],
   ["/admin/alerts", "notifications:read"],
   ["/admin/analytics", "insights:read"],
@@ -191,6 +189,11 @@ const adminPagePermissionPrefixes: ReadonlyArray<readonly [string, AdminPermissi
   ["/admin/products", "products:read"],
   ["/admin/messages", "messages:read"],
   ["/admin/devices", "devices:read"],
+  // Three pages that had no rule (owner, 2026-10-29): the Security Center and
+  // the setup list for the Owner and the Manager; the robots for the Owner.
+  ["/admin/security-overview", "security:read"],
+  ["/admin/getting-started", "security:read"],
+  ["/admin/robots", "settings:write"],
 ];
 
 export function getConfiguredAdminRole(): AdminRole {

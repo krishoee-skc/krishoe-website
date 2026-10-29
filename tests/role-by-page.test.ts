@@ -59,7 +59,8 @@ const OPEN_ON_PURPOSE = [
  * them is the owner's to decide (told 2026-10-26). Until then they stay as
  * they are, listed, so nothing else can join them unnoticed.
  */
-const OPEN_AWAITING_THE_OWNER = ["/admin/getting-started", "/admin/robots", "/admin/security-overview"];
+// The owner decided the last three on 2026-10-29 (the staff-role sample).
+const OPEN_AWAITING_THE_OWNER: string[] = [];
 
 /** No proxy rule, but the page checks for itself before it shows anything. */
 const CHECKED_BY_THE_PAGE: Record<string, string> = { "/admin/inbox": "feedback:read" };
@@ -101,7 +102,8 @@ describe("what each role opens today", () => {
   const grid: Record<string, string> = {
     "/admin": "OMAHISV",
     "/admin/factory": "OMHF",
-    "/admin/factory/salary": "OMHF",
+    // Monthly salaries: for those who pay wages, not the factory supervisor.
+    "/admin/factory/salary": "OMH",
     "/admin/factory/ledger": "OMHF",
     "/admin/pos": "OMASV",
     "/admin/orders": "OMASV",
@@ -114,15 +116,17 @@ describe("what each role opens today", () => {
     "/admin/costing": "OMAIV",
     "/admin/operations": "OMIV",
     "/admin/reports": "OMSV",
-    "/admin/activity": "OMAHISV",
-    "/admin/security": "OMAHISV",
-    "/admin/monitoring": "OMAHISV",
+    // The Owner's and the Manager's (owner, 2026-10-29). Devices stays for all:
+    // it lists only the person's own sign-ins and passkeys.
+    "/admin/activity": "OM",
+    "/admin/security": "OM",
+    "/admin/monitoring": "OM",
     "/admin/devices": "OMAHISV",
     "/admin/settings": "O",
     "/admin/coupons": "O",
-    "/admin/security-overview": "OMAHISV",
-    "/admin/robots": "OMAHISV",
-    "/admin/getting-started": "OMAHISV",
+    "/admin/security-overview": "OM",
+    "/admin/robots": "O",
+    "/admin/getting-started": "OM",
   };
 
   for (const [page, allowed] of Object.entries(grid)) {
