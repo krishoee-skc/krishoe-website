@@ -50,6 +50,13 @@ const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 const TIMEOUT_MS = 30_000;
 
 /**
+ * A newer model gets this long before the proven one is asked (2026-10-29):
+ * gemini-3.7-flash took a question and never answered, the whole 30 seconds
+ * went on it, and the proven model — answering in two — was never reached.
+ */
+const NEWER_MODEL_MS = 12_000;
+
+/**
  * A sentence in both languages, because a failure is read by a person.
  *
  * `detail` beside it stays English on purpose: it is the engineering half —
@@ -145,8 +152,9 @@ export async function askGemini(prompt: string, options: AskOptions = {}): Promi
   // availability failure moves down the list; a quota or key problem is the same
   // on every model, so it stops here and is returned as-is.
   let lastFailure: ModelFailure | null = null;
-  for (const model of AI_MODELS) {
-    const result = await askOneModel(model, prompt, key, options);
+  for (const [index, model] of AI_MODELS.entries()) {
+    const last = index === AI_MODELS.length - 1;
+    const result = await askOneModel(model, prompt, key, options, last ? TIMEOUT_MS : NEWER_MODEL_MS);
     if (result.ok) return result;
     lastFailure = result;
     if (!result.tryNextModel) return stripHint(result);
@@ -171,9 +179,10 @@ async function askOneModel(
   prompt: string,
   key: string,
   options: AskOptions,
+  timeoutMs: number = TIMEOUT_MS,
 ): Promise<Extract<AiResult, { ok: true }> | ModelFailure> {
   const started = Date.now();
-  const abort = AbortSignal.timeout(TIMEOUT_MS);
+  const abort = AbortSignal.timeout(timeoutMs);
 
   try {
     const response = await fetch(`${ENDPOINT}/${model}:generateContent?key=${key}`, {
@@ -228,8 +237,10 @@ async function askOneModel(
       return {
         ok: false,
         reason: { en: "The AI did not answer in time", ne: "AI ले समयमा जवाफ दिएन" },
-        detail: `No answer within ${TIMEOUT_MS / 1000} seconds. Nothing was saved.`,
-        tryNextModel: false,
+        detail: `No answer within ${timeoutMs / 1000} seconds. Nothing was saved.`,
+        // A model that hangs may be the new one Google is not serving well yet:
+        // the next on the list is worth asking.
+        tryNextModel: true,
       };
     }
 
