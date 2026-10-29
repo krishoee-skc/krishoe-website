@@ -38,8 +38,15 @@ export function safeCustomerNextPath(value: string | null | undefined) {
   return nextPath;
 }
 
+/**
+ * Where a sign-in lands when it was not sent from a page: Home, the day's
+ * work as large buttons (owner, 2026-10-29, "home ma pugne banaunu"). A Factory
+ * login is sent on to the factory by proxy.ts.
+ */
+export const ADMIN_HOME = "/admin/hub/home";
+
 export function safeAdminNextPath(value: string | null | undefined) {
-  const nextPath = safeRelativePath(value, "/admin");
+  const nextPath = safeRelativePath(value, ADMIN_HOME);
   const pathname = new URL(nextPath, localBaseUrl).pathname;
 
   if (
@@ -49,7 +56,7 @@ export function safeAdminNextPath(value: string | null | undefined) {
     pathname.startsWith("/admin/reset-password") ||
     pathname.startsWith("/admin/accept-invite")
   ) {
-    return "/admin";
+    return ADMIN_HOME;
   }
 
   return nextPath;

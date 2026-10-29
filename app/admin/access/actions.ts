@@ -428,7 +428,7 @@ export async function changeRequiredAdminPasswordAction(
   // Each role back to its own door. A worker sent to /admin met "Forbidden"
   // and took it for an account that would not open.
   const home =
-    updated.role === "Worker" ? "/worker/dashboard" : updated.role === "Factory" ? "/admin/factory" : "/admin";
+    updated.role === "Worker" ? "/worker/dashboard" : updated.role === "Factory" ? "/admin/factory" : "/admin/hub/home";
   return { ok: true, message: "Password changed successfully.", href: home };
 }
 

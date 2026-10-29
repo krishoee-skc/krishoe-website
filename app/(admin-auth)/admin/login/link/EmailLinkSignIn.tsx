@@ -28,7 +28,7 @@ export default function EmailLinkSignIn({ token, code }: { token: string; code: 
       const result = await signInFromEmailLinkAction(new FormData(event.currentTarget));
 
       if (result.ok) {
-        router.push(result.nextPath ?? "/admin");
+        router.push(result.nextPath ?? "/admin/hub/home");
         router.refresh();
         return;
       }

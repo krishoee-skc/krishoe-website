@@ -49,19 +49,19 @@ describe("safeAdminNextPath", () => {
   });
 
   it("falls back for non-admin paths", () => {
-    expect(safeAdminNextPath("/account")).toBe("/admin");
-    expect(safeAdminNextPath("/shop")).toBe("/admin");
+    expect(safeAdminNextPath("/account")).toBe("/admin/hub/home");
+    expect(safeAdminNextPath("/shop")).toBe("/admin/hub/home");
   });
 
   it("does not loop back to the admin login page", () => {
-    expect(safeAdminNextPath("/admin/login")).toBe("/admin");
-    expect(safeAdminNextPath("/admin/forgot-password")).toBe("/admin");
-    expect(safeAdminNextPath("/admin/reset-password?token=secret")).toBe("/admin");
-    expect(safeAdminNextPath("/admin/accept-invite?token=secret")).toBe("/admin");
+    expect(safeAdminNextPath("/admin/login")).toBe("/admin/hub/home");
+    expect(safeAdminNextPath("/admin/forgot-password")).toBe("/admin/hub/home");
+    expect(safeAdminNextPath("/admin/reset-password?token=secret")).toBe("/admin/hub/home");
+    expect(safeAdminNextPath("/admin/accept-invite?token=secret")).toBe("/admin/hub/home");
   });
 
   it("rejects cross-origin and protocol-relative URLs", () => {
-    expect(safeAdminNextPath("https://evil.example/admin")).toBe("/admin");
-    expect(safeAdminNextPath("//evil.example")).toBe("/admin");
+    expect(safeAdminNextPath("https://evil.example/admin")).toBe("/admin/hub/home");
+    expect(safeAdminNextPath("//evil.example")).toBe("/admin/hub/home");
   });
 });
