@@ -9,7 +9,6 @@ import { factoryLinks } from "@/app/admin/factory/_components/factory-nav";
 import { wagesLinks } from "@/app/admin/operations/production-accounts/_components/wages-nav";
 import { adminWorkspaces, workspaceForPath } from "@/app/admin/nav-links";
 import { useLanguage } from "@/components/LanguageProvider";
-import { useShownWorkspace } from "@/app/admin/useAdminWorkspace";
 
 /**
  * Which half of the business this screen belongs to, and where in it you are —
@@ -18,8 +17,9 @@ import { useShownWorkspace } from "@/app/admin/useAdminWorkspace";
  * It was a 48px green or maroon band of its own under the search row; on a
  * phone the bar, the search and the band took 164px before a page began. The
  * colour is now a 3px line along the top of the bar — green for the factory
- * floor, maroon for the shop counter; a screen of both takes the side the menu
- * shows — and the
+ * floor, maroon for the shop counter; a screen of both sides takes the brand's
+ * gold and names no side (2026-10-29: with the side switch gone there is no
+ * side "on show" to borrow) — and the
  * words are the page's name, large, with the side above it small.
  *
  * It is also the trail on these screens: a sub-page the factory or wages
@@ -44,7 +44,7 @@ function subPageFor(pathname: string): Named | undefined {
   return best;
 }
 
-const lineColour = { factory: "bg-brand-green", shop: "bg-brand-maroon" } as const;
+const lineColour = { factory: "bg-brand-green", shop: "bg-brand-maroon", both: "bg-brand-gold" } as const;
 
 export default function WorkspaceBand() {
   const pathname = usePathname() ?? "";
@@ -56,13 +56,12 @@ export default function WorkspaceBand() {
     rememberVisit(pathname);
   }, [pathname]);
 
-  // A screen of both sides (Stock, Settings, the Dashboard) is named under the
-  // side the menu shows, as the sample draws Stock under 🏭 कारखाना.
-  const shown = useShownWorkspace();
-  const pathSide = workspaceForPath(pathname);
-  const side = pathSide === "both" ? shown : pathSide;
-  // The five menu-name pages hold both sides: they name no side (2026-10-29).
-  const workspace = pathname.startsWith("/admin/hub/") ? undefined : adminWorkspaces.find((option) => option.id === side);
+  // A screen of both sides (Stock, Settings, the Dashboard, the five menu-name
+  // pages) names no side: "KRISHOE › Settings" (owner, 2026-10-29). It used to
+  // borrow the side the menu showed; the simple menu has no side to show, so the
+  // name stuck on whichever side was seen last.
+  const side = workspaceForPath(pathname);
+  const workspace = side === "both" ? undefined : adminWorkspaces.find((option) => option.id === side);
   const section = shortcutForPath(pathname);
   const sub = subPageFor(pathname);
   // A named sub-page deeper than its menu section: say its name, not both.

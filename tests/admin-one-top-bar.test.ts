@@ -35,9 +35,10 @@ describe("one top bar", () => {
   it("draws the side as a 3px line and the page's name large, with a ☆ to pin it", async () => {
     const band = await read("app/admin/WorkspaceBand.tsx");
     expect(band).toContain("absolute inset-x-0 top-0 h-[3px]");
-    expect(band).toContain('{ factory: "bg-brand-green", shop: "bg-brand-maroon" }');
-    // A screen of both sides is named under the side the menu shows (Stock under 🏭 कारखाना).
-    expect(band).toContain('const side = pathSide === "both" ? shown : pathSide;');
+    expect(band).toContain('{ factory: "bg-brand-green", shop: "bg-brand-maroon", both: "bg-brand-gold" }');
+    // A screen of both sides names no side (owner, 2026-10-29): "KRISHOE › Settings",
+    // not the side seen last — the simple menu has no side switch.
+    expect(band).toContain('const workspace = side === "both" ? undefined : adminWorkspaces.find((option) => option.id === side);');
     expect(band).toContain("text-[1.1875rem] font-black");
     expect(band).toContain("lg:text-2xl");
     expect(band).toContain("togglePin(section.href)");

@@ -110,7 +110,7 @@ describe("workspaceForPath", () => {
 describe("the three menus", () => {
   // The simple menu (owner, 2026-10-29, "kha garau"): the sidebar and the
   // phone sheet both draw the five names from one list, app/admin/hubs.ts.
-  // (AdminDrawer is not mounted anywhere.)
+  // (The drawer and the side switch left on 2026-10-29: nothing used them.)
   it("all draw from the same list", async () => {
     for (const file of ["app/admin/AdminNav.tsx", "app/admin/AdminMobileNav.tsx"]) {
       const source = await readFile(file, "utf8");

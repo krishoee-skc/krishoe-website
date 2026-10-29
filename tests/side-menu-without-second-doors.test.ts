@@ -5,7 +5,6 @@ import {
   adminOffMenuLinks,
   navGroupForHref,
   navLinkForPath,
-  pathIsOnSide,
   workspaceForPath,
 } from "@/app/admin/nav-links";
 import { pageGroups } from "@/components/admin/PageGroupStrip";
@@ -55,7 +54,6 @@ describe("the pages that left the menu are not lost", () => {
     expect(workspaceForPath("/admin/coupons")).toBe("shop");
     expect(workspaceForPath("/admin/wholesale")).toBe("shop");
     expect(workspaceForPath("/admin/search")).toBe("both");
-    expect(pathIsOnSide("/admin/cheques", "shop")).toBe(true);
     expect(navLinkForPath("/admin/cheques")?.label).toBe("Cheques");
     expect(navLinkForPath("/admin/factory/photos")?.label).toBe("Workers' photos");
     expect(navGroupForHref("/admin/coupons")?.id).toBe("shop-money");

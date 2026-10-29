@@ -26,11 +26,10 @@ describe("menu names", () => {
   // every screen for a reader who had pressed ENGLISH, so each menu now asks
   // the language first — what matters is that the Nepali name still reaches the
   // Nepali reader, not the exact shape of the expression that draws it.
-  it("are drawn in all three menus, on the Nepali side", async () => {
+  it("are drawn in both menus, on the Nepali side", async () => {
     for (const file of [
       "app/admin/AdminNav.tsx",
       "app/admin/AdminMobileNav.tsx",
-      "app/admin/components/AdminDrawer.tsx",
     ]) {
       const source = await readFile(file, "utf8");
       expect(source, file).toContain("nepali");

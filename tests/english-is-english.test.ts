@@ -352,8 +352,6 @@ const DAILY = [
   "app/admin/nav-links.ts",
   "app/admin/AdminNav.tsx",
   "app/admin/AdminMobileNav.tsx",
-  "app/admin/components/AdminDrawer.tsx",
-  "app/admin/WorkspaceSwitch.tsx",
 ];
 
 describe("the English side is English", () => {

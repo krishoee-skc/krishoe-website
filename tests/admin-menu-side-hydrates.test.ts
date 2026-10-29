@@ -1,26 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const hook = readFileSync("app/admin/useAdminWorkspace.ts", "utf8");
-
-// React error #418 on Dashboard and Stock (owner, 2026-10-25): on a page of
-// both sides, a browser that remembered "shop" drew the shop menu while
-// hydrating the factory menu the server sent.
-describe("the admin menu's side on a page of both sides", () => {
-  it("is not read from localStorage inside the first render", () => {
-    const body = hook.slice(hook.indexOf("export function useAdminWorkspace"));
-    expect(body).not.toMatch(/useState<AdminWorkspace>\(\(\) =>/);
-    expect(body).not.toContain("storedWorkspace() ??");
-  });
-
-  it("comes from the store that answers the server with factory", () => {
-    expect(hook).toContain('() => (storedWorkspace() === "shop" ? "shop" : "factory"), () => "factory")');
-    expect(hook).toContain("const remembered = useShownWorkspace();");
-    expect(hook).toContain('const chosen: AdminWorkspace = decided ?? remembered;');
-    // Only a decided side is written back, never the server's first guess.
-    expect(hook).toContain('if (decided === null || decided === "both") return;');
-  });
-});
+// React error #418 on Dashboard and Stock (owner, 2026-10-25) had two causes.
+// The first, a remembered menu side read during the first render, left with
+// the side switch itself (2026-10-29): the simple menu has no side to remember.
 
 // The same error #418, its other cause: the service worker served the app's
 // scripts cache-first, so they ran before the page's HTML had all arrived.
