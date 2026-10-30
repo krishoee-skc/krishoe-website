@@ -953,7 +953,15 @@ function buildCatalogStockReconciliation(
       signal: "No catalog product",
     }) satisfies CatalogStockReconciliationRow);
 
-  return productRows.concat(operationsOnlyRows).sort((a, b) => {
+  // A Draft shoe with no pairs anywhere and no stock ever entered for it is a
+  // name kept for later, not a count that disagrees (owner, 2026-10-30): it
+  // only made "Catalog mismatch" look worse. A Draft with pairs on either side,
+  // and every shoe on the website, is still compared.
+  const comparedRows = productRows.filter(
+    (row) => !(row.productStatus === "Draft" && row.catalogStock === 0 && row.signal === "No operations stock"),
+  );
+
+  return comparedRows.concat(operationsOnlyRows).sort((a, b) => {
     if (a.signal !== b.signal) return signalRank[a.signal] - signalRank[b.signal];
     return Math.abs(b.stockDelta) - Math.abs(a.stockDelta);
   });
