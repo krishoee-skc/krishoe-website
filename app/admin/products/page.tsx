@@ -11,7 +11,8 @@ import { getProducts } from "@/lib/product-store";
 import { getFinishedStock, getStockOrigins } from "@/lib/operations";
 import { shoeReadiness } from "@/lib/product-readiness";
 import { stockSizesOf } from "@/lib/stock-by-size";
-import { getChosenOrigins, productOriginsReady } from "@/lib/product-origins";
+import { getChosenCosts, getChosenOrigins, productOriginCostReady, productOriginsReady } from "@/lib/product-origins";
+import { getCostingSnapshot } from "@/lib/costing";
 import { designKey } from "@/lib/design-name";
 import { originOf } from "@/lib/stock-origin";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -89,6 +90,9 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
   const editingProduct = resolvedSearchParams?.edit
     ? products.find((product) => product.id === resolvedSearchParams.edit) ?? null
     : null;
+  // Its cost a pair and where that comes from (owner, 2026-10-30), read only
+  // while a shoe is open. A bought shoe with no purchase bill may say its own.
+  const editingCost = editingProduct ? await pairCostFor(editingProduct.id, editingProduct.name, Boolean(originOf(history, editingProduct.name)?.made) || chosen[editingProduct.id] === "made") : undefined;
 
   return (
     <section className="p-4 sm:p-6">
@@ -163,6 +167,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
               chosen: chosen[editingProduct.id] ?? "",
               canChoose: canChooseOrigin,
             }}
+            cost={editingCost}
           />
         </div>
       ) : null}
@@ -189,4 +194,16 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
       )}
     </section>
   );
+}
+
+/** What the form says about a shoe's cost; nothing when costing cannot be read. */
+async function pairCostFor(productId: string, name: string, made: boolean) {
+  const [costing, typed, canKeep] = await Promise.all([
+    getCostingSnapshot().catch(() => null),
+    getChosenCosts().catch(() => ({}) as Record<string, number>),
+    productOriginCostReady().catch(() => false),
+  ]);
+  const source = costing?.costSourceByDesign[designKey(name)];
+  const fromBill = source?.source === "purchase" || source?.source === "batch";
+  return { source, typed: typed[productId] ?? 0, canType: canKeep && !made && !fromBill };
 }

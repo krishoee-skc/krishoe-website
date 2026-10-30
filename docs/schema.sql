@@ -2040,5 +2040,7 @@ CREATE TABLE IF NOT EXISTS product_origins (
   product_id text PRIMARY KEY,
   origin text NOT NULL CHECK (origin IN ('made', 'bought')),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  updated_by text NOT NULL DEFAULT ''
+  updated_by text NOT NULL DEFAULT '',
+  -- What a bought shoe cost a pair, typed in its form (20261030_product_origin_cost.sql).
+  cost_per_pair numeric(12, 2) NOT NULL DEFAULT 0 CHECK (cost_per_pair >= 0)
 );

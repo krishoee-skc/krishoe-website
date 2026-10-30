@@ -25,9 +25,10 @@ describe("the week and the tiles", () => {
     expect(overview).toContain('<T en="Ready stock" ne="तयार स्टक" />');
   });
 
-  it("says when a cost is labour alone", async () => {
+  // Factory shoes only since 2026-10-30: a bought shoe's cost is what it was bought at.
+  it("says when a factory shoe's cost has no material", async () => {
     const overview = await read("app/admin/operations/_components/OperationsOverview.tsx");
-    expect(overview).toContain("ज्याला मात्र, कच्चा पदार्थ छैन");
+    expect(overview).toContain("कारखानाका जुत्तामा material छैन");
     const costing = await read("lib/costing.ts");
     expect(costing).toContain("finishedStockLabourOnlyDesigns");
   });

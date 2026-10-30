@@ -56,7 +56,7 @@ import { validateCustomerProfileInput } from "@/lib/customer-profile";
 import { parseCheckoutItems } from "@/lib/order-pricing";
 import { placeCheckoutOrder } from "@/lib/checkout-order";
 import { whatsappOrderKey } from "@/lib/whatsapp-order";
-import { setChosenOrigin } from "@/lib/product-origins";
+import { setChosenCost, setChosenOrigin } from "@/lib/product-origins";
 
 export type ActionState = {
   ok: boolean;
@@ -675,6 +675,14 @@ export async function upsertProductAction(
     const origin = textValue(formData, "origin");
     await setChosenOrigin(product.id, origin === "made" || origin === "bought" ? origin : "", access?.session?.name || access?.session?.email || "Owner").catch((error) =>
       reportError(`save made or bought for ${product.sku}`, error),
+    );
+  }
+  // What a bought shoe cost a pair, when the form asked (owner, 2026-10-30).
+  // After the origin: typing a bought cost says the shoe was bought.
+  if (formData.has("boughtCost")) {
+    const boughtCost = Number(textValue(formData, "boughtCost")) || 0;
+    await setChosenCost(product.id, boughtCost, access?.session?.name || access?.session?.email || "Owner").catch((error) =>
+      reportError(`save bought cost for ${product.sku}`, error),
     );
   }
 

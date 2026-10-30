@@ -154,10 +154,18 @@ export default function OperationsOverview({
           tone={labourOnly.length > 0 ? "warn" : "default"}
           detail={
             labourOnly.length > 0 ? (
-              <T
-                en={`⚠ Labour only, no material: ${labourOnly.join(", ")}`}
-                ne={`⚠ ज्याला मात्र, कच्चा पदार्थ छैन: ${labourOnly.join(", ")}`}
-              />
+              // Factory shoes only (owner, 2026-10-30): a bought shoe's cost is
+              // what it was bought at, so "no material" is no gap for it.
+              <>
+                <T
+                  en={`⚠ Factory shoes with no material: ${labourOnly.join(", ")}`}
+                  ne={`⚠ कारखानाका जुत्तामा material छैन: ${labourOnly.join(", ")}`}
+                />{" "}
+                ·{" "}
+                <Link href="/admin/factory/items" className="font-black underline underline-offset-2">
+                  <T en="Fill in Items and rates" ne="Items and rates मा भर्ने" />
+                </Link>
+              </>
             ) : (
               `${costing.summary.finishedStockMissingCostCount} cost gaps`
             )

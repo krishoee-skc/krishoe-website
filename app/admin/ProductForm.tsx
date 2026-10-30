@@ -15,6 +15,8 @@ import { codeProblem, codeTakenBy, nextShoeCode } from "@/lib/shoe-code";
 import { colourList, colourSwap, coloursNotOnShoe, swapColourWords } from "@/lib/colour-words";
 import type { StockOrigin } from "@/lib/stock-origin";
 import type { ChosenOrigin } from "@/lib/product-origins";
+import type { PairCostSource } from "@/lib/costing";
+import { money } from "@/lib/format-money";
 
 /** The four boxes that describe the shoe, where its colour is said again. */
 const DESCRIPTION_FIELDS = ["description", "descriptionNe", "longDescription", "longDescriptionNe"] as const;
@@ -31,14 +33,95 @@ type ProductFormProps = {
    * one, otherwise what the Owner says here — once its table is there.
    */
   origin?: { history?: StockOrigin; chosen: ChosenOrigin | ""; canChoose: boolean };
+  /**
+   * What a pair costs and where that comes from (owner, 2026-10-30). A bought
+   * shoe with no purchase bill gets a box to say what it was bought at; every
+   * other shoe shows its cost in words.
+   */
+  cost?: { source?: PairCostSource; typed: number; canType: boolean };
 };
+
+/**
+ * A shoe's cost a pair in its form (owner, 2026-10-30): a box for a bought
+ * shoe with no purchase bill, otherwise where the cost comes from, and for a
+ * factory shoe whether its material is still missing.
+ */
+function PairCost({ cost }: { cost: NonNullable<ProductFormProps["cost"]> }) {
+  const { text } = useLanguage();
+  const source = cost.source;
+  if (cost.canType) {
+    return (
+      <label className="grid gap-1.5">
+        <span className="text-sm font-medium">{text("Bought at, per pair", "एक जोडी किन्ने दर")}</span>
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-bold text-brand-muted">Rs.</span>
+          <input
+            name="boughtCost"
+            type="number"
+            min={0}
+            step="0.01"
+            inputMode="decimal"
+            defaultValue={cost.typed > 0 ? cost.typed : ""}
+            placeholder={source?.source === "counter" ? String(source.perPair) : ""}
+            className="form-input w-36"
+          />
+        </span>
+        <span className="max-w-xs text-xs leading-5 text-brand-muted">
+          {text(
+            "For a bought shoe with no purchase bill. Stock does not change. A purchase bill, when it comes, is used instead.",
+            "खरिद बिल नभएको किनेको जुत्ताका लागि। Stock बढ्दैन। पछि खरिद बिल आए बिलकै दर लागू हुन्छ।",
+          )}
+          {source?.source === "counter" && cost.typed === 0
+            ? ` ${text(`Now: ${money(source.perPair)}, typed at the counter.`, `अहिले: counter मा लेखेको ${money(source.perPair)}।`)}`
+            : ""}
+        </span>
+      </label>
+    );
+  }
+  if (!source) return null;
+  return (
+    <div className="grid gap-1.5">
+      <span className="text-sm font-medium">{text("Cost per pair", "एक जोडीको लागत")}</span>
+      {source.source === "rates" ? (
+        <span className="grid min-w-56 grid-cols-[1fr_auto] gap-x-4 rounded-lg bg-brand-mist px-3 py-2 text-sm tabular-nums">
+          <span>{text("Labour + overhead", "ज्याला + overhead")}</span>
+          <b className="text-right">{money(source.labourAndOverhead)}</b>
+          <span className={source.material > 0 ? "" : "font-black text-brand-clay"}>material</span>
+          <b className={`text-right ${source.material > 0 ? "" : "text-brand-clay"}`}>{money(source.material)}{source.material > 0 ? "" : " ⚠"}</b>
+          <span className="border-t border-brand-green-line pt-1 font-black">{text("Total", "जम्मा")}</span>
+          <b className="border-t border-brand-green-line pt-1 text-right">{money(source.perPair)}</b>
+        </span>
+      ) : (
+        <span className="form-input flex items-center bg-brand-mist">
+          {money(source.perPair)}
+          <span className="ml-2 text-xs text-brand-muted">
+            {source.source === "purchase"
+              ? text("— from its purchase bill", "— खरिद बिलबाट")
+              : source.source === "batch"
+                ? text("— from its production batch", "— production batch बाट")
+                : source.source === "typed"
+                  ? text("— bought at, as said here", "— यहाँ लेखेको किन्ने दर")
+                  : text("— typed at the counter", "— counter मा लेखेको")}
+          </span>
+        </span>
+      )}
+      {source.source === "rates" ? (
+        <Link href="/admin/factory/items" className="text-xs font-black text-brand-green underline">
+          {source.material > 0
+            ? text("From Factory › Items and rates", "Factory › Items and rates बाट")
+            : text("Fill in its material: Factory › Items and rates", "Material भर्ने: Factory › Items and rates")}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
 
 /** Rupees as typed, shown the way the storefront will show them. */
 function rupeeLabel(rupees: number) {
   return formatPrice(Math.round(rupees * 100));
 }
 
-export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false, origin }: ProductFormProps) {
+export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false, origin, cost }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -497,6 +580,7 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
             </select>
           </label>
         ) : null}
+        {product && cost ? <PairCost cost={cost} /> : null}
         <div className="flex items-center gap-8 pt-5">
           <label className="flex items-center gap-2">
             <input type="checkbox" name="featured" defaultChecked={product?.featured} />

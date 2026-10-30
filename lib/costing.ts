@@ -1,4 +1,5 @@
 import { getCounterItemCosts } from "@/lib/counter-items-database";
+import { getChosenCosts } from "@/lib/product-origins";
 import { getCostingSettings, type CostingSettings, type ProductionStation } from "@/lib/costing-settings";
 import { getProducts } from "@/lib/product-store";
 import type { Product } from "@/lib/products";
@@ -215,10 +216,24 @@ export type CostingSnapshot = {
   finishedStockValuation: FinishedStockValuationRow[];
   /** Cost of one pair by designKey, for screens that price by name. */
   unitCostByDesign: Record<string, number>;
+  /** Where each shoe's cost a pair comes from, by designKey (its form shows it). */
+  costSourceByDesign: Record<string, PairCostSource>;
   catalogStockReconciliation: CatalogStockReconciliationRow[];
   batchCosting: BatchCostingRow[];
   designCosting: DesignCostingRow[];
   periodReports: CostingPeriodRow[];
+};
+
+/**
+ * Where a shoe's cost a pair comes from, in the order costing looks: a batch
+ * or a purchase bill, then a bought cost typed in its form, then the cost typed
+ * at the counter, then the factory's rates (labour and overhead, and material).
+ */
+export type PairCostSource = {
+  source: "batch" | "purchase" | "typed" | "counter" | "rates";
+  perPair: number;
+  labourAndOverhead: number;
+  material: number;
 };
 
 type DesignSalesGroup = {
@@ -658,6 +673,9 @@ export function buildDesignCosting(
   // What one pair cost, typed when the goods were added from the counter
   // bill — the whole cost of a bought pair, keyed by designKey.
   counterCostPerPair: Map<string, number> = new Map(),
+  // What a bought shoe cost a pair, typed in its form (owner, 2026-10-30):
+  // the whole cost, ahead of the counter's and of any factory rates.
+  chosenCostPerPair: Map<string, number> = new Map(),
 ) {
   const groups = new Map<string, DesignCostingRow>();
 
@@ -722,12 +740,16 @@ export function buildDesignCosting(
       const laborPerPair = (designLaborPerPair.get(key) ?? 0) + silaiPerPair;
       const materialPerPair = designMaterialPerPair.get(key) ?? 0;
       const counterCost = counterCostPerPair.get(key) ?? 0;
+      const chosenCost = chosenCostPerPair.get(key) ?? 0;
       // Goods added at the counter carry the cost typed then, whole: they were
       // bought (or already on the shelf), not made, so no labour or overhead.
+      // A cost typed in the shoe's own form says the same, and says it last.
       const derivedUnitCost =
-        laborPerPair === 0 && materialPerPair === 0 && counterCost > 0
-          ? roundRate(counterCost)
-          : roundRate(materialPerPair + laborPerPair + overheadRatePerPair);
+        chosenCost > 0
+          ? roundRate(chosenCost)
+          : laborPerPair === 0 && materialPerPair === 0 && counterCost > 0
+            ? roundRate(counterCost)
+            : roundRate(materialPerPair + laborPerPair + overheadRatePerPair);
       const unitCostPerPair = blendedUnitCost > 0 ? blendedUnitCost : derivedUnitCost;
 
       const netPairs = row.soldPairs - row.returnedPairs;
@@ -983,7 +1005,7 @@ function finishedStockSignal({
   return "Profit ready";
 }
 
-function buildFinishedStockValuation(
+export function buildFinishedStockValuation(
   finishedStock: FinishedStock[],
   designCosting: DesignCostingRow[],
   products: Product[],
@@ -992,6 +1014,10 @@ function buildFinishedStockValuation(
   // Its labour + material + overhead per pair, keyed by designKey.
   derivedUnitCostByKey: Map<string, number> = new Map(),
   materialPerPairByKey: Map<string, number> = new Map(),
+  // Shoes whose cost is what they were bought at (counter or form), by
+  // designKey: bought, so "no material" is not a gap for them (owner,
+  // 2026-10-30 — only shoes made with Upper and bottom wages are the factory's).
+  boughtCostKeys: Set<string> = new Set(),
 ) {
   const signalRank: Record<FinishedStockValuationSignal, number> = {
     "Needs cost": 0,
@@ -1013,6 +1039,7 @@ function buildFinishedStockValuation(
         designCost?.unitCostPerPair || derivedUnitCostByKey.get(designKey(design)) || 0;
       const labourOnly =
         unitCostPerPair > 0 &&
+        !boughtCostKeys.has(designKey(design)) &&
         !(designCost && (designCost.purchasedPairs > 0 || designCost.batchCount > 0)) &&
         (materialPerPairByKey.get(designKey(design)) ?? 0) <= 0;
       const posAverageSalePrice =
@@ -1060,6 +1087,50 @@ function buildFinishedStockValuation(
     });
 }
 
+/**
+ * Where each shoe's cost a pair comes from, in the same order the costing
+ * above takes it, so a shoe's form can say it in words.
+ */
+export function buildCostSources(
+  designCosting: DesignCostingRow[],
+  rates: {
+    labour: Map<string, number>;
+    material: Map<string, number>;
+    counter: Map<string, number>;
+    chosen: Map<string, number>;
+    overhead: number;
+  },
+): Record<string, PairCostSource> {
+  const rows = new Map(designCosting.map((row) => [designKey(row.design), row]));
+  const keys = new Set([...rows.keys(), ...rates.labour.keys(), ...rates.material.keys(), ...rates.counter.keys(), ...rates.chosen.keys()]);
+  const sources: Record<string, PairCostSource> = {};
+  for (const key of keys) {
+    const row = rows.get(key);
+    const labour = rates.labour.get(key) ?? 0;
+    const material = rates.material.get(key) ?? 0;
+    const counter = rates.counter.get(key) ?? 0;
+    const chosen = rates.chosen.get(key) ?? 0;
+    const none = { labourAndOverhead: 0, material: 0 };
+    if (row && row.batchCount > 0 && row.unitCostPerPair > 0) {
+      sources[key] = { source: "batch", perPair: row.unitCostPerPair, ...none };
+    } else if (row && row.purchasedPairs > 0 && row.unitCostPerPair > 0) {
+      sources[key] = { source: "purchase", perPair: row.unitCostPerPair, ...none };
+    } else if (chosen > 0) {
+      sources[key] = { source: "typed", perPair: roundRate(chosen), ...none };
+    } else if (labour === 0 && material === 0 && counter > 0) {
+      sources[key] = { source: "counter", perPair: roundRate(counter), ...none };
+    } else if (labour > 0 || material > 0) {
+      sources[key] = {
+        source: "rates",
+        perPair: roundRate(labour + material + rates.overhead),
+        labourAndOverhead: roundRate(labour + rates.overhead),
+        material: roundRate(material),
+      };
+    }
+  }
+  return sources;
+}
+
 export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   const [operations, purchasing, posInvoices, settings, products] = await Promise.all([
     getOperationsDataForReports(),
@@ -1080,11 +1151,18 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   );
   const tradingGoodsCostRates = buildTradingGoodsCostRates(purchasing.purchaseInvoices);
   const designSales = buildDesignSales(posInvoices);
-  const [designLaborPerPair, designMaterialPerPair, counterCostPerPair] = await Promise.all([
+  const [designLaborPerPair, designMaterialPerPair, counterCostPerPair, chosenCostsById] = await Promise.all([
     getDesignLaborPerPair(),
     getDesignMaterialPerPair(),
     getCounterItemCosts().catch(() => new Map<string, number>()),
+    getChosenCosts().catch(() => ({}) as Record<string, number>),
   ]);
+  // A bought shoe's cost typed in its form is kept by product; costing goes by name.
+  const chosenCostPerPair = new Map<string, number>();
+  for (const product of products) {
+    const cost = chosenCostsById[product.id] ?? 0;
+    if (cost > 0) chosenCostPerPair.set(designKey(product.name), cost);
+  }
   const designCosting = buildDesignCosting(
     batchCosting,
     designSales,
@@ -1097,6 +1175,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     overheadPerPair(settings),
     designMaterialPerPair,
     counterCostPerPair,
+    chosenCostPerPair,
   );
   // What a made design costs a pair from its rates alone, for one with no
   // costing row yet (never sold, never bought).
@@ -1110,6 +1189,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
   for (const [key, cost] of counterCostPerPair) {
     if (!derivedUnitCostByKey.has(key)) derivedUnitCostByKey.set(key, roundRate(cost));
   }
+  for (const [key, cost] of chosenCostPerPair) derivedUnitCostByKey.set(key, roundRate(cost));
   // One cost per design for screens that price by name (the counter's
   // below-cost warning): a costing row's figure, else the derived one, so a
   // shoe that has not sold yet is not read as costing nothing.
@@ -1123,7 +1203,15 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     products,
     derivedUnitCostByKey,
     designMaterialPerPair,
+    new Set([...counterCostPerPair.keys(), ...chosenCostPerPair.keys()]),
   );
+  const costSourceByDesign = buildCostSources(designCosting, {
+    labour: designLaborPerPair,
+    material: designMaterialPerPair,
+    counter: counterCostPerPair,
+    chosen: chosenCostPerPair,
+    overhead: overheadPerPair(settings),
+  });
   const catalogStockReconciliation = buildCatalogStockReconciliation(products, operations.finishedStock);
   const periodReports = buildPeriodReports(posInvoices, designCosting);
   const salesRevenue = sum(designCosting, (row) => row.netRevenue);
@@ -1180,6 +1268,7 @@ export async function getCostingSnapshot(): Promise<CostingSnapshot> {
     rawMaterialStockValuation,
     finishedStockValuation,
     unitCostByDesign,
+    costSourceByDesign,
     catalogStockReconciliation,
     batchCosting,
     designCosting,
