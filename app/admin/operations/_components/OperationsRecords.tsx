@@ -1077,16 +1077,19 @@ export default function OperationsRecords({
       </div>
 
       <FinishedStockTable snapshot={snapshot} costing={costing} />
-      <StockLedgerSummary snapshot={snapshot} />
 
-      <div className="mt-8">
-        <StockMovementHistory snapshot={snapshot} />
-      </div>
-
+      {/* Right under Finished stock (owner, 2026-10-30): after the long
+          movement history they sat at the very end of the page. */}
       <div className="mt-8 grid gap-6 xl:grid-cols-2">
         {ordered.map((part) => (
           <div key={part.id} className="min-w-0 [&>section]:mt-0">{part.node}</div>
         ))}
+      </div>
+
+      <StockLedgerSummary snapshot={snapshot} />
+
+      <div className="mt-8">
+        <StockMovementHistory snapshot={snapshot} />
       </div>
     </>
   );
