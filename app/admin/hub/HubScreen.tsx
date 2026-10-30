@@ -71,12 +71,22 @@ function BigButton({ href, count }: { href: string; count: number }) {
 /** The four at the top of All pages when this phone has no ★ favourites yet. */
 const USUAL_FOUR = ["/admin/pos", "/admin/purchasing", "/admin/factory/add-work", "/admin/stock"];
 
+/**
+ * A shorter name under a tile whose full one cannot fit four to a row on a
+ * phone (owner, 2026-10-30): "Transactions · Day Book" broke mid-word. The
+ * full name stays everywhere else, and the search still finds it by it.
+ */
+const TILE_NAMES: Record<string, { en: string; ne: string }> = {
+  "/admin/transactions": { en: "Day Book", ne: "कारोबार" },
+};
+
 /** A page on All pages: its own drawing in its group's colour, the name under it. */
 function GlassTile({ href, colour, count }: { href: string; colour: string; count: number }) {
   const { language, text } = useLanguage();
   const page = HUB_PAGES[href];
   if (!page) return null;
   const Fallback = page.icon;
+  const name = TILE_NAMES[href] ?? page;
   const words = count > 0 ? waitWords(href, count) : null;
   return (
     <Link
@@ -91,7 +101,7 @@ function GlassTile({ href, colour, count }: { href: string; colour: string; coun
           </span>
         ) : null}
       </span>
-      <span lang={language === "ne" ? "ne" : "en"} className="line-clamp-2 w-full hyphens-auto text-xs font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{language === "ne" ? page.ne : page.en}</span>
+      <span lang={language === "ne" ? "ne" : "en"} className="line-clamp-2 w-full hyphens-auto text-xs font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">{language === "ne" ? name.ne : name.en}</span>
       {words ? <span className="-mt-1 text-xs font-black leading-tight text-brand-clay">{text(words.en, words.ne)}</span> : null}
     </Link>
   );
