@@ -26,9 +26,12 @@ import {
 export default function OperationsQuickEntry({
   snapshot,
   workerNames = [],
+  design = "",
 }: {
   snapshot: OperationsSnapshot;
   workerNames?: string[];
+  /** Set when a shoe's form sent the Owner here: the stock box opens with its name in. */
+  design?: string;
 }) {
   // Pairs on hand per design, so the design picker shows "68 in stock" beside a
   // suggestion the way the POS picker does — whoever is bringing stock in sees
@@ -62,7 +65,7 @@ export default function OperationsQuickEntry({
         ))}
       </datalist>
       <div className="grid gap-2">
-        <details className="rounded-lg border-2 border-brand-green/30 bg-brand-paper">
+        <details id="stock-movement" open={design ? true : undefined} className="scroll-mt-20 rounded-lg border-2 border-brand-green/30 bg-brand-paper">
           <summary className="flex min-h-12 cursor-pointer items-center px-4 text-base font-black text-brand-green-ink">
             <T en="Stock movement" ne="स्टकको चलखेल" />
           </summary>
@@ -89,7 +92,7 @@ export default function OperationsQuickEntry({
                 ne="— बिग्रेको / हराएको जुत्ता स्टकबाट हटाउने (बिक्री होइन)"
               />
             </p>
-            <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" />
+            <input aria-label="Design name" name="design" data-summary="text" required list="stock-design-options" className={inputClass} placeholder="Design name" defaultValue={design} />
             <div className="grid grid-cols-2 gap-2">
               <select aria-label="Channel" name="channel" className={inputClass} defaultValue="Factory">
                 <option>Factory</option>

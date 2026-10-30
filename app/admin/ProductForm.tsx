@@ -285,8 +285,11 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
                 `${product?.stock ?? 0} जोडी`,
               )}
             </span>
+            {/* Straight to the form that moves pairs, with this shoe's name
+                already in it (owner, 2026-10-30): "Operations" alone left him
+                on whichever tab he used last. */}
             <Link
-              href="/admin/operations"
+              href={`/admin/operations${product?.name ? `?design=${encodeURIComponent(product.name)}` : ""}#stock-movement`}
               className="shrink-0 text-xs font-black text-brand-green underline"
             >
               {text("Change in Operations", "Operations बाट बदल्ने")}

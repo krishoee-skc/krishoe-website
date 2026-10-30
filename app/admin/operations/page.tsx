@@ -27,10 +27,12 @@ export const dynamic = "force-dynamic";
 export default async function AdminOperationsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ saved?: string }>;
+  searchParams?: Promise<{ saved?: string; design?: string }>;
 }) {
   // The action wrote both languages into the URL; the reader picks one.
   const saved = readSavedMessage((await searchParams)?.saved ?? "");
+  // A shoe's form links here with its name, to bring its pairs in.
+  const design = ((await searchParams)?.design ?? "").slice(0, 120);
   // The same Saturday-to-Friday week the wages page pays by, so the two pages
   // never show the owner two different numbers for one week.
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kathmandu" }).format(new Date());
@@ -137,7 +139,7 @@ export default async function AdminOperationsPage({
         <PageTabs
           id="operations"
           tabs={[
-            { key: "enter", en: "➕ Enter", ne: "➕ टिप्ने", content: <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} /> },
+            { key: "enter", en: "➕ Enter", ne: "➕ टिप्ने", content: <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} design={design} /> },
             { key: "flow", en: "📈 Flow", ne: "📈 चलखेल", content: <OperationsOverview snapshot={snapshot} costing={costing} /> },
             { key: "profit", en: "💹 Profit", ne: "💹 नाफा", content: <ProfitPerPair rows={profitRows} /> },
             { key: "records", en: "📒 Records", ne: "📒 रेकर्ड", content: <OperationsRecords snapshot={snapshot} costing={costing} /> },
