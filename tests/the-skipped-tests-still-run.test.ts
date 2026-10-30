@@ -56,6 +56,7 @@ describe("the tests that need a real database", () => {
       "pos-return-to-stock-live.test.ts",
       "shop-self-check-live.test.ts",
       "size-routing-live.test.ts",
+      "stock-form-places-pairs-live.test.ts",
       "stock-transfer-challan.test.ts",
     ]);
   });

@@ -142,6 +142,22 @@ export function placeChangesFor(
   return movement.pairs > 0 ? [{ place: home, pairs: Math.round(movement.pairs) }] : [];
 }
 
+/**
+ * Where pairs brought in by hand land: the channel's own place, Factory for
+ * Factory and Wholesale, the shop for Retail and Online.
+ *
+ * Only for a caller that places nothing itself — the Operations "Stock
+ * movement" form (owner, 2026-10-30: fom close shoes' six pairs came in there
+ * and showed "6 no place"). The factory's ready button, purchase bills and the
+ * counter already place their pairs, so they never ask for this.
+ */
+export function arrivalPlaceFor(
+  movement: StockMovementEffect & { channel: BusinessChannel },
+): { place: StockPlace; pairs: number }[] {
+  if (!isStockInMovement(movement.type) || movement.pairs <= 0) return [];
+  return [{ place: placeOrderFor(movement.channel)[0], pairs: Math.round(movement.pairs) }];
+}
+
 /** Apply a movement in place. */
 export function applyStockMovementToStock(stock: StockCounts, movement: StockMovementEffect) {
   if (movement.pairs <= 0) {

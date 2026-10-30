@@ -551,6 +551,8 @@ export async function createStockMovementAction(formData: FormData) {
     // keeps the old one-pile behaviour, so nothing existing changes.
     sizeRun: textValue(formData, "sizeRun") || "Mixed",
     note: textValue(formData, "note"),
+    // Nothing else places these pairs; without this they showed "no place".
+    placeArrivals: true,
   });
   await syncCatalogStock(`stock movement for ${design}`);
   await auditOperationsAction("operations_create_stock_movement", `Stock movement for ${design} created.`);

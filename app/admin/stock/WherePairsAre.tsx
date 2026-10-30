@@ -1196,10 +1196,16 @@ function groupByShoe(rows: StockAtPlace[]) {
 
 /** "25–30" for sizes in a row ("36, 37, 38, 39, 40, 41" too), "" for Mixed. */
 function sizesLabel(runs: string[]) {
-  const named = runs
-    .filter((run) => run && run !== "Mixed")
-    .flatMap((run) => run.split(/[,\s]+/))
-    .filter(Boolean);
+  // Each size once (owner, 2026-10-30): bantu hill's 51 pairs filed as
+  // "36, 37, 38, 39, 40, 41" beside a row for each size read "36, 36, 37, 37 …".
+  const named = [
+    ...new Set(
+      runs
+        .filter((run) => run && run !== "Mixed")
+        .flatMap((run) => run.split(/[,\s]+/))
+        .filter(Boolean),
+    ),
+  ];
   if (named.length === 0) return "";
   if (named.length === 1) return named[0];
   const numbers = named.map(Number);

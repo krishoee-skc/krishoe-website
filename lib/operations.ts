@@ -185,6 +185,10 @@ export type StockMovementInput = Omit<StockMovement, "id" | "createdAt" | "sizeR
   // finished-stock row as display metadata; the authoritative pair count stays
   // `pairs`. Omitted by every existing caller, so nothing changes for them.
   sizeBreakdown?: Record<string, number>;
+  // Put pairs brought in (Production In, Purchase In, Adjustment) at the
+  // channel's own place. Only the Operations form sets it; every other caller
+  // places its pairs itself (lib/stock-rules.ts arrivalPlaceFor).
+  placeArrivals?: boolean;
 };
 
 export type LedgerTransactionType =

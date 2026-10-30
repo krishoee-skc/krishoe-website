@@ -7,6 +7,7 @@ import {
   reverseLedgerTransactionFromBalances,
 } from "@/lib/ledger-rules";
 import {
+  arrivalPlaceFor,
   placeChangesFor,
   withStockMovementApplied,
   withStockMovementReversed,
@@ -1134,6 +1135,17 @@ export async function insertStockMovement(
   record.design = stock.design;
   await updateFinishedStockTotals(db, withStockMovementApplied(stock, record));
   await movePlacedPairs(db, stock, record, "apply");
+  if (movement.placeArrivals) {
+    for (const change of arrivalPlaceFor(record)) {
+      await db.query(
+        `INSERT INTO stock_locations (id, design, size_run, location, pairs)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (design, size_run, location)
+         DO UPDATE SET pairs = stock_locations.pairs + $5::int, updated_at = now()`,
+        [createId("loc"), stock.design, stock.sizeRun || "Mixed", change.place, change.pairs],
+      );
+    }
+  }
 
   // Record the size split, when a stock-in carries one, as metadata beside the
   // authoritative pair count. Additive: the pairs above are already written and
