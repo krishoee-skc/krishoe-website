@@ -71,9 +71,11 @@ describe("profit on one pair", () => {
 });
 
 describe("the page's shape", () => {
-  it("folds the parts nobody has used yet, and the fifteen downloads", async () => {
+  // Owner, 2026-10-30: show every part, the used ones first; nothing folded under "More".
+  it("shows every part, used ones first, and folds the fifteen downloads", async () => {
     const records = await read("app/admin/operations/_components/OperationsRecords.tsx");
-    expect(records).toContain("const unused = parts.filter((part) => !part.used);");
+    expect(records).toContain("const ordered = [...parts.filter((part) => part.used), ...parts.filter((part) => !part.used)];");
+    expect(records).not.toContain("parts not used yet");
     const overview = await read("app/admin/operations/_components/OperationsOverview.tsx");
     expect(overview).toContain("CSV रिपोर्ट डाउनलोड");
   });

@@ -1066,8 +1066,9 @@ export default function OperationsRecords({
     { id: "consumption", used: snapshot.materialConsumptions.length > 0, node: <MaterialConsumptionHistory snapshot={snapshot} /> },
     { id: "ledger-txns", used: snapshot.ledgerTransactions.length > 0, node: <LedgerTransactionHistory snapshot={snapshot} /> },
   ];
-  const used = parts.filter((part) => part.used);
-  const unused = parts.filter((part) => !part.used);
+  // Every part shows, the ones in use first (owner, 2026-10-30): folded
+  // under "More" he could not find them when he went to start using one.
+  const ordered = [...parts.filter((part) => part.used), ...parts.filter((part) => !part.used)];
 
   return (
     <>
@@ -1082,29 +1083,11 @@ export default function OperationsRecords({
         <StockMovementHistory snapshot={snapshot} />
       </div>
 
-      {used.length > 0 ? (
-        <div className="mt-8 grid gap-6 xl:grid-cols-2">
-          {used.map((part) => (
-            <div key={part.id} className="min-w-0 [&>section]:mt-0">{part.node}</div>
-          ))}
-        </div>
-      ) : null}
-
-      {unused.length > 0 ? (
-        <details className="mt-8 rounded-lg border border-dashed border-brand-green-line bg-brand-paper p-4">
-          <summary className="cursor-pointer text-lg font-black text-brand-muted-deep">
-            <T
-              en={`More — parts not used yet (${unused.length}): batches, vehicles, customer ledgers…`}
-              ne={`थप — अहिलेसम्म प्रयोग नभएका भाग (${unused.length}): batch, गाडी, ग्राहक खाता…`}
-            />
-          </summary>
-          <div className="mt-4 grid gap-6 xl:grid-cols-2">
-            {unused.map((part) => (
-              <div key={part.id} className="min-w-0 [&>section]:mt-0">{part.node}</div>
-            ))}
-          </div>
-        </details>
-      ) : null}
+      <div className="mt-8 grid gap-6 xl:grid-cols-2">
+        {ordered.map((part) => (
+          <div key={part.id} className="min-w-0 [&>section]:mt-0">{part.node}</div>
+        ))}
+      </div>
     </>
   );
 }
