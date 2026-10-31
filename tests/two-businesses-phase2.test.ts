@@ -46,6 +46,14 @@ describe("two businesses: whose bill", () => {
     expect(read("app/admin/stock/page.tsx")).toContain("moveFirst={moveFirst}");
   });
 
+  it("puts a cancelled test bill's pairs back with its own business", () => {
+    const cancel = read("lib/pos-void.ts");
+    expect(cancel).toContain(
+      'const home = bill.business === "factory" ? ("Factory" as const) : bill.business === "shop" ? ("Shop" as const) : undefined;',
+    );
+    expect(cancel).toContain("...(home ? { fromPlace: home } : {}),");
+  });
+
   it("saves one paper in two parts together, and prints both", () => {
     expect(read("lib/pos.ts")).toContain("await createPosInvoicesTogetherPostgres(factory, shop)");
     expect(read("app/admin/pos/actions.ts")).toContain("const both = await createPosSplitBill({ ...billInput, items: shopItems, factoryItems });");

@@ -35,6 +35,8 @@ type BillRow = {
   stock_movement_ids: string[] | null;
   note: string;
   payments?: unknown;
+  /** Present once the factory and the shop are two businesses. */
+  business?: string | null;
 };
 
 type MoveRow = { id: string; design: string; channel: string; size_run: string; type: string; pairs: string | number };
@@ -101,6 +103,10 @@ export async function voidTestBill(invoiceId: string, reason: string, by: string
       });
     }
 
+    // The pairs go back to the bill's own business (owner, 2026-10-31): a
+    // factory bill's to the factory, a shop bill's to the shop, whatever the
+    // channel. A bill from before the two businesses goes back by its channel.
+    const home = bill.business === "factory" ? ("Factory" as const) : bill.business === "shop" ? ("Shop" as const) : undefined;
     for (const move of moves) {
       const back = {
         design: move.design,
@@ -108,7 +114,12 @@ export async function voidTestBill(invoiceId: string, reason: string, by: string
         sizeRun: move.size_run,
         pairs: Number(move.pairs) || 0,
       };
-      await insertStockMovement(db, { ...back, type: "Return In" as StockMovementType, note: `${bill.invoice_number} ${CANCEL_NOTE}` });
+      await insertStockMovement(db, {
+        ...back,
+        type: "Return In" as StockMovementType,
+        note: `${bill.invoice_number} ${CANCEL_NOTE}`,
+        ...(home ? { fromPlace: home } : {}),
+      });
       // Not sold, and not returned either (owner, 2026-10-02): the shoe's
       // sold and returned counts go back to what they were before the bill.
       await undoCancelledSaleCounts(db, back);
