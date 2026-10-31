@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type RefObject } from "react";
+import { useMemo, useState, type ReactNode, type RefObject } from "react";
 import SafeImage from "@/components/SafeImage";
 import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
@@ -36,6 +36,8 @@ type PosProductPickerProps = {
    * where the counter sells to the shop's own customers (owner, 2026-09-29).
    */
   onAddNew?: (name: string) => void;
+  /** Under the search box: on a phone, whose bill and what kind, in one line. */
+  belowSearch?: ReactNode;
   /** A factory bill (owner, 2026-10-31): the factory's pairs shown, bought goods faded. */
   factoryMode?: boolean;
 };
@@ -67,6 +69,7 @@ export default function PosProductPicker({
   note,
   searchRef,
   onAddNew,
+  belowSearch,
   factoryMode = false,
 }: PosProductPickerProps) {
   const { text } = useLanguage();
@@ -148,7 +151,7 @@ export default function PosProductPicker({
             }}
             enterKeyHint="search"
             autoComplete="off"
-            placeholder={text("Name, code or size…", "नाम, कोड वा साइज लेख्नुहोस्…")}
+            placeholder={`${text("Name, code or size…", "नाम, कोड वा साइज लेख्नुहोस्…")} ${example.name}, #${example.code}, ${example.size}`}
             aria-label={text("Search or scan a shoe", "जुत्ता खोज्ने वा स्क्यान गर्ने")}
             className="h-14 min-w-0 flex-1 rounded-2xl border-2 border-brand-green bg-brand-paper px-4 text-lg text-brand-green-ink outline-none placeholder:text-brand-muted focus:border-brand-gold"
           />
@@ -168,36 +171,19 @@ export default function PosProductPicker({
             />
           </label>
         </div>
-        {/* What each of the three looks like, from this shop's own shelf. The
-            box used to say "(41)" and nothing else, and nobody could tell it
-            was a size, or that a code or a name would do as well. */}
-        <p className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
-          <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 font-bold text-brand-green">
-            {text("Name", "नाम")} → {example.name}
-          </span>
-          <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 font-bold text-brand-green">
-            {text("Code", "कोड")} → #{example.code}
-          </span>
-          <span className="rounded-full bg-brand-green-wash px-2.5 py-0.5 font-bold text-brand-green">
-            {text("Size", "साइज")} → {example.size}
-          </span>
-        </p>
-        <p className="mt-1 hidden text-xs text-brand-muted md:block">
-          {text(
-            "F2 search · Enter takes the first shoe · 1–9 picks a size · F9 saves the bill",
-            "F2 खोज्ने · Enter पहिलो जुत्ता · 1–9 साइज · F9 बिल राख्ने",
-          )}
-        </p>
+        {belowSearch}
         {note ? (
           <p role="status" className="mt-1 text-xs font-bold text-brand-green-ink">
             {note}
           </p>
         ) : null}
 
+        {/* Size and kind on one line on a computer (the approved namuna). */}
+        <div className="md:mt-2 md:flex md:flex-wrap md:items-center md:gap-x-2 md:gap-y-1">
         {sizeButtons.length > 0 ? (
           <div
             // Wrapping on a computer, where the row was cut at the edge ("4…").
-            className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible"
+            className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] md:mt-0 md:flex-wrap md:overflow-visible md:pb-0"
             role="group"
             aria-label={text("Size", "साइज")}
           >
@@ -221,7 +207,7 @@ export default function PosProductPicker({
         ) : null}
 
         {categories.length > 1 ? (
-          <div className="mt-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]" role="group" aria-label={text("Kind", "किसिम")}>
+          <div className="mt-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] md:mt-0 md:flex-wrap md:overflow-visible md:pb-0" role="group" aria-label={text("Kind", "किसिम")}>
             {["", ...categories].map((option) => (
               <button
                 key={option || "all"}
@@ -239,6 +225,7 @@ export default function PosProductPicker({
             ))}
           </div>
         ) : null}
+        </div>
       </div>
 
       {shown.length === 0 ? (
@@ -262,7 +249,7 @@ export default function PosProductPicker({
         // A short list, not big cards (owner, 2026-10-04): on a laptop the
         // cards filled the screen and squeezed the bill. One column on a
         // phone, two on a computer; a small photo, the name, price and pairs.
-        <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+        <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]">
           {tiles.map((item, index) => {
             const left = pairsLeft(item, cart);
             const soldOut = left <= 0 && !returning;
@@ -368,6 +355,12 @@ export default function PosProductPicker({
           ) : null}
         </div>
       )}
+      <p className="mt-2 hidden text-xs text-brand-muted md:block">
+        {text(
+          "F2 search · Enter takes the first shoe · 1–9 picks a size · F9 saves the bill",
+          "F2 खोज्ने · Enter पहिलो जुत्ता · 1–9 साइज · F9 बिल राख्ने",
+        )}
+      </p>
     </section>
   );
 }

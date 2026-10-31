@@ -26,6 +26,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { money } from "@/lib/format-money";
 import { colourSwatch } from "@/lib/shoe-colour";
 import { settleExchange } from "@/lib/pos-payments";
+import { CounterTabButtons } from "@/app/admin/pos/_components/CounterTabs";
 import PosProductPicker from "@/app/admin/pos/_components/PosProductPicker";
 import PosNewItemSheet from "@/app/admin/pos/_components/PosNewItemSheet";
 import PosSizeSheet from "@/app/admin/pos/_components/PosSizeSheet";
@@ -298,6 +299,10 @@ export default function PosBillForm({
   // than leaving a Rs. 0 line to be found later (owner, 2026-09-30).
   const [askRateFor, setAskRateFor] = useState<string | null>(null);
   const [morePayments, setMorePayments] = useState(false);
+  // The one line that opens customer, discount and more, and the phone's
+  // "Change" panel (owner, 2026-10-31, the approved namuna).
+  const [extrasOpen, setExtrasOpen] = useState(false);
+  const [changingBill, setChangingBill] = useState(false);
   const [undo, setUndo] = useState<{ label: string; cart: CartLine[] } | null>(null);
   const held = useSyncExternalStore(subscribeHeld, heldSnapshot, () => NONE_HELD);
   const [cartOpen, setCartOpen] = useState(false);
@@ -783,6 +788,7 @@ export default function PosBillForm({
   function resetBill() {
     setCart([]);
     setStartedAt(null);
+    setExtrasOpen(false);
     setReceived("");
     setRestMethod("");
     setRestReference("");
@@ -1090,6 +1096,38 @@ export default function PosBillForm({
             ? text(`Save on credit · ${money(totals.total)}`, `उधारोमा बिल राख्ने · ${money(totals.total)}`)
             : text(`Save bill · ${money(totals.total + dueAmount)}`, `बिल राख्ने · ${money(totals.total + dueAmount)}`);
 
+  // Open by itself whenever the bill needs them: it is never a press more for
+  // a credit, cheque, wholesale, return or exchange bill, or one already filled.
+  const extrasNeeded =
+    kind !== "Sale" ||
+    channel === "Wholesale" ||
+    needsAccount ||
+    payment === "Credit" ||
+    payment === "Cheque" ||
+    collectDue ||
+    Boolean(phone.trim() || customerName.trim() || tax || looseBoxes.address || looseBoxes.note) ||
+    discountMode !== "none";
+  const showExtras = extrasNeeded || extrasOpen;
+
+  const billTypeBar = (
+    <BillTypeBar
+      kind={kind}
+      onKind={setKind}
+      paymentsReady={paymentsReady}
+      onExchange={() => {
+        setKind("Exchange");
+        setAddingBack(true);
+      }}
+      channel={channel}
+      onChannel={changeChannel}
+      lastBill={lastBill}
+      onRepeatLast={repeatLast}
+      business={twoBusiness ? business : undefined}
+      onBusiness={twoBusiness ? changeBusiness : undefined}
+      factoryReady={Boolean(twoBusiness?.factoryReady)}
+    />
+  );
+
   const payLabel: Record<Payment, string> = {
     Cash: text("Cash", "नगद"),
     QR: "QR",
@@ -1113,31 +1151,14 @@ export default function PosBillForm({
           )}
         </p>
       ) : null}
-      {today ? <TodayStrip today={today} /> : null}
-
-      {/* Two rows of look-alike pills sat side by side with nothing to say
-          which was which: what kind of bill, and who it is for. Each now
-          carries a small name above it. */}
-      <BillTypeBar
-        kind={kind}
-        onKind={setKind}
-        paymentsReady={paymentsReady}
-        onExchange={() => {
-          setKind("Exchange");
-          setAddingBack(true);
-        }}
-        channel={channel}
-        onChannel={changeChannel}
-        lastBill={lastBill}
-        onRepeatLast={repeatLast}
-        business={twoBusiness ? business : undefined}
-        onBusiness={twoBusiness ? changeBusiness : undefined}
-        factoryReady={Boolean(twoBusiness?.factoryReady)}
-      />
+      {/* What kind of bill and who it is for: one line on a computer. */}
+      <div className="hidden md:block">{billTypeBar}</div>
 
       {/* The bill wider and the shoes a short list (owner, 2026-10-04). */}
       <div className="grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper p-3 sm:p-4">
+        {/* One screen on a computer (owner, 2026-10-31): the shoes and the bill
+            each scroll inside, and Save stays in view. */}
+        <div className="min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper p-3 sm:p-4 counter-fit md:overflow-y-auto md:overscroll-contain">
           {isExchange ? (
             // Which side the next tapped shoe goes to. The pair that came back
             // first, as the customer hands it over, then the new one.
@@ -1156,6 +1177,36 @@ export default function PosBillForm({
             readingPhoto={readingPhoto}
             note={note}
             searchRef={searchRef}
+            belowSearch={
+              // On a phone the search comes first and all this folds to one
+              // line (owner, 2026-10-31, the approved namuna).
+              <div className="mt-2 grid gap-2 md:hidden">
+                <button
+                  type="button"
+                  aria-expanded={changingBill}
+                  onClick={() => setChangingBill((open) => !open)}
+                  className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-brand-green-line bg-brand-paper-deep px-3 text-sm font-black text-brand-green-ink"
+                >
+                  <span className="truncate">
+                    {business === "factory" ? `🏭 ${text("Factory", "कारखाना")}` : `🛒 ${text("Shop", "पसल")}`}
+                    {" · "}
+                    {kind === "Exchange" ? text("Exchange", "साटफेर") : kind === "Return" ? text("Return", "फिर्ता") : text("Sale", "बिक्री")}
+                    {" · "}
+                    {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
+                  </span>
+                  <span className="shrink-0 text-brand-green">{text("Change", "बदल्ने")} {changingBill ? "▴" : "▾"}</span>
+                </button>
+                {changingBill ? (
+                  <div className="grid gap-2">
+                    {billTypeBar}
+                    {today ? <TodayStrip today={today} /> : null}
+                    <div className="flex overflow-x-auto [scrollbar-width:none]">
+                      <CounterTabButtons onPicked={() => setChangingBill(false)} />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            }
             onAddNew={channel !== "Online" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}
             factoryMode={Boolean(twoBusiness) && business === "factory"}
           />
@@ -1168,7 +1219,7 @@ export default function PosBillForm({
           // question Enter brings up after the cash box — sat below the screen
           // where no scrolling reached it (owner, 2026-09-30: "Enter did not
           // move"). Now it scrolls inside, and the box in use stays in view.
-          className={`min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper md:sticky md:top-4 md:block md:max-h-[calc(100dvh-2rem)] md:overflow-y-auto md:overscroll-contain ${
+          className={`min-w-0 rounded-3xl border border-brand-green-line bg-brand-paper counter-fit md:sticky md:top-4 md:block md:overflow-y-auto md:overscroll-contain ${
             cartOpen
               ? // Full screen on a phone, below the clock and battery: an app
                 // saved to the Home Screen draws under the status bar.
@@ -1256,6 +1307,13 @@ export default function PosBillForm({
                 ) : null}
               </h2>
               <BillTimer startedAt={startedAt} />
+              {/* The total at the head of the bill, big (the approved namuna). */}
+              <span
+                data-bill-head-total
+                className={`text-2xl font-black tabular-nums ${isReturn || (isExchange && settle.toRefund > 0) ? "text-brand-clay" : "text-brand-green"}`}
+              >
+                {money(isReturn ? totals.total : isExchange ? (settle.toRefund > 0 ? settle.toRefund : settle.toPay) : totals.total + dueAmount)}
+              </span>
             </div>
 
             {held.length > 0 ? <HeldBills bills={held} onResume={resumeBill} /> : null}
@@ -1308,7 +1366,7 @@ export default function PosBillForm({
               </div>
             ) : null}
 
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+            <p className={`items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep ${kind === "Sale" ? "hidden" : "flex"}`}>
               <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">1</span>
               {text("Shoes", "जुत्ता")}
             </p>
@@ -1524,7 +1582,21 @@ export default function PosBillForm({
               </div>
             ) : null}
 
-            {cart.length > 0 && !isReturn ? (
+            {/* A plain cash sale needs none of this (owner, 2026-10-31, the
+                approved namuna): one line, and it opens itself whenever the
+                bill needs a name. Folded boxes still go with the bill. */}
+            {extrasNeeded ? null : (
+              <button
+                type="button"
+                aria-expanded={extrasOpen}
+                onClick={() => setExtrasOpen((open) => !open)}
+                className="min-h-11 rounded-xl border border-dashed border-brand-green-line px-3 text-left text-sm font-black text-brand-green"
+              >
+                {extrasOpen ? "−" : "＋"} {text("Customer · Discount · More", "ग्राहक · छुट · थप")}
+              </button>
+            )}
+
+            {cart.length > 0 && !isReturn && showExtras ? (
               <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={text("Discount on the whole bill", "पूरै बिलमा छुट")}>
                 <span className="text-sm text-brand-muted">{text("Discount", "छुट")}</span>
                 {(["none", "5", "10"] as const).map((mode) => (
@@ -1642,11 +1714,11 @@ export default function PosBillForm({
               </>
             ) : null}
 
-            <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+            <p className={`items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep ${showExtras ? "flex" : "hidden"}`}>
               <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">{isReturn && cart.length > 0 ? 3 : 2}</span>
               {text("Customer", "ग्राहक")}
             </p>
-            <div className="grid gap-2">
+            <div className={showExtras ? "grid gap-2" : "hidden"}>
               <PhoneWithCountry
                 name="phone"
                 value={phone}
@@ -1757,13 +1829,13 @@ export default function PosBillForm({
             ) : null}
 
             {!isReturn && (amountDue > 0 || !isExchange) ? (
-              <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
+              <p className={`items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep ${kind === "Sale" ? "hidden" : "flex"}`}>
                 <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">3</span>
                 {text("Payment", "भुक्तानी")}
               </p>
             ) : null}
             {!isReturn && (amountDue > 0 || !isExchange) ? (
-              <div className="grid grid-cols-4 gap-1.5" role="group" aria-label={text("Payment", "भुक्तानी")}>
+              <div className="grid grid-cols-5 gap-1.5" role="group" aria-label={text("Payment", "भुक्तानी")}>
                 {PAYMENTS.filter((option) => MAIN_PAYMENTS.includes(option) || morePayments || payment === option).map((option) => (
                   <button
                     key={option}
@@ -1788,7 +1860,7 @@ export default function PosBillForm({
                   <button
                     type="button"
                     onClick={() => setMorePayments(true)}
-                    className="h-11 rounded-xl border border-dashed border-brand-green-line text-sm font-black text-brand-muted"
+                    className="h-12 rounded-xl border border-dashed border-brand-green-line text-sm font-black text-brand-muted lg:h-14"
                   >
                     {text("More ▾", "अरू ▾")}
                   </button>
@@ -2021,7 +2093,7 @@ export default function PosBillForm({
               </div>
             ) : null}
 
-            <details className="rounded-2xl border border-brand-green-line px-3 py-2">
+            <details className={`rounded-2xl border border-brand-green-line px-3 py-2 ${showExtras ? "" : "hidden"}`}>
               <summary className="cursor-pointer text-sm text-brand-muted">
                 {channel === "Wholesale"
                   ? text("More: seller, address, tax, note", "थप: बेच्ने, ठेगाना, कर, नोट")

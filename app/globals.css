@@ -995,13 +995,40 @@ html[lang="ne"] .reflow-table td[data-label-ne]::before {
    the coloured band and the phone's dock. The owner asked for the bill to
    have the whole screen, PC and phone alike. Done in CSS so the page paints
    full-screen from the first frame; leaving the page brings the frame back
-   because the strip goes with it. */
-body:has([data-counter-mode]) [data-admin-chrome] {
+   because the strip goes with it.
+
+   The counter bill on a computer keeps the menu (owner, 2026-10-31): its strip
+   says "framed" there until ⛶ says "full". A phone always has the whole
+   screen, the dock would take the room from the shoes. */
+@media (max-width: 767.98px) {
+  body:has([data-counter-mode]) [data-admin-chrome] {
+    display: none !important;
+  }
+
+  body:has([data-counter-mode]) [data-admin-shell] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+body:has([data-counter-mode="full"]) [data-admin-chrome] {
   display: none !important;
 }
 
-body:has([data-counter-mode]) [data-admin-shell] {
+body:has([data-counter-mode="full"]) [data-admin-shell] {
   grid-template-columns: minmax(0, 1fr) !important;
+}
+
+/* The shoes and the bill on a computer: each as tall as what is left under the
+   bars, so Save stays in view without scrolling the page. Never so short that
+   the bill has no room; with the menu gone there is one bar less. */
+@media (min-width: 768px) {
+  .counter-fit {
+    max-height: max(26rem, calc(100dvh - 19.5rem));
+  }
+
+  body:has([data-counter-mode="full"]) .counter-fit {
+    max-height: max(26rem, calc(100dvh - 13rem));
+  }
 }
 
 /* With the dock gone, the phone's bill bar sits at the foot of the screen

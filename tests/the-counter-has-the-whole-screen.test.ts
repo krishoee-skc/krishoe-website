@@ -30,13 +30,23 @@ describe("the bill has the whole screen", () => {
 
   it("puts the strip on the bill view only, with a way back and the reports", async () => {
     const page = await readFile("app/admin/pos/page.tsx", "utf8");
-    expect(page).toContain('{showReports ? null : <CounterBar fromTransactions={query?.from === "transactions"} />}');
+    expect(page).toContain('{showReports ? null : <CounterBar framed fromTransactions={query?.from === "transactions"} />}');
     const bar = await readFile("app/admin/pos/_components/CounterBar.tsx", "utf8");
     expect(bar).toContain("data-counter-mode");
     // Back to the admin — or to Transactions, when the bill was opened from there.
     expect(bar).toContain('href={fromTransactions ? "/admin/transactions" : "/admin"}');
     expect(bar).toContain('reportsHref = "/admin/pos?view=reports"');
     expect(bar).toContain("requestFullscreen");
+  });
+
+  it("keeps the menu on a computer until ⛶, and the whole screen on a phone", async () => {
+    const css = await readFile("app/globals.css", "utf8");
+    expect(css).toContain("@media (max-width: 767.98px)");
+    expect(css).toContain('body:has([data-counter-mode="full"]) [data-admin-chrome]');
+    const bar = await readFile("app/admin/pos/_components/CounterBar.tsx", "utf8");
+    expect(bar).toContain('data-counter-mode={showFramed ? "framed" : "full"}');
+    // The purchase bill keeps the whole screen: only the counter bill says framed.
+    expect(await readFile("app/admin/purchasing/page.tsx", "utf8")).not.toContain("framed");
   });
 
   it("drops the phone's bill bar to the foot once the dock is gone", async () => {
@@ -73,10 +83,10 @@ describe("the search box", () => {
     expect(matchesSearch(catalog[1], "#571E", [])).toBe(false);
   });
 
-  it("shows what a name, a code and a size look like, under the box", async () => {
+  it("shows what a name, a code and a size look like, in the box", async () => {
     const picker = await readFile("app/admin/pos/_components/PosProductPicker.tsx", "utf8");
     expect(picker).not.toContain("Shoe, code or size (41)");
-    expect(picker).toContain('{text("Code", "कोड")} → #{example.code}');
+    expect(picker).toContain("${example.name}, #${example.code}, ${example.size}");
   });
 });
 

@@ -51,10 +51,14 @@ export function BillTimer({ startedAt }: { startedAt: number | null }) {
 }
 
 /** Today's bills, sales, cash, QR and credit, in one line at the top. */
-export function TodayStrip({ today }: { today: TodayFigures }) {
+export function TodayStrip({ today, bare = false }: { today: TodayFigures; bare?: boolean }) {
   const { text } = useLanguage();
   return (
-    <div className="flex gap-x-5 gap-y-1 overflow-x-auto whitespace-nowrap rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2 text-sm tabular-nums [scrollbar-width:none]">
+    <div
+      className={`flex gap-x-5 gap-y-1 overflow-x-auto whitespace-nowrap text-sm tabular-nums [scrollbar-width:none] ${
+        bare ? "gap-x-3 py-1 text-xs" : "rounded-2xl border border-brand-green-line bg-brand-paper px-4 py-2"
+      }`}
+    >
       <span className="font-bold text-brand-muted">{text("Today", "आज")}</span>
       <span>
         <b className="text-brand-green-ink">{today.bills}</b> {text("bills", "बिल")}
@@ -115,12 +119,11 @@ export function BillTypeBar({
 }) {
   const { text } = useLanguage();
   return (
-    <div className="flex flex-wrap items-end gap-2">
+    <div className="grid gap-1">
+    {/* One line (owner, 2026-10-31, the approved namuna): the words on the
+        pills say what each row is, and each row keeps its name for a reader. */}
+    <div className="flex flex-wrap items-center gap-2">
       {business && onBusiness ? (
-        <div className="grid gap-0.5">
-          <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-            {text("Whose bill", "कसको बिल")}
-          </span>
           <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Whose bill", "कसको बिल")}>
             <button type="button" aria-pressed={business === "shop"} onClick={() => onBusiness("shop")} className={segment(business === "shop")}>
               🛒 {text("Shop", "पसल")} <span className="font-mono text-xs opacity-80">KRB</span>
@@ -142,17 +145,7 @@ export function BillTypeBar({
               🏭 {text("Factory", "कारखाना")} <span className="font-mono text-xs opacity-80">KRF</span>
             </button>
           </div>
-          {!factoryReady ? (
-            <span className="px-1 text-xs font-bold text-brand-muted">
-              {text("Factory: fill its name and PAN in Settings first", "कारखाना: पहिले Settings मा नाम र PAN भर्नुहोस्")}
-            </span>
-          ) : null}
-        </div>
       ) : null}
-      <div className="grid gap-0.5">
-      <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-        {text("What", "के गर्ने")}
-      </span>
       <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Bill type", "बिलको किसिम")}>
         <button type="button" aria-pressed={kind === "Sale"} onClick={() => onKind("Sale")} className={segment(kind === "Sale")}>
           {text("Sale", "बिक्री")}
@@ -171,11 +164,6 @@ export function BillTypeBar({
           {text("Return", "फिर्ता")}
         </button>
       </div>
-      </div>
-      <div className="grid gap-0.5">
-      <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
-        {text("Who for", "कसलाई")}
-      </span>
       <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Sales channel", "बिक्रीको बाटो")}>
         {(["Retail", "Wholesale", "Online"] as const).map((option) => (
           <button
@@ -189,17 +177,22 @@ export function BillTypeBar({
           </button>
         ))}
       </div>
-      </div>
       {lastBill && lastBill.items.length > 0 ? (
         <button
           type="button"
           onClick={onRepeatLast}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink hover:border-brand-green"
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-brand-green-line bg-brand-paper px-4 text-sm font-bold text-brand-green-ink md:ml-auto hover:border-brand-green"
         >
           ↻ {text("Repeat last bill", "अघिल्लो बिल दोहोर्‍याउने")}
           <span className="hidden font-mono text-xs text-brand-muted sm:inline">{lastBill.invoiceNumber}</span>
         </button>
       ) : null}
+    </div>
+    {business && onBusiness && !factoryReady ? (
+      <span className="px-1 text-xs font-bold text-brand-muted">
+        {text("Factory: fill its name and PAN in Settings first", "कारखाना: पहिले Settings मा नाम र PAN भर्नुहोस्")}
+      </span>
+    ) : null}
     </div>
   );
 }
@@ -288,8 +281,9 @@ export function TotalAndSave({
   const { text } = useLanguage();
   return (
     <>
+      {/* On a computer the total is at the head of the bill and on Save. */}
       {hasLines ? (
-          <div className="flex items-baseline justify-between gap-3">
+          <div className="flex items-baseline justify-between gap-3 md:hidden">
             <span className="font-bold text-brand-green-ink lg:text-xl">
               {totalLabel}
             </span>
@@ -305,7 +299,7 @@ export function TotalAndSave({
       <button
         type="submit"
         disabled={saveDisabled}
-        className={`min-h-16 w-full rounded-2xl px-4 text-xl font-black text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold focus-visible:ring-offset-2 lg:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`min-h-16 w-full rounded-2xl px-4 text-xl font-black md:min-h-14 text-white transition focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-gold focus-visible:ring-offset-2 lg:text-2xl disabled:cursor-not-allowed disabled:opacity-60 ${
           isReturn ? "bg-brand-clay" : "bg-brand-green-ink hover:bg-brand-green"
         }`}
       >

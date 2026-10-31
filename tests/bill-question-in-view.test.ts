@@ -11,7 +11,7 @@ const read = async (path: string) => (await readFile(path, "utf8")).replace(/\r\
 describe("the bill's Save? question is seen", () => {
   it("lets the bill scroll inside itself on a computer", async () => {
     const form = await read("app/admin/pos/_components/PosBillForm.tsx");
-    expect(form).toContain("md:sticky md:top-4 md:block md:max-h-[calc(100dvh-2rem)] md:overflow-y-auto");
+    expect(form).toContain("counter-fit md:sticky md:top-4 md:block md:overflow-y-auto");
   });
 
   it("brings the question to the middle of the screen", async () => {

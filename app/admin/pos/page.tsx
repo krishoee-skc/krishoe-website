@@ -5,6 +5,7 @@ import { chequeBookReady, getUsedBanks } from "@/lib/cheque-book";
 import { nepalDayKey } from "@/lib/dashboard-figures";
 import { knownCustomersFrom } from "@/lib/customer-contact-rules";
 import ChequesToClear from "@/app/admin/pos/_components/ChequesToClear";
+import { CounterPanel, CounterTabBar, CounterTabs } from "@/app/admin/pos/_components/CounterTabs";
 import Link from "next/link";
 import T from "@/components/T";
 import EmptyState from "@/components/admin/EmptyState";
@@ -406,6 +407,17 @@ export default async function AdminPosPage({
         })),
       }
     : null;
+  const today = {
+    bills: pos.todayDayClose.invoiceCount,
+    netSales: pos.todayDayClose.netSales,
+    cash: pos.todayDayClose.cashAmount,
+    digital:
+      pos.todayDayClose.qrAmount +
+      pos.todayDayClose.eSewaAmount +
+      pos.todayDayClose.khaltiAmount +
+      pos.todayDayClose.bankAmount,
+    credit: pos.todayDayClose.creditAmount,
+  };
 
   return (
     // On a phone the bill comes first. The screen opened on a title, a
@@ -413,9 +425,11 @@ export default async function AdminPosPage({
     // scrolled past all of it to cut a bill with a customer waiting. The order
     // below is for phones only (max-md); a computer keeps the page as it was.
     <section className="p-4 max-md:flex max-md:flex-col sm:p-6">
-      {/* The bill view is the counter: full screen, with one strip on top in
-          place of the admin frame, the page title and the reports link. */}
-      {showReports ? null : <CounterBar fromTransactions={query?.from === "transactions"} />}
+      <CounterTabs on={!showReports} billCount={billsShown.length} chequeCount={cheques.length}>
+      {/* The bill view is the counter: one strip on top in place of the page
+          title and the reports link; a phone gets the whole screen. */}
+      {showReports ? null : <CounterBar framed fromTransactions={query?.from === "transactions"} />}
+      {showReports ? null : <CounterTabBar today={today} />}
       <div className={`flex flex-wrap items-start justify-between gap-4 max-md:-order-2 ${showReports ? "" : "hidden"}`}>
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-brand-gold-deep">
@@ -492,7 +506,7 @@ export default async function AdminPosPage({
       </div>
 
       {showReports ? null : (
-      <div className="mt-6 min-w-0 max-md:-order-1 max-md:mt-4">
+      <CounterPanel tab="bill" className="mt-3 min-w-0 max-md:-order-1 max-md:mt-0">
         {!paymentsReady && isOwner ? (
           <Link
             href="/admin/settings"
@@ -523,19 +537,9 @@ export default async function AdminPosPage({
           paymentsReady={paymentsReady}
           chequeBook={chequeBook}
           twoBusiness={twoBusinessOn ? { factoryReady } : null}
-          today={{
-            bills: pos.todayDayClose.invoiceCount,
-            netSales: pos.todayDayClose.netSales,
-            cash: pos.todayDayClose.cashAmount,
-            digital:
-              pos.todayDayClose.qrAmount +
-              pos.todayDayClose.eSewaAmount +
-              pos.todayDayClose.khaltiAmount +
-              pos.todayDayClose.bankAmount,
-            credit: pos.todayDayClose.creditAmount,
-          }}
+          today={today}
         />
-      </div>
+      </CounterPanel>
       )}
 
       {/* The month's figures belong with the reports; the counter's own strip
@@ -808,9 +812,12 @@ export default async function AdminPosPage({
       </>
       ) : null}
 
-      <ChequesToClear rows={cheques} ready={chequeReady} isOwner={isOwner} canMark={canAdmin(role, "pos:write")} />
+      <CounterPanel tab="cheques">
+        <ChequesToClear rows={cheques} ready={chequeReady} isOwner={isOwner} canMark={canAdmin(role, "pos:write")} />
+      </CounterPanel>
 
-      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm">
+      <CounterPanel tab="bills">
+      <section className="mt-8 rounded-lg border border-brand-green-line bg-brand-paper p-5 shadow-sm max-md:mt-3">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-brand-green-ink">
@@ -910,6 +917,8 @@ export default async function AdminPosPage({
           </div>
         )}
       </section>
+      </CounterPanel>
+      </CounterTabs>
     </section>
   );
 }

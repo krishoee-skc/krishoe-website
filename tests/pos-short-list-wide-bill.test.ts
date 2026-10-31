@@ -10,9 +10,9 @@ const read = (file: string) => readFile(file, "utf8");
  * ("36¹" as 361). Same counter, new look, on the computer and the phone.
  */
 describe("the bill screen's new look", () => {
-  it("lists the shoes short, one column on a phone and two on a computer", async () => {
+  it("lists the shoes short, one column on a phone and as many as fit on a computer", async () => {
     const picker = await read("app/admin/pos/_components/PosProductPicker.tsx");
-    expect(picker).toContain('<div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">');
+    expect(picker).toContain('<div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]">');
     expect(picker).toContain("const inBill = cart.some((line) => line.design === item.design);");
   });
 
