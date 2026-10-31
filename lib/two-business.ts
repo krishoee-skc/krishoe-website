@@ -62,12 +62,47 @@ ALTER TABLE stock_transfer_items
   ADD COLUMN IF NOT EXISTS unit_price numeric(12, 2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0);
 `,
   },
+  {
+    name: "20261031_shop_factory_payments.sql",
+    label: {
+      en: "What the shop pays the factory for shoes taken on challans (one new table)",
+      ne: "challan मा लिएको जुत्ताको पैसा पसलले कारखानालाई तिरेको (नयाँ table मात्र)",
+    },
+    columns: [
+      "shop_factory_payments.id",
+      "shop_factory_payments.paid_on",
+      "shop_factory_payments.amount",
+      "shop_factory_payments.method",
+      "shop_factory_payments.removed_at",
+    ],
+    sql: `-- What the shop pays the factory for the shoes it took on challans (owner,
+-- 2026-10-31, two businesses, choice 2(a)). Additive: one new table, nothing
+-- existing changes. A wrong entry is marked removed with a reason, never
+-- deleted. Reversible: DROP TABLE shop_factory_payments.
+
+CREATE TABLE IF NOT EXISTS shop_factory_payments (
+  id text PRIMARY KEY,
+  paid_on date NOT NULL,
+  amount numeric(12, 2) NOT NULL CHECK (amount > 0),
+  method text NOT NULL DEFAULT 'Cash' CHECK (method IN ('Cash', 'Bank', 'Cheque')),
+  note text NOT NULL DEFAULT '',
+  created_by text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  removed_at timestamptz,
+  removed_by text NOT NULL DEFAULT '',
+  removed_reason text NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS shop_factory_payments_paid_on_idx ON shop_factory_payments (paid_on DESC);
+`,
+  },
 ] as const;
 
 const STORE = "two businesses";
 
-let ready: boolean | null = null;
-let checkedAt = 0;
+// Each step's columns, checked on their own and remembered for a minute: a
+// later step waiting for its OK never turns off one already done.
+const readyByStep = new Map<string, { ok: boolean; at: number }>();
 const RECHECK_MS = 60_000;
 
 export type TwoBusinessDatabaseStatus = {
@@ -92,14 +127,26 @@ export async function twoBusinessDatabaseStatus(): Promise<TwoBusinessDatabaseSt
   return { ready: pending.length === 0, pending };
 }
 
-/** Whether every column is there, remembered for a minute. */
-export async function twoBusinessReady(): Promise<boolean> {
+async function stepReady(name: string): Promise<boolean> {
   if (getDataBackendConfig().backend !== "postgres") return false;
-  if (ready === true) return true;
-  if (ready === false && Date.now() - checkedAt < RECHECK_MS) return false;
-  ready = (await twoBusinessDatabaseStatus().catch(() => ({ ready: false }))).ready;
-  checkedAt = Date.now();
-  return ready;
+  const known = readyByStep.get(name);
+  if (known?.ok) return true;
+  if (known && Date.now() - known.at < RECHECK_MS) return false;
+  const ok = await twoBusinessDatabaseStatus()
+    .then((status) => !status.pending.some((item) => item.name === name))
+    .catch(() => false);
+  readyByStep.set(name, { ok, at: Date.now() });
+  return ok;
+}
+
+/** Whether the two businesses' columns are there (step one), remembered for a minute. */
+export async function twoBusinessReady(): Promise<boolean> {
+  return stepReady(twoBusinessMigrations[0].name);
+}
+
+/** Whether the shop's payments to the factory can be kept (step two). */
+export async function shopPaymentsReady(): Promise<boolean> {
+  return stepReady(twoBusinessMigrations[1].name);
 }
 
 export async function prepareTwoBusinessDatabase() {
@@ -123,7 +170,7 @@ export async function prepareTwoBusinessDatabase() {
       );
     }
   });
-  ready = null;
+  readyByStep.clear();
   return { applied: toApply.map((migration) => migration.name) };
 }
 

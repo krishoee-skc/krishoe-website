@@ -12,6 +12,7 @@ import {
   setPlaceCountAction,
 } from "@/app/admin/stock/actions";
 import type { StockAtPlace, StockTransfer } from "@/lib/stock-transfers";
+import { money } from "@/lib/format-money";
 import { sameCode } from "@/lib/shoe-code";
 import Link from "next/link";
 
@@ -84,6 +85,13 @@ type Props = {
   countFirst?: string;
   /** Shoes to send from the factory to the shop: the counter's "Challan first". */
   moveFirst?: string[];
+  /**
+   * Each shoe's word and price for a challan, by lower-case name (owner,
+   * 2026-10-31, two businesses); null before they are set up.
+   */
+  challanShoes?: Record<string, { origin?: "made" | "bought"; productId?: string; price: number }> | null;
+  /** The shop's account with the factory, under the challans. */
+  moneyPart?: ReactNode;
   /** The stock page's own parts, each shown in its tab. */
   todo?: ReactNode;
   /** How many things in `todo` wait — for the tab's count. */
@@ -92,7 +100,16 @@ type Props = {
   history?: ReactNode;
 };
 
-type Line = { key: number; design: string; sizeRun: string; pairs: string };
+type Line = {
+  key: number;
+  design: string;
+  sizeRun: string;
+  pairs: string;
+  /** Said on the line for a shoe nobody had called made or bought. */
+  origin?: "made" | "bought";
+  /** Typed on the line for a made shoe with no price; kept as its factory price. */
+  price?: string;
+};
 
 const box =
   "h-11 rounded-md border border-brand-green-line bg-brand-paper px-3 text-sm outline-none transition focus:border-brand-green focus:ring-2 focus:ring-brand-green/15";
@@ -118,6 +135,8 @@ export default function WherePairsAre({
   canCount = false,
   countFirst,
   moveFirst = [],
+  challanShoes = null,
+  moneyPart,
   todo,
   todoCount = 0,
   material,
@@ -204,6 +223,29 @@ export default function WherePairsAre({
 
   const waiting = transfers.filter((transfer) => transfer.status === "Sent");
 
+  // ---- the challan's prices (owner, 2026-10-31, two businesses) -----------
+  type LinePrice = { kind: "moved" | "notInItems" | "ask" | "noPrice" | "priced"; price: number };
+  function linePrice(line: Line): LinePrice | null {
+    if (!challanShoes || !line.design) return null;
+    const shoe = challanShoes[line.design.trim().toLowerCase()];
+    if (!shoe?.productId) return { kind: "notInItems", price: 0 };
+    const origin = shoe.origin ?? line.origin;
+    if (!origin) return { kind: "ask", price: 0 };
+    if (origin === "bought") return { kind: "moved", price: 0 };
+    const price = shoe.price > 0 ? shoe.price : Math.max(0, Number(line.price) || 0);
+    return price > 0 ? { kind: "priced", price } : { kind: "noPrice", price: 0 };
+  }
+  const challanWorth = lines.reduce((sum, line) => {
+    const priced = linePrice(line);
+    return sum + (priced?.kind === "priced" ? priced.price * (Number(line.pairs) || 0) : 0);
+  }, 0);
+  /** A challan's worth: the pairs that arrived once counted in, the pairs sent while on the road. */
+  const worthOf = (transfer: StockTransfer) =>
+    transfer.items.reduce(
+      (sum, item) => sum + item.unitPrice * (transfer.status === "Received" ? (item.receivedPairs ?? 0) : item.sentPairs),
+      0,
+    );
+
   function updateLine(key: number, patch: Partial<Line>) {
     setLines((current) => {
       const next = current.map((line) => (line.key === key ? { ...line, ...patch } : line));
@@ -223,6 +265,18 @@ export default function WherePairsAre({
     formData.set("submissionKey", sendKey.current);
 
     const asked = lines.filter((line) => line.design && Number(line.pairs) > 0);
+    const waitsForWord = asked.find((line) => linePrice(line)?.kind === "ask");
+    const waitsForPrice = asked.find((line) => linePrice(line)?.kind === "noPrice");
+    if (waitsForWord || waitsForPrice) {
+      const shoe = (waitsForWord ?? waitsForPrice)!.design;
+      setState({
+        ok: false,
+        message: waitsForWord
+          ? text(`${shoe}: say on its line whether it is made or bought.`, `${shoe}: बनाएको हो कि किनेको, लाइनमा भन्नुहोस्।`)
+          : text(`${shoe}: no price — type one on its line.`, `${shoe}: मूल्य छैन — लाइनमा मूल्य लेख्नुहोस्।`),
+      });
+      return;
+    }
     if (asked.length === 0) {
       setState({
         ok: false,
@@ -966,10 +1020,35 @@ export default function WherePairsAre({
                           : text(`${held} there`, `त्यहाँ ${held}`)
                         : ""}
                     </span>
+                    <LinePriceNote
+                      line={line}
+                      index={index}
+                      priced={linePrice(line)}
+                      toShop={from === "Factory"}
+                      onLine={(patch) => updateLine(line.key, patch)}
+                      text={text}
+                    />
                   </div>
                 );
               })}
             </div>
+
+            {challanWorth > 0 ? (
+              <p className="flex flex-wrap justify-between gap-2 border-t border-brand-green-line pt-2 text-base font-black text-[#2F5C8A]">
+                <span>
+                  {from === "Factory"
+                    ? text("🏭 The factory sells the shop", "🏭 कारखानाले पसललाई बेच्ने")
+                    : text("🏭 Back to the factory", "🏭 कारखानामा फिर्ता")}
+                </span>
+                <span className="tabular-nums">{from === "Factory" ? money(challanWorth) : `− ${money(challanWorth)}`}</span>
+                <span className="basis-full text-xs font-medium text-brand-muted">
+                  {text(
+                    "Counted when the shop counts the pairs in — only the pairs that arrive.",
+                    "पसलले बुझेपछि मात्र गनिन्छ — पुगेको जोडीको मात्र।",
+                  )}
+                </span>
+              </p>
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <input aria-label="Who is carrying it (optional)"
@@ -1062,7 +1141,16 @@ export default function WherePairsAre({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-black tabular-nums text-brand-green">{transfer.challanNumber}</p>
+                    <p className="font-black tabular-nums text-brand-green">
+                      {transfer.challanNumber}
+                      {worthOf(transfer) > 0 ? (
+                        <span className="ml-2 rounded-full bg-[#EAF1F8] px-2 py-0.5 text-xs font-black text-[#2F5C8A]">
+                          {transfer.fromLocation === "Shop" ? "− " : ""}
+                          {money(worthOf(transfer))}
+                          {transfer.status === "Received" ? " ✓" : text(" on the road", " बाटोमा")}
+                        </span>
+                      ) : null}
+                    </p>
                     <p className="text-xs text-brand-muted">
                       {transfer.sentDate} · {transfer.fromLocation === "Factory" ? "🏭" : "🛒"}{" "}
                       {placeLabel(transfer.fromLocation)} → {transfer.toLocation === "Factory" ? "🏭" : "🛒"}{" "}
@@ -1156,6 +1244,7 @@ export default function WherePairsAre({
           ) : null}
         </div>
       </section>
+      {moneyPart}
     </>
   );
 
@@ -1182,6 +1271,73 @@ export default function WherePairsAre({
           { key: "history", en: "📜 History", ne: "📜 इतिहास", content: history },
         ]}
       />
+    </div>
+  );
+}
+
+/**
+ * A challan line's price (owner, 2026-10-31): a made shoe's price and the
+ * line's worth, a box for a made shoe with no price, a question for a shoe
+ * nobody has called made or bought — or "only moved" for bought goods.
+ */
+function LinePriceNote({
+  line,
+  index,
+  priced,
+  toShop,
+  onLine,
+  text,
+}: {
+  line: Line;
+  index: number;
+  priced: { kind: "moved" | "notInItems" | "ask" | "noPrice" | "priced"; price: number } | null;
+  toShop: boolean;
+  onLine: (patch: Partial<Line>) => void;
+  text: Text;
+}) {
+  if (!priced) return null;
+  const pairs = Number(line.pairs) || 0;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm sm:col-span-3">
+      {line.origin ? <input type="hidden" name={`line${index}Origin`} value={line.origin} /> : null}
+      {priced.kind === "moved" ? (
+        <span className="font-bold text-brand-muted">{text("Bought: only moved", "किनेको: सारिएको मात्र")}</span>
+      ) : priced.kind === "notInItems" ? (
+        <span className="font-bold text-brand-muted">{text("Not in Items: only moved", "Items मा छैन: सारिएको मात्र")}</span>
+      ) : priced.kind === "ask" ? (
+        <>
+          <span className="font-black text-brand-gold-ink">{text("Made or bought?", "बनाएको कि किनेको?")}</span>
+          <button type="button" onClick={() => onLine({ origin: "made" })} className="min-h-10 rounded-lg border-2 border-[#2F5C8A] px-3 font-black text-[#2F5C8A]">
+            🏭 {text("Made", "बनाएको")}
+          </button>
+          <button type="button" onClick={() => onLine({ origin: "bought" })} className="min-h-10 rounded-lg border-2 border-brand-gold-deep px-3 font-black text-brand-gold-deep">
+            🛒 {text("Bought", "किनेको")}
+          </button>
+        </>
+      ) : priced.kind === "noPrice" || line.price ? (
+        <label className="flex flex-wrap items-center gap-2 font-black text-brand-clay">
+          {text("No price: Rs.", "मूल्य छैन: Rs.")}
+          <input
+            name={`line${index}Price`}
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={line.price ?? ""}
+            onChange={(event) => onLine({ price: event.target.value })}
+            aria-label={text(`Price a pair for ${line.design}`, `${line.design} को जोडीको मूल्य`)}
+            className="h-10 w-28 rounded-md border-2 border-brand-clay bg-brand-paper px-2 text-right tabular-nums text-brand-green-ink"
+          />
+          <span className="text-xs font-medium text-brand-muted">{text("kept as its factory price", "यसको कारखाना मूल्य बनेर रहन्छ")}</span>
+          {priced.kind === "priced" && pairs > 0 ? (
+            <span className="tabular-nums text-[#2F5C8A]">= {money(priced.price * pairs)}</span>
+          ) : null}
+        </label>
+      ) : (
+        <span className="font-bold tabular-nums text-[#2F5C8A]">
+          {toShop ? "" : text("Back: ", "फिर्ता: ")}
+          {money(priced.price)} × {pairs} = {money(priced.price * pairs)}
+        </span>
+      )}
     </div>
   );
 }

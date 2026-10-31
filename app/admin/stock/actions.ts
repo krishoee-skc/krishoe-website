@@ -16,6 +16,15 @@ import { CounterItemRefusal, fillSoldFirstByCount, markCounterItemReviewed } fro
 import { tidySizes } from "@/lib/counter-item-rules";
 import { ShelfCountRefusal, setPlaceToCount } from "@/lib/shelf-count";
 import { transactionPostgres } from "@/lib/postgres/client";
+import { setChosenOrigin } from "@/lib/product-origins";
+import { money } from "@/lib/format-money";
+import { setFactoryPrice } from "@/lib/two-business";
+import {
+  addShopFactoryPayment,
+  challanShoes,
+  removeShopFactoryPayment,
+  type ChallanShoe,
+} from "@/lib/shop-factory-account";
 
 /** The size rows a count form sends, as pairs by size. */
 function countedSizes(formData: FormData): Record<string, number> | null {
@@ -106,13 +115,14 @@ export async function createStockTransferAction(
   // Moving pairs is a write (owner, 2026-10-21): it needed only stock:read, so
   // a Sales or Viewer sign-in could send pairs between places. The same
   // permission as 🔢 Count.
-  await requireAdminPermission("operations:write");
+  const { session } = await requireAdminPermission("operations:write");
+  const by = session.name || session.email || "Admin";
 
   const from = placeValue(formData, "fromLocation");
   const to = placeValue(formData, "toLocation");
   const lineCount = Math.min(Math.max(0, Math.round(Number(textValue(formData, "lineCount")))), 60);
 
-  const items: Array<{ design: string; sizeRun: string; pairs: number }> = [];
+  const items: Array<{ design: string; sizeRun: string; pairs: number; index: number; unitPrice?: number }> = [];
   for (let index = 0; index < lineCount; index += 1) {
     // The shoe box's value is "design::sizeRun" (the size travels on its
     // own too). Read as the design whole, "Test Chappal::Mixed" matched no
@@ -120,13 +130,62 @@ export async function createStockTransferAction(
     const design = textValue(formData, `line${index}Design`).split("::")[0].trim();
     const pairs = wholeValue(formData, `line${index}Pairs`);
     if (design && pairs > 0) {
-      items.push({ design, sizeRun: textValue(formData, `line${index}SizeRun`) || "Mixed", pairs });
+      items.push({ design, sizeRun: textValue(formData, `line${index}SizeRun`) || "Mixed", pairs, index });
     }
   }
 
   if (items.length === 0) {
     return { ok: false, message: "Choose at least one shoe, and say how many pairs are going." };
   }
+
+  // Two businesses (owner, 2026-10-31): a made shoe on a challan carries its
+  // price — the factory's sale to the shop, or a return the other way. A shoe
+  // with no price takes the one typed on its line, kept as its factory price
+  // (owner's choice क); a shoe nobody has called made or bought takes the word
+  // given on its line. Bought goods, and shoes not in Items, are only moved.
+  const shoes = await challanShoes().catch(() => ({}) as Record<string, ChallanShoe>);
+  if (Object.keys(shoes).length > 0) {
+    const unsaid: string[] = [];
+    const unpriced: string[] = [];
+    for (const item of items) {
+      const shoe = shoes[item.design.trim().toLowerCase()];
+      if (!shoe?.productId) continue;
+      const said = textValue(formData, `line${item.index}Origin`);
+      if (!shoe.origin && (said === "made" || said === "bought")) {
+        await setChosenOrigin(shoe.productId, said, by);
+        shoe.origin = said;
+      }
+      if (!shoe.origin) {
+        unsaid.push(item.design);
+        continue;
+      }
+      if (shoe.origin === "bought") continue;
+      const typed = Math.max(0, Number(textValue(formData, `line${item.index}Price`)) || 0);
+      if (!(shoe.price > 0) && typed > 0) {
+        await setFactoryPrice(shoe.productId, typed, by);
+        shoe.price = typed;
+      }
+      if (!(shoe.price > 0)) {
+        unpriced.push(item.design);
+        continue;
+      }
+      item.unitPrice = shoe.price;
+    }
+    const names = (list: string[]) => [...new Set(list)].join(", ");
+    if (unsaid.length > 0) {
+      return {
+        ok: false,
+        message: `Say on its line whether it is made or bought: ${names(unsaid)}.`,
+      };
+    }
+    if (unpriced.length > 0) {
+      return {
+        ok: false,
+        message: `No price — type one on its line: ${names(unpriced)}.`,
+      };
+    }
+  }
+  const worth = items.reduce((sum, item) => sum + (item.unitPrice ?? 0) * item.pairs, 0);
 
   try {
     const challan = await createStockTransfer({
@@ -143,7 +202,7 @@ export async function createStockTransferAction(
 
     await recordAdminAuditEvent(
       "stock_transfer_create",
-      `Challan ${challan.challanNumber}: ${challan.sentPairs} pairs ${from} to ${to}.`,
+      `Challan ${challan.challanNumber}: ${challan.sentPairs} pairs ${from} to ${to}${worth > 0 ? `, made shoes worth Rs. ${worth}` : ""}.`,
     );
     refresh();
 
@@ -167,6 +226,54 @@ export async function createStockTransferAction(
  * common case is that everything arrived, and making the owner retype numbers
  * that did not change is how a screen stops being used.
  */
+/**
+ * What the shop paid the factory (owner, 2026-10-31, choice 2(a)): kept, and
+ * taken off what the shop owes for the shoes it took on challans.
+ */
+export async function addShopFactoryPaymentAction(
+  _previous: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const { session } = await requireAdminPermission("operations:write");
+  try {
+    const paid = await addShopFactoryPayment({
+      paidOn: textValue(formData, "paidOn"),
+      amount: Number(textValue(formData, "amount")) || 0,
+      method: textValue(formData, "method"),
+      note: textValue(formData, "note"),
+      by: session.name || session.email || "Admin",
+    });
+    await recordAdminAuditEvent("shop_factory_payment", `The shop paid the factory Rs. ${paid.amount} (${paid.method}).`);
+    refresh();
+    return { ok: true, message: `${money(paid.amount)} paid to the factory — kept.` };
+  } catch (error) {
+    reportError("keep a shop payment to the factory", error);
+    return { ok: false, message: saveFailureMessage(error, "The payment was not kept.") };
+  }
+}
+
+/** A payment typed wrong: the Owner removes it, with the reason; it stays on file. */
+export async function removeShopFactoryPaymentAction(
+  _previous: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const { session } = await requireAdminPermission("settings:write");
+  try {
+    const done = await removeShopFactoryPayment(
+      textValue(formData, "id"),
+      session.name || session.email || "Owner",
+      textValue(formData, "reason"),
+    );
+    if (!done) return { ok: false, message: "That payment was not found, or is already removed." };
+    await recordAdminAuditEvent("shop_factory_payment_removed", `A shop payment to the factory was removed: ${textValue(formData, "reason")}`);
+    refresh();
+    return { ok: true, message: "Removed. It stays on file with your reason." };
+  } catch (error) {
+    reportError("remove a shop payment to the factory", error);
+    return { ok: false, message: saveFailureMessage(error, "It was not removed.") };
+  }
+}
+
 export async function receiveStockTransferAction(
   _previous: ActionState | null,
   formData: FormData,

@@ -18,6 +18,9 @@ import { buildStockOverview, catalogStockWarnings, type ReadyStockOverviewRow, t
 import { findDesignDrift, type DesignRecord } from "@/lib/design-drift";
 import { outlookAdvice, stockOutlook } from "@/lib/stock-forecast";
 import { getStockByPlace, getStockTransfers } from "@/lib/stock-transfers";
+import { challanShoes, getShopFactoryAccount, madeShoesWithoutPrice } from "@/lib/shop-factory-account";
+import { twoBusinessReady } from "@/lib/two-business";
+import ShopFactoryAccount from "@/app/admin/stock/ShopFactoryAccount";
 import { getAdminSession } from "@/lib/admin-auth";
 import { NEPAL_TIME_ZONE, toBikramSambatNumeric } from "@/lib/bikram-sambat";
 import WherePairsAre, { type ShoeExtra } from "@/app/admin/stock/WherePairsAre";
@@ -303,7 +306,23 @@ export default async function AdminStockPage({ searchParams }: { searchParams?: 
   // Everything in the "To do" tab that waits on somebody (owner, 2026-10-12):
   // the counter's new goods, shoes sold first, bills to come, drafts with
   // pairs, website stock with nothing behind it, two names for one shoe.
+  // Two businesses (owner, 2026-10-31): each shoe's word and price for a
+  // challan, the shop's account with the factory, and made shoes a challan
+  // cannot price — each a press from its form.
+  const twoBusinessOn = await twoBusinessReady().catch(() => false);
+  const shoesForChallan = twoBusinessOn ? await challanShoes().catch(() => null) : null;
+  const shopAccount = twoBusinessOn
+    ? await getShopFactoryAccount().catch((error) => {
+        reportError("load the shop's account with the factory", error);
+        return null;
+      })
+    : null;
+  const unpricedMade = twoBusinessOn ? await madeShoesWithoutPrice().catch(() => []) : [];
+  const role = session ? getSessionAdminRole(session) : null;
+  const isOwner = role ? canAdmin(role, "settings:write") : false;
+
   const todoCount =
+    (unpricedMade.length > 0 ? 1 : 0) +
     watch.toReview.length +
     watch.stockToFill.length +
     watch.billToCome.length +
@@ -362,9 +381,46 @@ export default async function AdminStockPage({ searchParams }: { searchParams?: 
         canCount={canCount}
         countFirst={countFirst}
         moveFirst={moveFirst}
+        challanShoes={shoesForChallan}
+        moneyPart={
+          twoBusinessOn ? (
+            <ShopFactoryAccount account={shopAccount} today={today} canPay={canCount} canRemove={isOwner} isOwner={isOwner} />
+          ) : null
+        }
         todoCount={todoCount}
         todo={
           <>
+          {unpricedMade.length > 0 ? (
+            <section id="made-without-price" className="scroll-mt-24 rounded-2xl border-2 border-[#2F5C8A]/40 bg-[#EAF1F8] p-4 sm:p-5">
+              <h2 className="text-lg font-black text-[#2F5C8A]">
+                <T
+                  en={`Made shoes with no price for a challan: ${unpricedMade.length}`}
+                  ne={`challan का लागि मूल्य नभएका बनाएका जुत्ता: ${unpricedMade.length}`}
+                />
+              </h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                <T
+                  en="No factory price and no wholesale price. Give each one in its form — or type it on the challan line, where it is kept."
+                  ne="न कारखाना मूल्य, न थोक मूल्य। हरेकको फारममा मूल्य राख्नुहोस् — वा challan को लाइनमै लेख्नुहोस्, त्यहीँ save हुन्छ।"
+                />
+              </p>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {unpricedMade.map((shoe) => (
+                  <li key={shoe.id}>
+                    <Link
+                      href={`/admin/products?edit=${encodeURIComponent(shoe.id)}`}
+                      className="flex min-h-12 items-center justify-between gap-2 rounded-xl border border-brand-green-line bg-brand-paper px-3 py-2 text-base"
+                    >
+                      <b className="min-w-0 text-brand-green-ink">{shoe.name}</b>
+                      <span className="shrink-0 text-sm font-black text-brand-green">
+                        <T en="Give a price →" ne="मूल्य राख्ने →" />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <CounterGoodsWatch
             toReview={watch.toReview}
             billToCome={watch.billToCome}

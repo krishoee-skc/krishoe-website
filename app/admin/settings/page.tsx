@@ -39,7 +39,7 @@ import { counterItemsDatabaseStatus } from "@/lib/counter-items-database";
 import { chequesDatabaseStatus } from "@/lib/cheques";
 import { cashDaysDatabaseStatus } from "@/lib/cash-days";
 import { productOriginsDatabaseStatus } from "@/lib/product-origins";
-import { getFactoryBusiness, twoBusinessDatabaseStatus, vehiclesShown } from "@/lib/two-business";
+import { getFactoryBusiness, twoBusinessDatabaseStatus, twoBusinessReady, vehiclesShown } from "@/lib/two-business";
 import VehiclesSwitch from "./VehiclesSwitch";
 import { photoRobotReady, workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
 import { photoRobotOn } from "@/lib/worker-portal";
@@ -186,8 +186,10 @@ export default async function AdminSettingsPage({
     reportError("check the two-business columns", error);
     return null;
   });
-  const factoryBusiness = twoBusinessDatabase?.ready ? await getFactoryBusiness().catch(() => null) : null;
-  const vehiclesOn = twoBusinessDatabase?.ready ? await vehiclesShown().catch(() => false) : false;
+  // Step one is enough for these; a later step waiting for its OK leaves them be.
+  const twoBusinessOn = await twoBusinessReady().catch(() => false);
+  const factoryBusiness = twoBusinessOn ? await getFactoryBusiness().catch(() => null) : null;
+  const vehiclesOn = twoBusinessOn ? await vehiclesShown().catch(() => false) : false;
   const cashDaysDatabase = await cashDaysDatabaseStatus().catch((error) => {
     reportError("check the cash drawer table", error);
     return null;
@@ -729,7 +731,7 @@ export default async function AdminSettingsPage({
       ) : null}
 
       {/* The vehicle work, hidden until it is used (owner, 2026-10-31). */}
-      {twoBusinessDatabase?.ready ? (
+      {twoBusinessOn ? (
         <section id="vehicles-switch" className="mt-4 max-w-2xl rounded-2xl border border-brand-green-line bg-brand-paper p-4">
           <h3 className="text-base font-black text-brand-green-ink">
             🚚 <T en="Vehicle work" ne="गाडीको काम" />

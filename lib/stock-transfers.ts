@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
 
+import { twoBusinessReady } from "@/lib/two-business";
+
 const STORE = "stock transfers";
 
 // Defined in lib/stock-rules.ts, which imports nothing, and re-exported here so
@@ -43,6 +45,8 @@ export type TransferItem = {
   sizeRun: string;
   sentPairs: number;
   receivedPairs: number | null;
+  /** What the shop pays the factory a pair (owner, 2026-10-31); 0 when only moved. */
+  unitPrice: number;
 };
 
 export type StockTransfer = {
@@ -89,6 +93,7 @@ type ItemRow = {
   size_run: string;
   sent_pairs: number | string;
   received_pairs: number | string | null;
+  unit_price?: number | string;
 };
 
 function whole(value: unknown) {
@@ -231,9 +236,10 @@ export async function getStockTransfers(limit = 60): Promise<StockTransfer[]> {
 
   if (transfers.length === 0) return [];
 
+  const priced = await twoBusinessReady();
   const items = await queryPostgres<ItemRow>(
     STORE,
-    `SELECT id, transfer_id, design, size_run, sent_pairs, received_pairs
+    `SELECT id, transfer_id, design, size_run, sent_pairs, received_pairs${priced ? ", unit_price" : ""}
      FROM stock_transfer_items
      WHERE transfer_id = ANY($1::text[])
      ORDER BY design`,
@@ -249,6 +255,7 @@ export async function getStockTransfers(limit = 60): Promise<StockTransfer[]> {
       sizeRun: item.size_run,
       sentPairs: whole(item.sent_pairs),
       receivedPairs: item.received_pairs === null ? null : whole(item.received_pairs),
+      unitPrice: Math.max(0, Number(item.unit_price) || 0),
     });
     byTransfer.set(item.transfer_id, list);
   }
@@ -284,7 +291,8 @@ export type CreateTransferInput = {
   /** The owner's tick: he carried the pairs himself, so nobody has to confirm. */
   receiveNow: boolean;
   submissionKey?: string;
-  items: Array<{ design: string; sizeRun: string; pairs: number }>;
+  /** unitPrice: what the shop pays the factory a pair, for a made shoe (two businesses). */
+  items: Array<{ design: string; sizeRun: string; pairs: number; unitPrice?: number }>;
 };
 
 /**
@@ -307,6 +315,7 @@ export async function createStockTransfer(input: CreateTransferInput) {
       design: item.design.trim(),
       sizeRun: item.sizeRun.trim() || "Mixed",
       pairs: whole(item.pairs),
+      unitPrice: Math.max(0, Math.round((Number(item.unitPrice) || 0) * 100) / 100),
     }))
     .filter((item) => item.design && item.pairs > 0);
 
@@ -315,6 +324,8 @@ export async function createStockTransfer(input: CreateTransferInput) {
   }
 
   const submissionKey = input.submissionKey?.trim() || null;
+  // The price column, once the two businesses are set up.
+  const priced = await twoBusinessReady();
 
   return transactionPostgres(STORE, async (db) => {
     if (submissionKey) {
@@ -377,8 +388,8 @@ export async function createStockTransfer(input: CreateTransferInput) {
       );
 
       await db.query(
-        `INSERT INTO stock_transfer_items (id, transfer_id, design, size_run, sent_pairs, received_pairs)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO stock_transfer_items (id, transfer_id, design, size_run, sent_pairs, received_pairs${priced ? ", unit_price" : ""})
+         VALUES ($1, $2, $3, $4, $5, $6${priced ? ", $7" : ""})`,
         [
           `trfi-${randomUUID()}`,
           transferId,
@@ -386,6 +397,7 @@ export async function createStockTransfer(input: CreateTransferInput) {
           line.sizeRun,
           line.pairs,
           input.receiveNow ? line.pairs : null,
+          ...(priced ? [line.unitPrice] : []),
         ],
       );
 
