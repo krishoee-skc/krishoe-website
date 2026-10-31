@@ -62,4 +62,11 @@ describe("the country box beside the number", () => {
     expect(withoutWidth("h-11 w-full rounded-xl md:w-1/2 min-w-0 px-3")).toBe("h-11 rounded-xl px-3");
     expect(withoutWidth("min-h-11 rounded-xl border")).toBe("min-h-11 rounded-xl border");
   });
+
+  it("names the country instead of drawing its flag, which Windows shows as two small letters", async () => {
+    const { readFileSync } = await import("node:fs");
+    const box = readFileSync("components/PhoneWithCountry.tsx", "utf8");
+    expect(box).toContain("{text(country.en, country.ne)} +{country.code}");
+    expect(box).not.toContain("{country.flag}");
+  });
 });

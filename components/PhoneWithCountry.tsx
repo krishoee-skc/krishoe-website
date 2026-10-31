@@ -88,12 +88,15 @@ export default function PhoneWithCountry({
         data-enter-skip=""
         // The country box keeps its own width: a "w-full" in the shared input
         // style took the whole row on the bill page and left the number a
-        // sliver (owner, 2026-10-04).
-        className={`w-[7.75rem] flex-none ${withoutWidth(selectClass || inputClass)}`}
+        // sliver (owner, 2026-10-04). Wide enough for "Nepal +977".
+        className={`w-[9.5rem] flex-none ${withoutWidth(selectClass || inputClass)}`}
       >
         {PHONE_COUNTRIES.map((country) => (
           <option key={country.code} value={country.code}>
-            {country.flag} +{country.code}
+            {/* The country's name, not its flag (owner, 2026-10-31, "kha"):
+                Windows draws a flag as two small letters, "NP", in another
+                size beside "+977". */}
+            {text(country.en, country.ne)} +{country.code}
           </option>
         ))}
       </select>
