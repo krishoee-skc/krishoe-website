@@ -11,7 +11,14 @@ import PrintButton from "@/components/admin/PrintButton";
 import { Amount, AmountsToggle, PageHead } from "@/components/admin/PageKit";
 import { recordDrawerAction, recordMoneyInAction, recordMoneyOutAction } from "@/app/admin/transactions/actions";
 import { drawerCheck } from "@/lib/cash-days-rules";
-import { dayBookTotals, type DayBookFilter, type DayBookRow } from "@/lib/day-book-rules";
+import {
+  cashInByBusiness,
+  dayBookTotals,
+  linesOfBusiness,
+  type DayBookBusiness,
+  type DayBookFilter,
+  type DayBookRow,
+} from "@/lib/day-book-rules";
 import type { PartyRow } from "@/lib/day-book";
 import { money } from "@/lib/format-money";
 import { whatsappNumber } from "@/lib/phone-intl";
@@ -46,6 +53,8 @@ type Props = {
   /** The message came from the drawer check, not a money form. */
   drawerMessage: boolean;
   may: May;
+  /** The factory and the shop are two businesses: each line says whose (owner, 2026-10-31). */
+  twoBusiness?: boolean;
   /** The drawer's morning cash and evening count. */
   drawer: Drawer;
   /** The cheque book, for a cheque taken in Money in. */
@@ -64,7 +73,26 @@ const TAG: Record<DayBookRow["area"], string> = {
   customer: "bg-brand-purple/10 text-brand-purple dark:bg-violet-300/10 dark:text-[#C7A8EE]",
   supplier: "bg-brand-cream-soft text-brand-gold-ink",
   wages: "bg-brand-cream-soft text-brand-gold-ink",
+  transfer: "bg-[#EAF1F8] text-[#2F5C8A]",
 };
+
+/** Whose line, as a small tag (owner, 2026-10-31, two businesses). */
+function BusinessTag({ r }: { r: DayBookRow }) {
+  const { text } = useLanguage();
+  const [label, title, tone] =
+    r.area === "transfer"
+      ? ["🛒→🏭", text("Shop to factory", "पसलबाट कारखानामा"), "bg-brand-cream-soft text-brand-gold-ink"]
+      : r.factoryShare >= 1
+        ? ["🏭", text("Factory", "कारखाना"), "bg-[#EAF1F8] text-[#2F5C8A]"]
+        : r.factoryShare <= 0
+          ? ["🛒", text("Shop", "पसल"), "bg-brand-green-wash text-brand-green"]
+          : ["🏭+🛒", text("Both", "दुवै"), "bg-brand-cream-soft text-brand-gold-ink"];
+  return (
+    <span title={title} className={`mr-1 inline-block whitespace-nowrap rounded-full px-1.5 text-xs font-black ${tone}`}>
+      {label}
+    </span>
+  );
+}
 
 const FILTERS: Array<{ key: "all" | DayBookFilter; en: string; ne: string }> = [
   { key: "all", en: "All", ne: "सबै" },
@@ -502,7 +530,21 @@ type Drawer = {
  * difference. The counter bills' cash is shown apart — the figure the POS
  * cashier close counts — so the two can be read side by side.
  */
-function DrawerCheck({ drawer, day, cashIn, cashOut, rows }: { drawer: Drawer; day: string; cashIn: number; cashOut: number; rows: DayBookRow[] }) {
+function DrawerCheck({
+  drawer,
+  day,
+  cashIn,
+  cashOut,
+  rows,
+  twoBusiness = false,
+}: {
+  drawer: Drawer;
+  day: string;
+  cashIn: number;
+  cashOut: number;
+  rows: DayBookRow[];
+  twoBusiness?: boolean;
+}) {
   const { text } = useLanguage();
   if (!drawer.ready) {
     return drawer.mayPrepare ? (
@@ -515,6 +557,7 @@ function DrawerCheck({ drawer, day, cashIn, cashOut, rows }: { drawer: Drawer; d
     ) : null;
   }
   const check = drawerCheck(drawer.opening, cashIn, cashOut, drawer.counted);
+  const byBusiness = cashInByBusiness(rows);
   const posCash = rows.filter((r) => r.area === "pos").reduce((sum, r) => sum + r.cashIn - r.cashOut, 0);
   const otherCash = cashIn - cashOut - posCash;
   const line = "flex flex-wrap items-baseline justify-between gap-2 py-1.5";
@@ -560,6 +603,12 @@ function DrawerCheck({ drawer, day, cashIn, cashOut, rows }: { drawer: Drawer; d
         <span className="text-brand-muted">{text("+ cash in today", "+ आज आएको नगद")}</span>
         <span className="font-black tabular-nums text-brand-green"><Amount>{money(cashIn)}</Amount></span>
       </div>
+      {twoBusiness && cashIn > 0 ? (
+        // One drawer (choice 3(क)): the cash in it, shown by whose it is.
+        <p className="-mt-1 pl-3 text-xs font-bold text-brand-muted">
+          🛒 {text("Shop", "पसल")} <Amount>{money(byBusiness.shop)}</Amount> · 🏭 {text("Factory", "कारखाना")} <Amount>{money(byBusiness.factory)}</Amount>
+        </p>
+      ) : null}
       <div className={`${line} text-sm`}>
         <span className="text-brand-muted">{text("− cash out today", "− आज गएको नगद")}</span>
         <span className="font-black tabular-nums text-brand-clay"><Amount>{money(cashOut)}</Amount></span>
@@ -608,10 +657,27 @@ function DrawerCheck({ drawer, day, cashIn, cashOut, rows }: { drawer: Drawer; d
   );
 }
 
-function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }: Pick<Props, "rows" | "day" | "dayBs" | "today" | "previousDay" | "nextDay" | "may" | "drawer">) {
+function DayBook({
+  rows,
+  day,
+  dayBs,
+  today,
+  previousDay,
+  nextDay,
+  may,
+  drawer,
+  twoBusiness = false,
+}: Pick<Props, "rows" | "day" | "dayBs" | "today" | "previousDay" | "nextDay" | "may" | "drawer" | "twoBusiness">) {
   const { text } = useLanguage();
   const [filter, setFilter] = useState<"all" | DayBookFilter>("all");
-  const all = useMemo(() => rows ?? [], [rows]);
+  // Whose lines (owner, 2026-10-31): all, the factory's or the shop's — each
+  // line at its share of the money, so the totals are that business's.
+  const [business, setBusiness] = useState<"all" | DayBookBusiness>("all");
+  const everything = useMemo(() => rows ?? [], [rows]);
+  const all = useMemo(
+    () => (twoBusiness && business !== "all" ? linesOfBusiness(everything, business) : everything),
+    [everything, business, twoBusiness],
+  );
   const totals = useMemo(() => dayBookTotals(all), [all]);
   const shown = filter === "all" ? all : all.filter((r) => r.filters.includes(filter));
   const isToday = day === today;
@@ -672,7 +738,37 @@ function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }:
             ) : null}
           </div>
 
-          <DrawerCheck drawer={drawer} day={day} cashIn={totals.cashIn} cashOut={totals.cashOut} rows={all} />
+          {/* One drawer for both (choice 3(क)): always the whole day's cash. */}
+          <DrawerCheck
+            drawer={drawer}
+            day={day}
+            cashIn={dayBookTotals(everything).cashIn}
+            cashOut={dayBookTotals(everything).cashOut}
+            rows={everything}
+            twoBusiness={twoBusiness}
+          />
+
+          {twoBusiness ? (
+            <div role="group" aria-label={text("Whose lines", "कसको कारोबार")} className="flex flex-wrap gap-1.5 print:hidden">
+              {([
+                { key: "all", en: "All", ne: "सबै" },
+                { key: "factory", en: "🏭 Factory", ne: "🏭 कारखाना" },
+                { key: "shop", en: "🛒 Shop", ne: "🛒 पसल" },
+              ] as const).map((b) => (
+                <button
+                  key={b.key}
+                  type="button"
+                  aria-pressed={business === b.key}
+                  onClick={() => setBusiness(b.key)}
+                  className={`min-h-10 rounded-xl border px-4 text-sm font-black ${
+                    business === b.key ? "border-brand-green bg-brand-green text-white" : "border-brand-green-line bg-brand-paper text-brand-green-ink"
+                  }`}
+                >
+                  {text(b.en, b.ne)}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div role="group" aria-label={text("Show only", "मात्र देखाउने")} className="flex flex-wrap gap-1.5 print:hidden">
             {FILTERS.map((f) => {
@@ -713,6 +809,7 @@ function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }:
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-1 text-sm">
                         <span className="tabular-nums text-brand-muted">{NEPAL_TIME.format(new Date(r.at))}</span>
+                        {twoBusiness ? <BusinessTag r={r} /> : null}
                         <span className={`whitespace-nowrap rounded-full px-2 text-xs font-black ${TAG[r.area]}`}>{text(r.en, r.ne)}</span>
                         {r.ref ? (
                           <Link href={r.href} prefetch={false} className="truncate font-bold text-brand-green-ink underline decoration-brand-green-line underline-offset-2">
@@ -731,6 +828,7 @@ function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }:
                     <div className="shrink-0 text-right tabular-nums">
                       {r.moneyIn > 0 ? <p className="font-black text-brand-green">+{rupees(r.moneyIn)}</p> : null}
                       {r.moneyOut > 0 ? <p className="font-black text-brand-clay">−{rupees(r.moneyOut)}</p> : null}
+                      {r.moved > 0 ? <p className="font-black text-brand-gold-ink">↔ {rupees(r.moved)}</p> : null}
                       {r.due > 0 ? (
                         <p className="text-xs font-bold text-brand-muted">
                           {rupees(r.due)} {owedOut ? text("to pay", "तिर्न बाँकी") : text("due", "उधारो")}
@@ -757,6 +855,7 @@ function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }:
                     <tr key={r.id} className={`border-b border-brand-green-line/60 align-top ${r.bounced ? "bg-brand-clay-tint/50" : ""}`}>
                       <td className="whitespace-nowrap py-2 pr-2 tabular-nums text-brand-muted">{NEPAL_TIME.format(new Date(r.at))}</td>
                       <td className="py-2 pr-2">
+                        {twoBusiness ? <BusinessTag r={r} /> : null}
                         <span className={`mr-1 inline-block whitespace-nowrap rounded-full px-2 text-xs font-black ${TAG[r.area]}`}>{text(r.en, r.ne)}</span>
                         {r.ref ? (
                           <Link href={r.href} prefetch={false} className="font-bold text-brand-green-ink underline decoration-brand-green-line underline-offset-2">
@@ -775,6 +874,11 @@ function DayBook({ rows, day, dayBs, today, previousDay, nextDay, may, drawer }:
                       </td>
                       <td className="whitespace-nowrap py-2 text-right tabular-nums">
                         {r.moneyOut > 0 ? <span className="font-black text-brand-clay">{rupees(r.moneyOut)}</span> : null}
+                        {r.moved > 0 ? (
+                          <span className="block font-black text-brand-gold-ink" title={text("Moved between the two — not in or out", "दुईबीच सारिएको — आयो/गयोमा गनिँदैन")}>
+                            ↔ {rupees(r.moved)}
+                          </span>
+                        ) : null}
                         {r.due > 0 && (r.area === "purchase" || r.area === "supplier") ? (
                           <span className="block text-xs font-bold text-brand-muted">{rupees(r.due)} {text("due", "उधारो")}</span>
                         ) : null}
@@ -1036,7 +1140,7 @@ export default function TransactionsHub(props: Props) {
             ))}
           </div>
           {tab === "book" ? (
-            <DayBook rows={props.rows} day={props.day} dayBs={props.dayBs} today={props.today} previousDay={props.previousDay} nextDay={props.nextDay} may={may} drawer={props.drawer} />
+            <DayBook rows={props.rows} day={props.day} dayBs={props.dayBs} today={props.today} previousDay={props.previousDay} nextDay={props.nextDay} may={may} drawer={props.drawer} twoBusiness={props.twoBusiness} />
           ) : (
             <Parties
               parties={props.parties}

@@ -23,7 +23,8 @@ import { moneyByMethod, readPaymentParts } from "@/lib/pos-payments";
  * bill does not show at all.
  */
 
-export type DayBookArea = "pos" | "purchase" | "customer" | "supplier" | "wages";
+// transfer: the shop paying the factory (two businesses, owner 2026-10-31).
+export type DayBookArea = "pos" | "purchase" | "customer" | "supplier" | "wages" | "transfer";
 export type DayBookFilter = "sale" | "purchase" | "in" | "out" | "cheque";
 
 export type DayBookRow = {
@@ -47,6 +48,14 @@ export type DayBookRow = {
   due: number;
   bounced: boolean;
   filters: DayBookFilter[];
+  /**
+   * How much of the line is the factory's (owner, 2026-10-31, two
+   * businesses): 1 the factory's, 0 the shop's, between for a purchase of
+   * both kinds or a payment on bills of both. A transfer is both sides'.
+   */
+  factoryShare: number;
+  /** Money moved from the shop to the factory — shown, never counted as in or out. */
+  moved: number;
 };
 
 export type PosBillRow = {
@@ -62,6 +71,8 @@ export type PosBillRow = {
   credit_amount: number | string;
   payments: unknown;
   ledger_transaction_id: string | null;
+  /** Whose bill, once the two businesses are set up. */
+  business?: string | null;
 };
 
 export type PurchaseBillRow = {
@@ -74,6 +85,17 @@ export type PurchaseBillRow = {
   credit_amount: number | string;
   payment_method: string;
   supplier_transaction_ids: string[] | null;
+  /** Its lines by kind: raw material is the factory's, trading goods the shop's (choice 1(क)). */
+  raw_value?: number | string | null;
+  trading_value?: number | string | null;
+};
+
+export type ShopPaymentRow = {
+  id: string;
+  created_at: string;
+  amount: number | string;
+  method: string;
+  note: string | null;
 };
 
 export type AccountLineRow = {
@@ -112,6 +134,12 @@ export type DayBookSources = {
    */
   billLedgerLineIds: string[];
   purchaseSupplierLineIds: string[];
+  /** The factory's share of each customer payment line, by line id (choice 2(क)). */
+  customerShares?: Record<string, number>;
+  /** The factory's share of each supplier's buying, by supplier account id. */
+  supplierShares?: Record<string, number>;
+  /** What the shop paid the factory this day. */
+  shopPayments?: ShopPaymentRow[];
 };
 
 export type DayBookTotals = {
@@ -156,8 +184,10 @@ const WAGE_LINE: Record<string, { en: string; ne: string }> = {
   Bonus: { en: "Bonus", ne: "बोनस" },
 };
 
-function row(partial: Omit<DayBookRow, "cashIn" | "cashOut" | "bounced" | "filters" | "due"> & Partial<DayBookRow>): DayBookRow {
-  const r: DayBookRow = { cashIn: 0, cashOut: 0, due: 0, bounced: false, filters: [], ...partial };
+function row(
+  partial: Omit<DayBookRow, "cashIn" | "cashOut" | "bounced" | "filters" | "due" | "factoryShare" | "moved"> & Partial<DayBookRow>,
+): DayBookRow {
+  const r: DayBookRow = { cashIn: 0, cashOut: 0, due: 0, bounced: false, filters: [], factoryShare: 0, moved: 0, ...partial };
   const filters = new Set<DayBookFilter>(r.filters);
   if (r.moneyIn > 0) filters.add("in");
   if (r.moneyOut > 0) filters.add("out");
@@ -213,7 +243,46 @@ function posBill(bill: PosBillRow, bounced: boolean): DayBookRow | null {
     due: credit,
     bounced,
     filters: isReturn ? [] : ["sale"],
+    factoryShare: bill.business === "factory" ? 1 : 0,
   });
+}
+
+/** A purchase's factory share by its lines' worth: raw material the factory's, trading goods the shop's. */
+export function purchaseFactoryShare(raw: number, trading: number) {
+  const whole = raw + trading;
+  return whole > 0 ? raw / whole : 1;
+}
+
+/**
+ * Whose money a customer's payment is (owner, 2026-10-31, choice 2(क)): it
+ * pays the oldest unpaid credit first, and each rupee belongs to the business
+ * whose bill it paid. Credit the books cannot place (an opening balance, a
+ * hand adjustment) and anything paid beyond the bills are the shop's.
+ * Returns each payment's factory share, 0 to 1.
+ */
+export function fifoFactoryShares(
+  credits: Array<{ at: string; factory: boolean; amount: number }>,
+  payments: Array<{ id: string; at: string; amount: number }>,
+): Record<string, number> {
+  const queue = credits
+    .filter((credit) => credit.amount > 0)
+    .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
+    .map((credit) => ({ ...credit }));
+  const shares: Record<string, number> = {};
+  for (const payment of [...payments].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.id.localeCompare(b.id))) {
+    let left = Math.max(0, payment.amount);
+    let factory = 0;
+    while (left > 0 && queue.length > 0) {
+      const head = queue[0];
+      const take = Math.min(left, head.amount);
+      if (head.factory) factory += take;
+      head.amount -= take;
+      left -= take;
+      if (head.amount <= 0) queue.shift();
+    }
+    shares[payment.id] = payment.amount > 0 ? factory / payment.amount : 0;
+  }
+  return shares;
 }
 
 function purchaseBill(bill: PurchaseBillRow, bounced: boolean): DayBookRow {
@@ -237,6 +306,7 @@ function purchaseBill(bill: PurchaseBillRow, bounced: boolean): DayBookRow {
     due: credit,
     bounced,
     filters: ["purchase"],
+    factoryShare: purchaseFactoryShare(n(bill.raw_value), n(bill.trading_value)),
   });
 }
 
@@ -281,6 +351,7 @@ export function buildDayBook(sources: DayBookSources): DayBookRow[] {
         cashIn: method === "Cash" ? amount : 0,
         due: line.type === "Credit Sale" || line.type === "Manual Adjustment" ? amount : 0,
         bounced: lineBounced,
+        factoryShare: sources.customerShares?.[line.id] ?? 0,
       }),
     );
   }
@@ -305,6 +376,7 @@ export function buildDayBook(sources: DayBookSources): DayBookRow[] {
         moneyOut: words.money ? amount : 0,
         cashOut: words.method === "Cash" ? amount : 0,
         due: line.type === "Manual Adjustment" ? amount : 0,
+        factoryShare: sources.supplierShares?.[line.account_id] ?? 1,
       }),
     );
   }
@@ -330,6 +402,30 @@ export function buildDayBook(sources: DayBookSources): DayBookRow[] {
         moneyIn: 0,
         moneyOut: amount,
         cashOut: method === "Cash" ? amount : 0,
+        // Wages are the factory's, always.
+        factoryShare: 1,
+      }),
+    );
+  }
+
+  // The shop paying the factory: money moved between the two, from one drawer
+  // (choice 3(क)) — neither in nor out for the business as a whole.
+  for (const payment of sources.shopPayments ?? []) {
+    rows.push(
+      row({
+        id: `transfer:${payment.id}`,
+        at: payment.created_at,
+        area: "transfer",
+        en: "Shop paid the factory",
+        ne: "पसलले कारखानालाई तिरेको",
+        ref: (payment.note ?? "").slice(0, 60),
+        party: "",
+        href: "/admin/stock#shop-factory-account",
+        method: payment.method,
+        moneyIn: 0,
+        moneyOut: 0,
+        moved: n(payment.amount),
+        factoryShare: 0.5,
       }),
     );
   }
@@ -349,6 +445,39 @@ export function dayBookTotals(rows: DayBookRow[]): DayBookTotals {
     { moneyIn: 0, moneyOut: 0, cashIn: 0, cashOut: 0, due: 0 },
   );
   return { ...totals, cashNet: totals.cashIn - totals.cashOut };
+}
+
+export type DayBookBusiness = "factory" | "shop";
+
+/** Whether a line belongs, in whole or part, to one business; a transfer belongs to both. */
+export function inBusiness(r: DayBookRow, business: DayBookBusiness) {
+  if (r.area === "transfer") return true;
+  return business === "factory" ? r.factoryShare > 0 : r.factoryShare < 1;
+}
+
+/**
+ * One business's lines, each at its share of the money (a purchase of both
+ * kinds, a payment on bills of both). A transfer stays whole: it is shown on
+ * both sides and counted on neither.
+ */
+export function linesOfBusiness(rows: DayBookRow[], business: DayBookBusiness): DayBookRow[] {
+  return rows
+    .filter((r) => inBusiness(r, business))
+    .map((r) => {
+      if (r.area === "transfer") return r;
+      const share = business === "factory" ? r.factoryShare : 1 - r.factoryShare;
+      if (share === 1) return r;
+      const part = (value: number) => Math.round(value * share);
+      return { ...r, moneyIn: part(r.moneyIn), moneyOut: part(r.moneyOut), cashIn: part(r.cashIn), cashOut: part(r.cashOut), due: part(r.due) };
+    });
+}
+
+/** The day's cash in, by business, for the one drawer (choice 3(क)). */
+export function cashInByBusiness(rows: DayBookRow[]) {
+  return {
+    factory: dayBookTotals(linesOfBusiness(rows, "factory")).cashIn,
+    shop: dayBookTotals(linesOfBusiness(rows, "shop")).cashIn,
+  };
 }
 
 /** The day before or after a YYYY-MM-DD, by the calendar alone. */

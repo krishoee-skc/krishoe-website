@@ -14,6 +14,8 @@ import {
   type ReportGroup,
 } from "@/lib/reports";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
+import { getTwoBusinessReport } from "@/lib/two-business-report";
+import TwoBusinessReport from "@/app/admin/reports/TwoBusinessReport";
 import { reportError } from "@/lib/report-error";
 
 export const metadata: Metadata = { title: "Report | KRISHOE Admin" };
@@ -148,6 +150,11 @@ export default async function ReportsPage({
   const insight = buildInsight(counts, soldOutNames);
   const ready = cards.filter((card) => card.ready);
   const waiting = cards.filter((card) => !card.ready);
+  // The factory and the shop, each with its own profit (owner, 2026-10-31).
+  const twoBusinesses = await getTwoBusinessReport(window.current ?? null).catch((error) => {
+    reportError("load the two businesses' report", error);
+    return null;
+  });
 
   return (
     <section className="p-4 sm:p-6">
@@ -227,6 +234,8 @@ export default async function ReportsPage({
 
       {/* The four groups (owner, 2026-10-12): tabs on a phone, where one under
           another was a long scroll; on a computer all of them, as before. */}
+      {twoBusinesses ? <TwoBusinessReport report={twoBusinesses} /> : null}
+
       <div className="mt-8">
         <PageTabs
           id="reports"

@@ -52,7 +52,9 @@ export default function ShopFactoryAccount({
   const figures = [
     { en: "Shop took (challans)", ne: "पसलले लिएको (challan)", value: account.bought - account.returned },
     { en: "Paid", ne: "तिरेको", value: account.paid },
-    { en: "Still owed", ne: "तिर्न बाँकी", value: account.owed, strong: true },
+    account.owed >= 0
+      ? { en: "Still owed", ne: "तिर्न बाँकी", value: account.owed, strong: true }
+      : { en: "Paid ahead", ne: "बढी तिरेको", value: -account.owed, strong: true },
   ];
 
   return (

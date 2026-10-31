@@ -11,6 +11,7 @@ import { nepalDay } from "@/lib/nepal-day";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError } from "@/lib/report-error";
 import TransactionsHub, { type HubView } from "@/app/admin/transactions/_components/TransactionsHub";
+import { twoBusinessReady } from "@/lib/two-business";
 
 export const metadata: Metadata = {
   title: "Transactions | KRISHOE Admin",
@@ -29,6 +30,7 @@ const AREA_PERMISSION: Record<DayBookArea, AdminPermission> = {
   supplier: "purchasing:read",
   customer: "dues:read",
   wages: "operations:read",
+  transfer: "operations:read",
 };
 
 /**
@@ -76,6 +78,8 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   // The drawer check writes back with ?tab=book and no ?v=.
   const drawerMessage = params.tab === "book" && !params.v && Boolean(params.saved || params.said);
   const usedBanks = chequeReady ? await getUsedBanks("in").catch(() => []) : [];
+  // The factory and the shop apart, once they are two businesses (owner, 2026-10-31).
+  const twoBusiness = await twoBusinessReady().catch(() => false);
 
   return (
     <TransactionsHub
@@ -91,6 +95,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       saved={params.saved ?? ""}
       said={params.said ?? ""}
       cheque={{ ready: chequeReady, usedBanks, todayKey: today }}
+      twoBusiness={twoBusiness}
       drawerMessage={drawerMessage}
       drawer={{
         ready: cashDay !== null,
