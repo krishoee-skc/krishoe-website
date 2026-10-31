@@ -99,7 +99,7 @@ export async function getShopFactoryAccount(): Promise<ShopFactoryAccount | null
     `SELECT
        COALESCE(SUM(CASE WHEN t.status = 'Received' AND t.from_location = 'Factory' THEN COALESCE(i.received_pairs, 0) * i.unit_price END), 0) AS bought,
        COALESCE(SUM(CASE WHEN t.status = 'Received' AND t.from_location = 'Shop' THEN COALESCE(i.received_pairs, 0) * i.unit_price END), 0) AS returned,
-       COALESCE(SUM(CASE WHEN t.status = 'Sent' THEN i.sent_pairs * i.unit_price END), 0) AS on_road
+       COALESCE(SUM(CASE WHEN t.status = 'Sent' AND t.from_location = 'Factory' THEN i.sent_pairs * i.unit_price END), 0) AS on_road
      FROM stock_transfer_items i
      JOIN stock_transfers t ON t.id = i.transfer_id
      WHERE i.unit_price > 0`,

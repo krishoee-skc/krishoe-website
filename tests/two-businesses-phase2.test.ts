@@ -37,6 +37,9 @@ describe("two businesses: whose bill", () => {
     expect(pos).toContain('"shortAtShop",\n          short.map((group) => group.design),');
     expect(pos).toContain("Not enough at the factory");
     expect(pos).toContain("async function checkFactoryBill(channel: PosChannel, designs: string[])");
+    // A website order turned into a bill is sent from wherever the pairs are.
+    expect(pos).toContain('if (business && !(business === "shop" && input.answerFromFactory)) {');
+    expect(read("app/admin/actions.ts")).toContain("answerFromFactory: true,");
     const form = read("app/admin/pos/_components/PosBillForm.tsx");
     expect(form).toContain('🚚 {text("Challan first", "पहिले challan गर्ने")}');
     expect(form).toContain('🏭 {text("Move to the factory\'s bill", "कारखानाको बिलमा सार्ने")}');

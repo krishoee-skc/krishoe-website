@@ -867,7 +867,11 @@ async function preparePosInvoice(input: CreatePosInvoiceInput): Promise<{ existi
     // wholesale too, and a factory bill the factory's. A short shop is asked
     // to send a challan first or move the shoe to the factory's bill; a short
     // factory is told.
-    if (business) {
+    // A website order converted to a bill says answerFromFactory: it is sent
+    // from wherever the pairs are, so it is never stopped here (recheck,
+    // 2026-10-31: the shop's short-shelf question would have refused every
+    // online order the shop's shelf could not cover).
+    if (business && !(business === "shop" && input.answerFromFactory)) {
       const groups = groupInvoiceItemsByDesign(items);
       const places = await pairsAtPlaces(groups.map((group) => group.design));
       const here = business === "factory" ? "factory" : "shop";
