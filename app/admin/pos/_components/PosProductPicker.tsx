@@ -36,6 +36,8 @@ type PosProductPickerProps = {
    * where the counter sells to the shop's own customers (owner, 2026-09-29).
    */
   onAddNew?: (name: string) => void;
+  /** A factory bill (owner, 2026-10-31): the factory's pairs shown, bought goods faded. */
+  factoryMode?: boolean;
 };
 
 // A shoe is "running low" at this many pairs or fewer — worth a glance before
@@ -65,6 +67,7 @@ export default function PosProductPicker({
   note,
   searchRef,
   onAddNew,
+  factoryMode = false,
 }: PosProductPickerProps) {
   const { text } = useLanguage();
   const [category, setCategory] = useState("");
@@ -268,6 +271,8 @@ export default function PosProductPicker({
             const noPrice = !(rate > 0) && !soldOut;
             const inBill = cart.some((line) => line.design === item.design);
             const low = !soldOut && left <= LOW_STOCK;
+            // On a factory bill a bought shoe is faded, not hidden: tapping it asks for the shop's part.
+            const notFactory = factoryMode && item.origin !== "made";
 
             return (
               <button
@@ -281,7 +286,7 @@ export default function PosProductPicker({
                     : noPrice
                       ? "border-brand-clay/50 bg-brand-clay-tint/30 hover:border-brand-clay"
                       : "border-brand-green-line bg-brand-paper hover:border-brand-green"
-                }`}
+                } ${notFactory ? "opacity-45" : ""}`}
               >
                 {/* A bigger photo and the whole name, on two lines if it
                     needs them (audit, 2026-10-27): "Signature L…" was read as
@@ -319,6 +324,15 @@ export default function PosProductPicker({
                           ? text(`only ${left}`, `${left} मात्र`)
                           : text(`${left} pairs`, `${left} जोडी`)}
                   </span>
+                  {factoryMode ? (
+                    <span className="block text-xs font-bold text-[#2F5C8A]">
+                      {item.origin === "made"
+                        ? text(`factory ${item.placed?.factory ?? 0}`, `कारखानामा ${item.placed?.factory ?? 0}`)
+                        : item.origin === "bought"
+                          ? text("bought", "किनेको")
+                          : text("made or bought?", "बनाएको कि किनेको?")}
+                    </span>
+                  ) : null}
                 </span>
                 <span
                   aria-hidden="true"

@@ -91,6 +91,9 @@ export function BillTypeBar({
   onChannel,
   lastBill,
   onRepeatLast,
+  business,
+  onBusiness,
+  factoryReady = false,
 }: {
   kind: BillKind;
   onKind: (kind: BillKind) => void;
@@ -101,10 +104,51 @@ export function BillTypeBar({
   onChannel: (channel: string) => void;
   lastBill?: RepeatBill | null;
   onRepeatLast: () => void;
+  /**
+   * Whose bill (owner, 2026-10-31): the shop's or the factory's. Absent until
+   * the two businesses are set up in Settings.
+   */
+  business?: "shop" | "factory";
+  onBusiness?: (business: "shop" | "factory") => void;
+  /** The factory's name and PAN are filled, so its bills can be cut. */
+  factoryReady?: boolean;
 }) {
   const { text } = useLanguage();
   return (
     <div className="flex flex-wrap items-end gap-2">
+      {business && onBusiness ? (
+        <div className="grid gap-0.5">
+          <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
+            {text("Whose bill", "कसको बिल")}
+          </span>
+          <div className="inline-flex rounded-2xl border border-brand-green-line bg-brand-paper p-1" role="group" aria-label={text("Whose bill", "कसको बिल")}>
+            <button type="button" aria-pressed={business === "shop"} onClick={() => onBusiness("shop")} className={segment(business === "shop")}>
+              🛒 {text("Shop", "पसल")} <span className="font-mono text-xs opacity-80">KRB</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={business === "factory"}
+              disabled={!factoryReady || channel === "Online"}
+              title={
+                !factoryReady
+                  ? text("Fill in the factory's name and PAN in Settings first", "पहिले Settings मा कारखानाको नाम र PAN भर्नुहोस्")
+                  : channel === "Online"
+                    ? text("Online sales are the shop's", "अनलाइन बिक्री पसलको हो")
+                    : undefined
+              }
+              onClick={() => onBusiness("factory")}
+              className={`${segment(business === "factory")} disabled:cursor-not-allowed disabled:opacity-40 ${business === "factory" ? "!bg-[#2F5C8A]" : ""}`}
+            >
+              🏭 {text("Factory", "कारखाना")} <span className="font-mono text-xs opacity-80">KRF</span>
+            </button>
+          </div>
+          {!factoryReady ? (
+            <span className="px-1 text-xs font-bold text-brand-muted">
+              {text("Factory: fill its name and PAN in Settings first", "कारखाना: पहिले Settings मा नाम र PAN भर्नुहोस्")}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <div className="grid gap-0.5">
       <span className="px-1 text-xs font-black uppercase tracking-[0.12em] text-brand-muted-soft">
         {text("What", "के गर्ने")}

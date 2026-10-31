@@ -266,8 +266,14 @@ async function loadStock(withCost: boolean) {
   }
 }
 
-export default async function AdminStockPage({ searchParams }: { searchParams?: Promise<{ count?: string }> }) {
+export default async function AdminStockPage({ searchParams }: { searchParams?: Promise<{ count?: string; move?: string }> }) {
   const countFirst = (await searchParams)?.count?.slice(0, 120) || undefined;
+  // The counter's "Challan first" (owner, 2026-10-31): the short shoes, filled in.
+  const moveFirst = ((await searchParams)?.move ?? "")
+    .split("|")
+    .map((design) => design.trim().slice(0, 120))
+    .filter(Boolean)
+    .slice(0, 12);
   const session = await getAdminSession();
   const canCost = session ? canAdmin(getSessionAdminRole(session), "costing:read") : false;
   const [loaded, watch] = await Promise.all([
@@ -355,6 +361,7 @@ export default async function AdminStockPage({ searchParams }: { searchParams?: 
         todayBs={toBikramSambatNumeric(today)}
         canCount={canCount}
         countFirst={countFirst}
+        moveFirst={moveFirst}
         todoCount={todoCount}
         todo={
           <>

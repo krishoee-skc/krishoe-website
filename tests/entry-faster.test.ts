@@ -20,7 +20,7 @@ describe("2. a bill reads only what it needs", () => {
   it("finds one bill by its id, and the next number from the database", async () => {
     const pos = await read("lib/pos.ts");
     expect(pos).toContain("postgres: () => getPosInvoiceByIdFromPostgres(id),");
-    expect(pos).toContain("postgres: async () => [await getHighestBillNumberFromPostgres(BILL_PREFIX[kind])],");
+    expect(pos).toContain("postgres: async () => [await getHighestBillNumberFromPostgres(billPrefix(kind, business))],");
     const db = await read("lib/pos-postgres.ts");
     expect(db).toContain("SELECT ${columns} FROM pos_invoices WHERE id = $1");
     expect(db).toContain("WHERE invoice_number ~ ('^' || $1 || '[0-9]+$')");

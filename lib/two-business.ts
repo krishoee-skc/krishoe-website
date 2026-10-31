@@ -1,6 +1,10 @@
 import { getDataBackendConfig } from "@/lib/data-backend";
 import { migrationChecksum } from "@/lib/delivery-database";
 import { queryPostgres, transactionPostgres } from "@/lib/postgres/client";
+import { designKey } from "@/lib/design-name";
+import { getStockOrigins } from "@/lib/operations";
+import { getChosenOrigins } from "@/lib/product-origins";
+import { getProducts } from "@/lib/product-store";
 
 /**
  * The factory and the shop as two businesses (owner, 2026-10-31, "code garau"):
@@ -204,6 +208,38 @@ export async function setFactoryPrice(productId: string, price: number, by: stri
      ON CONFLICT (product_id) DO UPDATE SET factory_price = EXCLUDED.factory_price, updated_by = EXCLUDED.updated_by, updated_at = now()`,
     [productId, value, by.slice(0, 80)],
   );
+}
+
+/** Whether the factory can cut its own bills: the columns are there, and its name and PAN are filled. */
+export async function factoryBillsReady(): Promise<boolean> {
+  if (!(await twoBusinessReady())) return false;
+  const factory = await getFactoryBusiness();
+  return Boolean(factory.name.trim() && factory.pan.trim());
+}
+
+export type ShoeOrigin = "made" | "bought";
+
+/**
+ * Made or bought, by design key: the stock's history first (a shoe the factory
+ * ever made counts as made), then what was said by hand on its Item page. A
+ * shoe neither says is left out — the counter asks.
+ */
+export async function shoeOrigins(): Promise<Record<string, ShoeOrigin>> {
+  const [history, chosen, products] = await Promise.all([
+    getStockOrigins(),
+    getChosenOrigins().catch(() => ({}) as Record<string, "made" | "bought">),
+    getProducts({ includeDrafts: true }).catch(() => []),
+  ]);
+  const origins: Record<string, ShoeOrigin> = {};
+  for (const product of products) {
+    const said = chosen[product.id];
+    if (said) origins[designKey(product.name)] = said;
+  }
+  for (const [key, origin] of history) {
+    if (origin.made) origins[key] = "made";
+    else if (origin.bought) origins[key] = "bought";
+  }
+  return origins;
 }
 
 /** The price the shop pays the factory for a made shoe: its own, else wholesale. */

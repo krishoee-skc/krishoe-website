@@ -82,6 +82,8 @@ type Props = {
   canCount?: boolean;
   /** A shoe to open at its count: the dashboard's "Count →". */
   countFirst?: string;
+  /** Shoes to send from the factory to the shop: the counter's "Challan first". */
+  moveFirst?: string[];
   /** The stock page's own parts, each shown in its tab. */
   todo?: ReactNode;
   /** How many things in `todo` wait — for the tab's count. */
@@ -115,6 +117,7 @@ export default function WherePairsAre({
   todayBs,
   canCount = false,
   countFirst,
+  moveFirst = [],
   todo,
   todoCount = 0,
   material,
@@ -124,8 +127,15 @@ export default function WherePairsAre({
   const router = useRouter();
 
   const [from, setFrom] = useState<"Factory" | "Shop">("Factory");
-  const [lines, setLines] = useState<Line[]>([emptyLine(0)]);
-  const [nextKey, setNextKey] = useState(1);
+  // From the counter's "Challan first": each short shoe's rows at the factory, pairs left to type.
+  const [lines, setLines] = useState<Line[]>(() => {
+    const wanted = new Set(moveFirst.map((design) => design.trim().toLowerCase()));
+    const first = rows
+      .filter((row) => wanted.has(row.design.trim().toLowerCase()) && row.factory > 0)
+      .map((row, index) => ({ key: index, design: row.design, sizeRun: row.sizeRun, pairs: "" }));
+    return first.length > 0 ? first : [emptyLine(0)];
+  });
+  const [nextKey, setNextKey] = useState(() => Math.max(1, lines.length));
   // One key per challan, made at the first press and kept until it saves: a
   // double press sends the same key (one challan), and the next challan gets
   // a new one. It was "date-1-name" from a counter that restarted with every

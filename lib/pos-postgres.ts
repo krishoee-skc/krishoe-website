@@ -4,6 +4,7 @@ import type { LedgerTransaction, StockMovement } from "@/lib/operations";
 import { insertLedgerTransaction, insertStockMovement } from "@/lib/operations-postgres";
 import { posPaymentsReady } from "@/lib/pos-database";
 import { readPaymentParts } from "@/lib/pos-payments";
+import { twoBusinessReady } from "@/lib/two-business";
 
 type PosInvoiceRow = {
   id: string;
@@ -35,6 +36,9 @@ type PosInvoiceRow = {
   note: string;
   /** Present once the Owner has prepared the database for bills paid in parts. */
   payments?: unknown;
+  /** Present once the factory and the shop are two businesses (lib/two-business.ts). */
+  business?: string;
+  bill_group?: string;
 };
 
 function cleanNumber(value: number | string) {
@@ -76,6 +80,7 @@ function posInvoiceFromRow(row: PosInvoiceRow): PosInvoice {
     note: row.note,
     sourceSubmissionKey: "",
     payments: readPaymentParts(row.payments),
+    ...(row.business ? { business: row.business === "factory" ? ("factory" as const) : ("shop" as const), billGroup: row.bill_group ?? "" } : {}),
   };
 }
 
@@ -112,7 +117,19 @@ const selectPosInvoiceColumns = `
 // The payments column is read only once it exists: a database the Owner has
 // not prepared yet keeps answering every bill exactly as before.
 async function invoiceColumns() {
-  return (await posPaymentsReady()) ? `${selectPosInvoiceColumns}, payments` : selectPosInvoiceColumns;
+  const base = (await posPaymentsReady()) ? `${selectPosInvoiceColumns}, payments` : selectPosInvoiceColumns;
+  return (await twoBusinessReady()) ? `${base}, business, bill_group` : base;
+}
+
+/** The bills printed on one paper with this one, itself included. */
+export async function getPosInvoicesInGroupFromPostgres(billGroup: string) {
+  if (!billGroup || !(await twoBusinessReady())) return [];
+  const rows = await queryPostgres<PosInvoiceRow>(
+    "pos invoices",
+    `SELECT ${await invoiceColumns()} FROM pos_invoices WHERE bill_group = $1 ORDER BY business DESC, created_at LIMIT 4`,
+    [billGroup],
+  );
+  return rows.map(posInvoiceFromRow);
 }
 
 export async function getPosInvoicesFromPostgres() {
@@ -167,7 +184,9 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
     // Never save a split or an exchange as if it were one plain payment.
     throw new Error("Prepare the database for the new counter bill, in Settings, first.");
   }
-  const columns = withPayments ? `${selectPosInvoiceColumns}, payments` : selectPosInvoiceColumns;
+  const columns = await invoiceColumns();
+  // Whose bill, once the two-business columns are there; before, every bill is the shop's.
+  const withBusiness = await twoBusinessReady();
   const rows = await db.query<PosInvoiceRow>(
     `
       INSERT INTO pos_invoices (
@@ -197,12 +216,14 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
         qr_payload,
         note,
         customer_address,
-        customer_pan${withPayments ? ",\n        payments" : ""}
+        customer_pan${withPayments ? ",\n        payments" : ""}${withBusiness ? ",\n        business,\n        bill_group" : ""}
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19,
-        $20::jsonb, $21, $22, $23, $24, $25, $26, $27${withPayments ? ", $28::jsonb" : ""}
+        $20::jsonb, $21, $22, $23, $24, $25, $26, $27${withPayments ? ", $28::jsonb" : ""}${
+          withBusiness ? (withPayments ? ", $29, $30" : ", $28, $29") : ""
+        }
       )
       RETURNING ${columns}
     `,
@@ -235,6 +256,7 @@ async function insertPosInvoiceRow(db: PostgresExecutor, invoice: PosInvoice) {
       invoice.customerAddress,
       invoice.customerPan,
       ...(withPayments ? [JSON.stringify(parts)] : []),
+      ...(withBusiness ? [invoice.business === "factory" ? "factory" : "shop", invoice.billGroup ?? ""] : []),
     ],
   );
 
@@ -299,6 +321,12 @@ export async function createPosExchangePostgres(returned: PosPostingParams, sold
     returnInvoice: await postPosInvoice(db, returned),
     saleInvoice: await postPosInvoice(db, sold),
   }));
+}
+
+// The two parts of one paper (lib/pos.ts createPosSplitBill): both bills,
+// their pairs and their accounts in one transaction, or nothing.
+export async function createPosInvoicesTogetherPostgres(first: PosPostingParams, second: PosPostingParams) {
+  return transactionPostgres("pos invoices", async (db) => [await postPosInvoice(db, first), await postPosInvoice(db, second)] as const);
 }
 
 export async function updatePosInvoicePostingToPostgres(

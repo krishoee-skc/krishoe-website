@@ -55,6 +55,12 @@ export type SellableItem = {
   soldRecently?: number;
   /** The fewest pairs of this shoe a wholesale bill may carry (1 = no minimum). */
   minWholesaleQty?: number;
+  /** The catalog product's id, so the counter can say a shoe is made or bought. */
+  productId?: string;
+  /** Made in the factory or bought (owner, 2026-10-31); absent when nobody has said. */
+  origin?: "made" | "bought";
+  /** Pairs at each place, once the factory and the shop are two businesses. */
+  placed?: { shop: number; factory: number };
 };
 
 // The shop's most recent sale, ready to drop back into the bill so a repeat

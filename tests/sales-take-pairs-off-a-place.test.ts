@@ -77,7 +77,7 @@ describe("what each movement does to the places", () => {
 describe("the posting and the screen", () => {
   it("moves the place in the same transaction as the stock", async () => {
     const source = await readFile("lib/operations-postgres.ts", "utf8");
-    expect(source).toContain('await movePlacedPairs(db, stock, record, "apply");');
+    expect(source).toContain('await movePlacedPairs(db, stock, record, "apply", movement.fromPlace);');
     expect(source).toContain('await movePlacedPairs(db, stock, movement, "reverse");');
   });
 

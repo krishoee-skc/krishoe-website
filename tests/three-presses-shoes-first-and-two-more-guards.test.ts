@@ -62,7 +62,7 @@ describe("rule 3 · a size nearly gone is said on its line", () => {
 describe("rule 1 · ⚡ a cash bill from the size sheet", () => {
   it("is offered only for the first pair of a retail sale with a price", async () => {
     const form = await readFile("app/admin/pos/_components/PosBillForm.tsx", "utf8");
-    expect(form).toContain('const offersQuickCash = kind === "Sale" && channel === "Retail" && cart.length === 0;');
+    expect(form).toContain('const offersQuickCash = kind === "Sale" && channel === "Retail" && cart.length === 0 && business === "shop";');
     expect(form).toContain("offersQuickCash && !isReturn && !isExchange && rateForChannel(channel, picking) > 0");
     // The same save as the button: cash, the exact amount, the bill's own questions.
     expect(form).toContain('setPayment("Cash");');

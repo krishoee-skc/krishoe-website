@@ -32,6 +32,8 @@ import { getProducts } from "@/lib/product-store";
 import { designKey } from "@/lib/design-name";
 import { availableBySize } from "@/lib/stock-by-size";
 import { posPaymentsReady } from "@/lib/pos-database";
+import { pairsAtPlaces } from "@/lib/pos-place-check";
+import { factoryBillsReady, shoeOrigins, twoBusinessReady } from "@/lib/two-business";
 import type { SellableItem } from "@/app/admin/pos/_components/pos-bill-rules";
 
 const SHOE_SIZE = /^\d{1,2}$/;
@@ -247,6 +249,23 @@ export default async function AdminPosPage({
   }
 
   const [pos, operations, products, costing] = loaded.data;
+  // The factory and the shop as two businesses (owner, 2026-10-31): each shoe
+  // made or bought, and its pairs at each place, for the factory's bill.
+  const twoBusinessOn = await twoBusinessReady().catch(() => false);
+  const factoryReady = twoBusinessOn ? await factoryBillsReady().catch(() => false) : false;
+  const origins = twoBusinessOn ? await shoeOrigins().catch(() => ({}) as Awaited<ReturnType<typeof shoeOrigins>>) : {};
+  const places = twoBusinessOn
+    ? await pairsAtPlaces([...new Set([...products.map((product) => product.name), ...operations.finishedStock.map((stock) => stock.design)])]).catch(
+        () => null,
+      )
+    : null;
+  const businessOf = (design: string) =>
+    twoBusinessOn
+      ? {
+          ...(origins[designKey(design)] ? { origin: origins[designKey(design)] } : {}),
+          ...(places?.get(design.trim().toLowerCase()) ? { placed: places.get(design.trim().toLowerCase()) } : {}),
+        }
+      : {};
   const cheques = chequesToWatch(pos.invoices, chequeStates);
   // Everyone billed or given an account, newest first, for "is it one of
   // these?" under the name box — one customer, one name and phone.
@@ -300,6 +319,8 @@ export default async function AdminPosPage({
       colors: product.colors,
       costPerPair: unitCost.get(designKey(product.name)) ?? 0,
       minWholesaleQty: product.minWholesaleQty,
+      productId: product.id,
+      ...businessOf(product.name),
     });
   }
   // A design that has finished stock but no catalog product still belongs in the
@@ -316,6 +337,7 @@ export default async function AdminPosPage({
         sizeList: Object.keys(bySize.sizeStock),
         ...bySize,
         costPerPair: unitCost.get(designKey(stock.design)) ?? 0,
+        ...businessOf(stock.design),
       });
     }
   }
@@ -500,6 +522,7 @@ export default async function AdminPosPage({
           cashierName={session.name ?? ""}
           paymentsReady={paymentsReady}
           chequeBook={chequeBook}
+          twoBusiness={twoBusinessOn ? { factoryReady } : null}
           today={{
             bills: pos.todayDayClose.invoiceCount,
             netSales: pos.todayDayClose.netSales,

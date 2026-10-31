@@ -27,6 +27,7 @@ import {
 import {
   createPosExchangePostgres,
   createPosInvoicePostgres,
+  createPosInvoicesTogetherPostgres,
   getHighestBillNumberFromPostgres,
   getPosInvoiceByIdFromPostgres,
   getPosInvoicesFromPostgres,
@@ -35,7 +36,9 @@ import {
 } from "@/lib/pos-postgres";
 import { getProducts, syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
 import { stockRowForSize } from "@/lib/stock-by-size";
-import { BILL_PREFIX, isBillNumberTaken, nextBillNumber, noteNamesBill } from "@/lib/bill-number";
+import { billPrefix, isBillNumberTaken, nextBillNumber, noteNamesBill, type BillBusiness } from "@/lib/bill-number";
+import { designKey } from "@/lib/design-name";
+import { getFactoryBusiness, shoeOrigins, twoBusinessReady } from "@/lib/two-business";
 import { reportingErrors } from "@/lib/report-error";
 import { PosNeedsAnswer } from "@/lib/pos-questions";
 import { keptBillTime } from "@/lib/kept-bill-time";
@@ -102,6 +105,13 @@ export type PosInvoice = {
    * paid one way, which reads by paymentMethod and paidAmount as it always did.
    */
   payments?: PosPaymentPart[];
+  /**
+   * Whose bill (owner, 2026-10-31): the shop's (KRB/KRR) or the factory's
+   * (KRF/KRFR). Absent before the two-business columns were added — the shop's.
+   */
+  business?: BillBusiness;
+  /** Bills printed on one paper share this (a factory part and a shop part). */
+  billGroup?: string;
 };
 
 export type PosDayClosePaymentRow = {
@@ -198,6 +208,10 @@ export type CreatePosInvoiceInput = {
   paymentParts?: PosPaymentPart[];
   /** The counter said yes: a shoe short on the shop's shelf goes from the factory (audit 6). */
   answerFromFactory?: boolean;
+  /** Whose bill; the shop's unless the factory is named (owner, 2026-10-31). */
+  business?: BillBusiness;
+  /** Set by createPosSplitBill on both parts of one paper. */
+  billGroup?: string;
   /** The counter said yes: pairs held for an online order are sold anyway (KR-BUG-014). */
   answerHeldForOrder?: boolean;
   /** The Owner said yes to a wholesale bill under the shoe's minimum (audit 12). */
@@ -614,13 +628,54 @@ export async function getPosInvoiceById(id: string) {
 // KRB001, KRB002, … — see lib/bill-number.ts. Two bills saved at the same
 // moment can read the same highest number; the database refuses the second
 // (invoice_number is UNIQUE) and it is tried again with the next one.
-async function nextInvoiceNumber(kind: PosInvoiceKind) {
+async function nextInvoiceNumber(kind: PosInvoiceKind, business: BillBusiness = "shop") {
   const highest = await runWithDataBackend({
     storeName: "pos invoices",
     localJson: async () => (await getPosInvoicesFromLocalJson()).map((invoice) => invoice.invoiceNumber),
-    postgres: async () => [await getHighestBillNumberFromPostgres(BILL_PREFIX[kind])],
+    postgres: async () => [await getHighestBillNumberFromPostgres(billPrefix(kind, business))],
   });
-  return nextBillNumber(kind, highest);
+  return nextBillNumber(kind, highest, business);
+}
+
+/** The place a bill's pairs leave from first, or come back to: its business's. */
+function placeOfBusiness(business: BillBusiness | undefined) {
+  if (!business) return {};
+  return { fromPlace: business === "factory" ? ("Factory" as const) : ("Shop" as const) };
+}
+
+/**
+ * What only a factory bill must pass (owner, 2026-10-31): the factory's name
+ * and PAN to print, no online sale (the website is the shop's), and only shoes
+ * the factory made.
+ */
+async function checkFactoryBill(channel: PosChannel, designs: string[]) {
+  const factory = await getFactoryBusiness();
+  if (!factory.name.trim() || !factory.pan.trim()) {
+    throw new PosNeedsAnswer(
+      {
+        en: "Fill in the factory's name and PAN in Settings › Factory business first.",
+        ne: "पहिले Settings › 🏭 कारखानाको विवरणमा कारखानाको नाम र PAN भर्नुहोस्।",
+      },
+      null,
+    );
+  }
+  if (channel === "Online") {
+    throw new PosNeedsAnswer(
+      { en: "Online sales are the shop's: cut a shop bill.", ne: "अनलाइन बिक्री पसलको हो: पसलको बिल काट्नुहोस्।" },
+      null,
+    );
+  }
+  const origins = await shoeOrigins();
+  const notMade = [...new Set(designs)].filter((design) => origins[designKey(design)] !== "made");
+  if (notMade.length > 0) {
+    throw new PosNeedsAnswer(
+      {
+        en: `Only shoes made in the factory go on its bill: ${notMade.join(", ")}. Put them on the shop's part, or mark them made on their Item page.`,
+        ne: `कारखानाको बिलमा बनाएको सामान मात्र जान्छ: ${notMade.join(", ")}। पसलको भागमा राख्नुहोस्, वा Item मा "बनाएको" भन्नुहोस्।`,
+      },
+      null,
+    );
+  }
 }
 
 /** Tries after a bill number was taken by a bill saved at the same moment. */
@@ -655,14 +710,27 @@ async function syncCatalogStockAfterPosting() {
   await reportingErrors("sync catalog stock after a bill", () => syncProductCatalogStockWithFinishedStock());
 }
 
-export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1): Promise<PosInvoice> {
+type PreparedPosInvoice = {
+  invoice: PosInvoice;
+  stockMovements: Array<Omit<StockMovement, "id" | "createdAt">>;
+  ledgerTransaction: Omit<LedgerTransaction, "id" | "createdAt" | "customerName"> | null;
+  otherLedgerTransactions: Array<Omit<LedgerTransaction, "id" | "createdAt" | "customerName">>;
+  sourceSubmissionKey: string;
+  invoiceId: string;
+};
+
+/**
+ * Everything a bill is checked for and built from, short of saving it — so one
+ * bill is saved alone, and the two parts of one paper together.
+ */
+async function preparePosInvoice(input: CreatePosInvoiceInput): Promise<{ existing: PosInvoice } | PreparedPosInvoice> {
   const sourceSubmissionKey = cleanSubmissionKey(input.sourceSubmissionKey);
   const invoiceId = sourceSubmissionKey
     ? idFromSubmissionKey(input.kind === "Return" ? "RETURN" : "POS", sourceSubmissionKey)
     : "";
   const existingInvoice = invoiceId ? await getPosInvoiceById(invoiceId) : null;
   if (existingInvoice) {
-    return existingInvoice;
+    return { existing: existingInvoice };
   }
 
   const lines = input.items
@@ -672,6 +740,15 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
   if (lines.length === 0) {
     throw new Error("At least one valid POS item is required.");
   }
+
+  // Whose bill (owner, 2026-10-31). Until the two-business columns are there
+  // every bill is the shop's, and nothing below changes.
+  const twoBusinesses = await twoBusinessReady();
+  if (input.business === "factory" && !twoBusinesses) {
+    throw new Error("Prepare the database for the factory's bills, in Settings, first.");
+  }
+  const business: BillBusiness | undefined = twoBusinesses ? (input.business === "factory" ? "factory" : "shop") : undefined;
+  if (business === "factory") await checkFactoryBill(input.channel, lines.map((item) => item.design));
 
   const subtotal = sum(lines, (item) => item.lineTotal);
   const discount = Math.min(cleanNumber(input.invoiceDiscount), subtotal);
@@ -786,11 +863,44 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
       }
     }
 
-    // The counter and the website sell from the shop's shelf. When the shelf
-    // has fewer pairs than the bill, the rest came off the factory's count
-    // without a word — a bill for a pair that was not in the shop (owner,
-    // 2026-10-20, audit 6). Now the counter is asked once, and says yes.
-    if ((input.channel === "Retail" || input.channel === "Online") && !input.answerFromFactory) {
+    // Two businesses (owner, 2026-10-31): a shop bill sells the shop's pairs,
+    // wholesale too, and a factory bill the factory's. A short shop is asked
+    // to send a challan first or move the shoe to the factory's bill; a short
+    // factory is told.
+    if (business) {
+      const groups = groupInvoiceItemsByDesign(items);
+      const places = await pairsAtPlaces(groups.map((group) => group.design));
+      const here = business === "factory" ? "factory" : "shop";
+      const where = (design: string) => places?.get(design.trim().toLowerCase()) ?? { shop: 0, factory: 0 };
+      const short = places ? groups.filter((group) => where(group.design)[here] < group.pairs) : [];
+      if (short.length > 0) {
+        const said = short.map((group) => ({
+          en: `${group.design}: ${where(group.design).shop} at the shop, ${where(group.design).factory} at the factory`,
+          ne: `${group.design}: पसलमा ${where(group.design).shop}, कारखानामा ${where(group.design).factory}`,
+        }));
+        if (business === "factory") {
+          throw new PosNeedsAnswer(
+            {
+              en: `Not enough at the factory — ${said.map((line) => line.en).join("; ")}.`,
+              ne: `कारखानामा पुग्दैन — ${said.map((line) => line.ne).join("; ")}।`,
+            },
+            null,
+          );
+        }
+        throw new PosNeedsAnswer(
+          {
+            en: `Not enough at the shop — ${said.map((line) => line.en).join("; ")}. Send them by challan first, or move them to the factory's bill.`,
+            ne: `पसलमा पुग्दैन — ${said.map((line) => line.ne).join("; ")}। पहिले challan गर्नुहोस्, वा कारखानाको बिलमा सार्नुहोस्।`,
+          },
+          "shortAtShop",
+          short.map((group) => group.design),
+        );
+      }
+    } else if ((input.channel === "Retail" || input.channel === "Online") && !input.answerFromFactory) {
+      // The counter and the website sell from the shop's shelf. When the shelf
+      // has fewer pairs than the bill, the rest came off the factory's count
+      // without a word — a bill for a pair that was not in the shop (owner,
+      // 2026-10-20, audit 6). Now the counter is asked once, and says yes.
       const groups = groupInvoiceItemsByDesign(items);
       const places = await pairsAtPlaces(groups.map((group) => group.design));
       const short = places
@@ -868,7 +978,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
   const id = invoiceId || createId(input.kind === "Return" ? "RETURN" : "POS");
   // A cash sale kept on a phone is dated when it was sold; nothing else is.
   const kept = input.kind === "Sale" && creditAmount === 0 && !due ? keptBillTime(input.soldAt, new Date()) : null;
-  const invoiceNumber = await nextInvoiceNumber(input.kind);
+  const invoiceNumber = await nextInvoiceNumber(input.kind, business);
   const createdAt = kept ? kept.createdAt : new Date().toISOString();
   const invoice: PosInvoice = {
     id,
@@ -906,6 +1016,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
         : []),
       ...(cashBack && total > 0 ? [{ method: "Cash" as const, amount: total, purpose: "refund" as const }] : []),
     ],
+    ...(business ? { business, billGroup: cleanText(input.billGroup ?? "") } : {}),
   };
 
   invoice.qrPayload = qrPayloadForInvoice(invoice);
@@ -924,6 +1035,7 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
       type: input.kind === "Sale" ? "Sale Out" : "Return In",
       pairs: item.quantity,
       note: `${invoice.invoiceNumber} ${input.kind.toLowerCase()} ${item.sku || item.design}`,
+      ...placeOfBusiness(business),
     };
   });
 
@@ -949,6 +1061,14 @@ export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1
         },
       ]
     : [];
+
+  return { invoice, stockMovements, ledgerTransaction, otherLedgerTransactions, sourceSubmissionKey, invoiceId };
+}
+
+export async function createPosInvoice(input: CreatePosInvoiceInput, attempt = 1): Promise<PosInvoice> {
+  const ready = await preparePosInvoice(input);
+  if ("existing" in ready) return ready.existing;
+  const { invoice, stockMovements, ledgerTransaction, otherLedgerTransactions, sourceSubmissionKey, invoiceId } = ready;
 
   // Postgres: invoice + stock movements + ledger post in one transaction, so a
   // sale is all-or-nothing and each stock row is locked (FOR UPDATE) against
@@ -1034,8 +1154,102 @@ function movementsFor(
       type: invoice.kind === "Sale" ? "Sale Out" : "Return In",
       pairs: item.quantity,
       note: `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} ${item.sku || item.design}`,
+      ...placeOfBusiness(invoice.business),
     };
   });
+}
+
+/**
+ * One paper, two bills (owner, 2026-10-31): the factory's made shoes and the
+ * shop's goods sold to one customer at once. Each is its own bill, in its own
+ * business's name, PAN and number; they share the discount, tax and payment by
+ * their worth, and are saved together or not at all. The old credit, if any,
+ * is cleared on the shop's part.
+ */
+export async function createPosSplitBill(
+  input: CreatePosInvoiceInput & { factoryItems: CreatePosInvoiceInput["items"] },
+  attempt = 1,
+): Promise<{ factoryInvoice: PosInvoice; shopInvoice: PosInvoice }> {
+  if (input.kind !== "Sale") throw new Error("Only a sale is printed in two parts.");
+  if (!(await twoBusinessReady())) throw new Error("Prepare the database for the factory's bills, in Settings, first.");
+  if (getDataBackend() !== "postgres") throw new Error("A bill in two parts needs the shop's database.");
+
+  const worth = (items: CreatePosInvoiceInput["items"]) =>
+    sum(
+      items
+        .map((item) => normalizeItem({ ...item, id: "ITEM" }))
+        .filter((item) => item.design && item.quantity > 0 && item.rate > 0),
+      (item) => item.lineTotal,
+    );
+  const factoryWorth = worth(input.factoryItems);
+  const shopWorth = worth(input.items);
+  if (factoryWorth <= 0 || shopWorth <= 0) throw new Error("A bill in two parts needs a factory shoe and a shop item.");
+  const whole = factoryWorth + shopWorth;
+  const factoryShareOf = (value: number, ofWhole: number, factoryPart: number) =>
+    ofWhole > 0 ? Math.round((value * factoryPart) / ofWhole) : 0;
+
+  const discount = Math.min(cleanNumber(input.invoiceDiscount), whole);
+  const factoryDiscount = factoryShareOf(discount, whole, factoryWorth);
+  const tax = cleanNumber(input.tax);
+  const factoryTax = factoryShareOf(tax, whole, factoryWorth);
+  const factoryTotal = Math.max(0, factoryWorth - factoryDiscount + factoryTax);
+  const shopTotal = Math.max(0, shopWorth - (discount - factoryDiscount) + (tax - factoryTax));
+  const total = factoryTotal + shopTotal;
+
+  // The money by the same measure: each part paid its own share, never more.
+  const parts = readPaymentParts(input.paymentParts ?? []).filter((part) => part.purpose === "bill" && part.method !== "Exchange");
+  // The factory's share of the parts, taken from the parts in order; never a
+  // rupee over either part's total, whichever way the rounding falls.
+  const partsPaid = paidTowardBill(parts);
+  let factoryLeft = Math.min(factoryTotal, Math.max(partsPaid - shopTotal, factoryShareOf(partsPaid, total, factoryTotal)));
+  const factoryAmounts = parts.map((part) => {
+    const take = Math.min(part.amount, factoryLeft);
+    factoryLeft -= take;
+    return take;
+  });
+  const factoryParts = parts.map((part, index) => ({ ...part, amount: factoryAmounts[index] })).filter((part) => part.amount > 0);
+  const shopParts = parts
+    .map((part, index) => ({ ...part, amount: part.amount - factoryAmounts[index] }))
+    .filter((part) => part.amount > 0);
+  const paid = Math.min(cleanNumber(input.paidAmount), total);
+  const factoryPaid = Math.min(factoryTotal, Math.max(paid - shopTotal, factoryShareOf(paid, total, factoryTotal)));
+  const shopPaid = Math.min(shopTotal, paid - factoryPaid);
+
+  const key = cleanSubmissionKey(input.sourceSubmissionKey);
+  const billGroup = key ? `PAPER-${createHash("sha256").update(key).digest("hex").slice(0, 16).toUpperCase()}` : createId("PAPER");
+  const factory = await preparePosInvoice({
+    ...input,
+    items: input.factoryItems,
+    business: "factory",
+    billGroup,
+    invoiceDiscount: factoryDiscount,
+    tax: factoryTax,
+    paidAmount: factoryPaid,
+    paymentParts: factoryParts.length > 0 ? factoryParts : undefined,
+    collectDue: undefined,
+    sourceSubmissionKey: key ? `${key}-factory` : undefined,
+  });
+  const shop = await preparePosInvoice({
+    ...input,
+    business: "shop",
+    billGroup,
+    invoiceDiscount: discount - factoryDiscount,
+    tax: tax - factoryTax,
+    paidAmount: shopPaid,
+    paymentParts: shopParts.length > 0 ? shopParts : undefined,
+    sourceSubmissionKey: key ? `${key}-shop` : undefined,
+  });
+  if ("existing" in factory && "existing" in shop) return { factoryInvoice: factory.existing, shopInvoice: shop.existing };
+  if ("existing" in factory || "existing" in shop) throw new Error("Half of this paper is already saved — open Bills to see it.");
+
+  try {
+    const [factoryInvoice, shopInvoice] = await createPosInvoicesTogetherPostgres(factory, shop);
+    await syncCatalogStockAfterPosting();
+    return { factoryInvoice, shopInvoice };
+  } catch (error) {
+    if (isBillNumberTaken(error) && attempt < BILL_NUMBER_TRIES) return createPosSplitBill(input, attempt + 1);
+    throw error;
+  }
 }
 
 /**
@@ -1110,9 +1324,18 @@ async function createPosExchangeOnce(input: CreatePosExchangeInput) {
   // same pair in a different size must not be refused for want of itself.
   preflightSaleStock(withPairsBack(operations, returnedItems), soldItems);
 
-  const [returnNumber, saleNumber] = [await nextInvoiceNumber("Return"), await nextInvoiceNumber("Sale")];
+  // Whose exchange (owner, 2026-10-31): both bills are one business's.
+  const twoBusinesses = await twoBusinessReady();
+  const business: BillBusiness | undefined = twoBusinesses ? (input.business === "factory" ? "factory" : "shop") : undefined;
+  if (input.business === "factory" && !twoBusinesses) {
+    throw new Error("Prepare the database for the factory's bills, in Settings, first.");
+  }
+  if (business === "factory") await checkFactoryBill(input.channel, [...returnedItems, ...soldItems].map((item) => item.design));
+
+  const [returnNumber, saleNumber] = [await nextInvoiceNumber("Return", business), await nextInvoiceNumber("Sale", business)];
   const createdAt = new Date().toISOString();
   const shared = {
+    ...(business ? { business, billGroup: "" } : {}),
     createdAt,
     channel: input.channel,
     customerName: cleanText(input.customerName) || "Walk-in Customer",

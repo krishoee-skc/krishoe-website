@@ -82,6 +82,16 @@ export function placeOrderFor(channel: BusinessChannel): StockPlace[] {
 }
 
 /**
+ * The places in order for a movement that names its own first place — a
+ * factory bill takes from the factory, a shop bill from the shop, whatever the
+ * channel (owner, 2026-10-31, two businesses). Without one, the channel's.
+ */
+export function placesFrom(channel: BusinessChannel, first?: StockPlace): StockPlace[] {
+  if (!first) return placeOrderFor(channel);
+  return first === "Shop" ? ["Shop", "Factory"] : ["Factory", "Shop"];
+}
+
+/**
  * Split pairs leaving the shelf across the two places.
  *
  * Takes from the channel's own place first, then the other, and never below
@@ -93,11 +103,12 @@ export function drawFromPlaces(
   channel: BusinessChannel,
   pairs: number,
   held: Partial<Record<StockPlace, number>>,
+  first?: StockPlace,
 ): { place: StockPlace; pairs: number }[] {
   let left = Math.max(0, Math.round(pairs));
   const draws: { place: StockPlace; pairs: number }[] = [];
 
-  for (const place of placeOrderFor(channel)) {
+  for (const place of placesFrom(channel, first)) {
     const take = Math.min(left, Math.max(0, Math.round(held[place] ?? 0)));
     if (take > 0) {
       draws.push({ place, pairs: take });
@@ -124,16 +135,17 @@ export function placeChangesFor(
   movement: StockMovementEffect & { channel: BusinessChannel },
   held: Partial<Record<StockPlace, number>>,
   direction: "apply" | "reverse" = "apply",
+  first?: StockPlace,
 ): { place: StockPlace; pairs: number }[] {
   const leaves = isStockOutMovement(movement.type);
   const comesBack = movement.type === "Return In";
   if (!leaves && !comesBack) return [];
 
-  const home = placeOrderFor(movement.channel)[0];
+  const home = placesFrom(movement.channel, first)[0];
   const takesPairs = direction === "apply" ? leaves : comesBack;
 
   if (takesPairs) {
-    return drawFromPlaces(movement.channel, movement.pairs, held).map((draw) => ({
+    return drawFromPlaces(movement.channel, movement.pairs, held, first).map((draw) => ({
       place: draw.place,
       pairs: -draw.pairs,
     }));

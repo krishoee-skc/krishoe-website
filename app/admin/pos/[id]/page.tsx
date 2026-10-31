@@ -11,7 +11,9 @@ import { voidRefusal } from "@/lib/pos-void";
 import PrintInvoiceButton from "@/app/admin/pos/[id]/PrintInvoiceButton";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import { money } from "@/lib/format-money";
-import { getPosInvoiceById } from "@/lib/pos";
+import { getPosInvoiceById, type PosInvoice } from "@/lib/pos";
+import { getPosInvoicesInGroupFromPostgres } from "@/lib/pos-postgres";
+import { getFactoryBusiness } from "@/lib/two-business";
 import { getAdminSettings } from "@/lib/admin-settings";
 import { amountInWords } from "@/lib/amount-in-words";
 import { DateDisplayAdmin } from "@/components/DateDisplay";
@@ -80,6 +82,19 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
     .replace(/^https?:\/\//, "")
     .replace(/\/$/, "");
   const sellerName = company.legalName || company.companyName || "KRISHOE";
+  // The factory's bills carry the factory's own name, PAN and address
+  // (owner, 2026-10-31); the shop's phone and footer stay.
+  const factory = await getFactoryBusiness().catch(() => ({ name: "", pan: "", address: "" }));
+  const companyFor = (bill: PosInvoice): Company =>
+    bill.business === "factory"
+      ? { ...company, address: factory.address || company.address, panVatNumber: factory.pan || company.panVatNumber }
+      : company;
+  const sellerFor = (bill: PosInvoice) => (bill.business === "factory" && factory.name ? factory.name : sellerName);
+  // One paper, two bills: the factory's part first, then the shop's.
+  const group = invoice.billGroup ? await getPosInvoicesInGroupFromPostgres(invoice.billGroup).catch(() => []) : [];
+  const paper = (group.length > 1 ? [invoice, ...group.filter((bill) => bill.id !== invoice.id)] : [invoice]).sort(
+    (left, right) => Number(right.business === "factory") - Number(left.business === "factory"),
+  );
 
   // A ready-to-send bill summary for the customer's WhatsApp. Kept short — the
   // number, what was paid, and anything still due.
@@ -126,6 +141,16 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
         </div>
       </div>
 
+      {paper.length > 1 ? (
+        <p className="mx-auto mb-4 max-w-3xl rounded-xl border border-brand-green-line bg-brand-paper px-4 py-2 text-sm font-bold text-brand-green-ink print:hidden">
+          🧾{" "}
+          <T
+            en={`One paper, two bills: ${paper.map((bill) => bill.invoiceNumber).join(" + ")} — Rs. ${paper.reduce((sum, bill) => sum + bill.total, 0).toLocaleString("en-IN")} in all.`}
+            ne={`एउटै कागजमा दुई बिल: ${paper.map((bill) => bill.invoiceNumber).join(" + ")} — जम्मा Rs. ${paper.reduce((sum, bill) => sum + bill.total, 0).toLocaleString("en-IN")}।`}
+          />
+        </p>
+      ) : null}
+
       {problem ? (
         <p role="alert" className="mx-auto mb-4 max-w-3xl rounded-xl border border-brand-clay/40 bg-brand-clay-tint px-4 py-3 text-base font-bold text-brand-clay print:hidden">
           ⚠ {problem}
@@ -146,274 +171,25 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
         </div>
       ) : null}
 
-      <div className="receipt-print mx-auto max-w-3xl rounded-lg border-2 border-brand-green-ink bg-white p-6 text-brand-green-ink shadow-sm print:border-2 print:shadow-none">
-        {/* Seller header — legal name, address, phone and PAN, centred like a
-            standard Nepal PAN sales invoice. Everything here comes from the
-            shop's company settings, so one edit updates every future bill. */}
-        <div className="border-b-2 border-brand-green-ink pb-3 text-center">
-          <div className="flex items-center justify-center gap-3">
-            <Image src="/images/logo-mark.png" alt="" aria-hidden width={128} height={128} className="h-9 w-9 shrink-0" />
-            <h1 className="font-display text-2xl font-black uppercase tracking-wide text-brand-green-ink md:text-3xl">
-              {sellerName}
-            </h1>
-          </div>
-          <p className="mt-1.5 text-sm text-brand-muted">
-            {company.address || "—"}
-            {company.phone ? <> · <span className="font-mono">+977 {company.phone}</span></> : null}
-          </p>
-          {company.panVatNumber ? (
-            <p className="mt-1 inline-block border-b-4 border-brand-gold/60 text-sm font-black text-brand-green-ink">
-              PAN No.: {company.panVatNumber}
+      {paper.map((bill, index) => (
+        <div key={bill.id} className={index > 0 ? "mt-6 print:mt-4" : undefined}>
+          {index > 0 ? (
+            <p className="mx-auto mb-3 max-w-3xl border-t-2 border-dashed border-brand-green-ink pt-1 text-center text-xs font-bold text-brand-muted">
+              ✂ <T en="The same paper — the shop's part" ne="यही कागजको पसलको भाग" />
             </p>
           ) : null}
+          <BillPaper invoice={bill} company={companyFor(bill)} sellerName={sellerFor(bill)} shopDomain={shopDomain} />
         </div>
-
-        <div className="my-4 flex justify-center">
-          <span className="rounded bg-brand-green-ink px-6 py-1.5 text-sm font-black uppercase tracking-[0.16em] text-white">
-            {invoice.kind === "Return" ? "Return Invoice" : "Sales Invoice"}
+      ))}
+      {/* Both parts' total, on the paper itself (the approved namuna). */}
+      {paper.length > 1 ? (
+        <p className="mx-auto mt-3 flex max-w-3xl justify-between rounded-lg border-2 border-brand-green-ink bg-white px-6 py-2 text-base font-black text-brand-green-ink">
+          <span>
+            <T en="Both parts in all" ne="दुवैको जम्मा" /> · {paper.map((bill) => bill.invoiceNumber).join(" + ")}
           </span>
-        </div>
-
-        {/* Customer (left) and invoice meta (right). Address and PAN carry a
-            write-on line for now — a wholesale buyer's PAN can be filled by hand
-            until it is captured on the bill form. */}
-        <div className="receipt-fields grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Customer Name</span><span className="font-bold">: {invoice.customerName}</span></div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice No.</span><span className="font-bold">: {invoice.invoiceNumber}</span></div>
-          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span>{invoice.customerAddress ? <span className="font-bold">: {invoice.customerAddress}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
-          <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
-          <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span>{invoice.customerPan ? <span className="font-bold">: {invoice.customerPan}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
-          {/* A bill paid in parts names every part: the customer's copy has to
-              say where each rupee went, the exchange and the old credit too. */}
-          <div className="flex gap-1">
-            <span className="w-28 shrink-0 text-brand-muted">Payment Mode</span>
-            <span className="font-bold">
-              :{" "}
-              {invoice.payments && invoice.payments.length > 0
-                ? invoice.payments
-                    .map((part) => {
-                      const ref = part.reference ? ` (${part.reference})` : "";
-                      if (part.method === "Exchange") return `Exchange ${money(part.amount)}${part.against ? ` (${part.against})` : ""}`;
-                      if (part.purpose === "due") return `Old credit ${part.method} ${money(part.amount)}${ref}`;
-                      if (part.purpose === "refund") return `Given back ${part.method} ${money(part.amount)}`;
-                      return `${part.method} ${money(part.amount)}${ref}`;
-                    })
-                    .join(" + ")
-                : invoice.paymentMethod}
-            </span>
-          </div>
-        </div>
-
-        {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount.
-            A phone reads one line a shoe; the table stays for a computer and
-            for paper, word for word (owner's sample, 2026-10-12): seven
-            columns scrolled sideways on a phone. */}
-        <ol className="mt-4 grid list-none gap-1.5 pl-0 md:hidden print:hidden">
-          {groupBillLines(invoice.items, (item) => (item.discount > 0 ? item.id : "")).map((group, index) => {
-            const first = group.lines[0];
-            const pairs = group.lines.reduce((sum, item) => sum + item.quantity, 0);
-            const total = group.lines.reduce((sum, item) => sum + item.lineTotal, 0);
-            return (
-              <li key={`line-${group.key}`} className="grid gap-0.5 border-b border-brand-green-line pb-1.5 text-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="min-w-0 break-words font-semibold text-brand-green-ink">
-                    {index + 1}. {first.design}
-                    {group.color ? <span className="font-normal text-brand-muted"> · {group.color}</span> : null}
-                  </span>
-                  <span className="shrink-0 font-bold tabular-nums">{amount(total)}</span>
-                </div>
-                <p className="text-xs text-brand-muted">
-                  {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))
-                    ? `Size ${sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))} · `
-                    : ""}
-                  {pairs} × {amount(group.rate)} · HS <span className="font-mono">{HS_CODE}</span>
-                </p>
-              </li>
-            );
-          })}
-          <li className="flex justify-between text-sm font-black">
-            <span>Total Pairs</span>
-            <span className="tabular-nums">{invoice.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
-          </li>
-        </ol>
-        <div className="mt-4 hidden overflow-x-auto md:block print:block">
-          <table className="min-w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-brand-green-ink text-left text-xs uppercase tracking-wide text-white">
-                <th className="border border-brand-green-ink px-2 py-2">S.No</th>
-                <th className="border border-brand-green-ink px-2 py-2">HS Code</th>
-                <th className="border border-brand-green-ink px-2 py-2">Product Description</th>
-                <th className="border border-brand-green-ink px-2 py-2">Size</th>
-                <th className="border border-brand-green-ink px-2 py-2 text-right">Qty</th>
-                <th className="border border-brand-green-ink px-2 py-2 text-right">Rate</th>
-                <th className="border border-brand-green-ink px-2 py-2 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* One row per shoe, colour and rate, its sizes in the Size
-                  column — a wholesale bill of two shoes in five sizes printed
-                  ten rows. A line with its own discount keeps its own row, so
-                  every row's amount is still quantity × rate less what shows. */}
-              {groupBillLines(invoice.items, (item) => (item.discount > 0 ? item.id : "")).map((group, index) => {
-                const first = group.lines[0];
-                const pairs = group.lines.reduce((sum, item) => sum + item.quantity, 0);
-                const total = group.lines.reduce((sum, item) => sum + item.lineTotal, 0);
-                return (
-                  <tr key={group.key}>
-                    <td className="border border-brand-green-line px-2 py-2 text-center">{index + 1}</td>
-                    <td className="border border-brand-green-line px-2 py-2 font-mono text-xs">{HS_CODE}</td>
-                    <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">
-                      {first.design}
-                      {group.color ? <span className="font-normal text-brand-muted"> · {group.color}</span> : null}
-                    </td>
-                    {/* The size the customer took; older bills only carry the stock row. */}
-                    <td className="border border-brand-green-line px-2 py-2">
-                      {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))}
-                    </td>
-                    <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{pairs}</td>
-                    <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{amount(group.rate)}</td>
-                    <td className="border border-brand-green-line px-2 py-2 text-right font-bold tabular-nums">{amount(total)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {/* How many pairs in all — what a wholesale buyer counts first
-                when the carton is opened (owner, 2026-09-30). */}
-            <tfoot>
-              <tr className="bg-brand-mist font-black">
-                <td colSpan={4} className="border border-brand-green-line px-2 py-2 text-right">Total Pairs</td>
-                <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">
-                  {invoice.items.reduce((sum, item) => sum + item.quantity, 0)}
-                </td>
-                <td colSpan={2} className="border border-brand-green-line px-2 py-2" />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        {/* Totals — Basic, Discount, Net. No VAT line: KRISHOE bills on PAN.
-            Basic Total only when something comes off or on it: with neither,
-            it printed the Net Total's figure twice (owner, 2026-09-30). */}
-        <div className="mt-4 flex justify-end">
-          <table className="border-collapse text-sm">
-            <tbody>
-              {invoice.discount > 0 || invoice.tax > 0 ? (
-                <tr>
-                  <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Basic Total</td>
-                  <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.subtotal)}</td>
-                </tr>
-              ) : null}
-              {invoice.discount > 0 ? (
-                <tr>
-                  <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Discount</td>
-                  <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.discount)}</td>
-                </tr>
-              ) : null}
-              {invoice.tax > 0 ? (
-                <tr>
-                  <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">VAT</td>
-                  <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.tax)}</td>
-                </tr>
-              ) : null}
-              <tr className="bg-brand-mist">
-                <td className="border-2 border-brand-green-ink px-3 py-2 font-black text-brand-green-ink">Net Total</td>
-                <td className="border-2 border-brand-green-ink px-3 py-2 text-right text-base font-black tabular-nums text-brand-green-ink">{amount(invoice.total)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-3 border-y border-brand-green-ink py-2 text-sm">
-          <span className="font-black">In Words:</span>{" "}
-          <span className="italic text-brand-muted">{amountInWords(invoice.total)}</span>
-        </div>
-
-        {/* The bill used to carry "Goods once sold will not be taken back"
-            here, which contradicts the shop: /return-policy and the storefront
-            trust strip both promise seven days to exchange or return. A
-            customer holding a bill that says the opposite of the website has
-            been told two different things by the same shop, and the one on
-            paper is the one they will believe.
-
-            The shop's own line now prints at the foot instead, from Settings. */}
-        {/* Remarks only when there is one; "Remarks: —" said nothing. */}
-        {invoice.note ? (
-          <div className="mt-2 text-xs text-brand-muted">
-            <p>Remarks: {invoice.note}</p>
-          </div>
-        ) : null}
-
-        {invoice.creditAmount > 0 ? (
-          <div className="mt-2 flex justify-end gap-6 text-sm">
-            <span className="text-brand-muted">Paid <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span></span>
-            <span className="text-brand-muted">Balance <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span></span>
-          </div>
-        ) : null}
-
-        <div className="mt-8 flex items-end justify-between gap-8">
-          <div className="flex-1 text-center">
-            <div className="mt-6 border-t border-brand-green-ink pt-1 text-xs text-brand-muted">Received By</div>
-          </div>
-          <div className="flex-1 text-right">
-            <p className="text-xs font-black text-brand-green-ink">For: {sellerName}</p>
-            <div className="mt-6 border-t border-brand-green-ink pt-1 text-xs text-brand-muted">Authorized Signature</div>
-          </div>
-        </div>
-
-        {/* What this system adds over a plain paper bill: the sales channel, a
-            scannable barcode and QR, and a one-tap WhatsApp send. */}
-        <div className="mt-4 flex items-center gap-3 border-t border-dashed border-brand-green-line pt-3">
-          <span className="shrink-0 rounded-full border border-brand-green-ink px-2.5 py-1 text-xs font-black uppercase tracking-wide text-brand-green-ink">
-            {invoice.channel}
-          </span>
-          <img src={`/api/admin/pos/${invoice.id}/barcode`} alt={`Barcode for ${invoice.invoiceNumber}`} className="h-9 flex-1 object-contain" />
-          <img src={`/api/admin/pos/${invoice.id}/qr`} alt={`QR code for ${invoice.invoiceNumber}`} className="h-12 w-12 shrink-0 object-contain" />
-          {invoice.phone ? (
-            <span className="shrink-0 rounded-full border border-emerald-500 px-2.5 py-1 text-xs font-black text-emerald-700 print:hidden">WhatsApp ✓</span>
-          ) : null}
-        </div>
-
-        {/* What the customer can actually use, on the paper they take home.
-            The bill is the one thing they still have three days later, when
-            the shoe turns out to be a size small — and until now the foot of
-            it said "This is a computer generated invoice", which tells them
-            nothing.
-
-            The return line is the shop's own, from Settings, so the window
-            stays the shop's decision. Blank prints nothing rather than an
-            empty box. The phone and web address come from what the shop
-            already knows about itself, so there is no second place to keep
-            them in step. */}
-        {company.billFooterNote ? (
-          <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-xs font-bold text-brand-green-ink">
-            {company.billFooterNote}
-          </p>
-        ) : null}
-
-        {/* Asking the counter customer for a review, on the paper they keep.
-            Counter customers leave no email, so this is the only ask that
-            reaches them (owner, 2026-09-29). */}
-        <div className="mt-3 flex items-center justify-center gap-3 border-t border-dashed border-brand-green-line pt-2">
-          <img src="/api/admin/review-qr" alt="QR code for the KRISHOE review page" className="h-16 w-16 shrink-0 object-contain" />
-          <p className="text-left text-xs font-bold leading-snug text-brand-green-ink">
-            <T
-              en="How were your shoes? Scan the QR and write two lines 🙏"
-              ne="जुत्ता कस्तो लाग्यो? QR स्क्यान गरी दुई शब्द लेखिदिनुहोस् 🙏"
-            />
-            <span className="block font-normal text-brand-muted">{shopDomain}/review</span>
-          </p>
-        </div>
-
-        <p className="mt-1 text-center text-xs text-brand-muted">
-          {company.phone ? <>☎ {company.phone} · </> : null}
-          {businessContact.whatsappDisplay ? <>WhatsApp {businessContact.whatsappDisplay} · </> : null}
-          <span className="font-bold">{shopDomain}</span>
+          <span className="tabular-nums">{amount(paper.reduce((sum, bill) => sum + bill.total, 0))}</span>
         </p>
-
-        <p className="mt-1 text-center text-xs text-brand-muted">
-          Billed by {invoice.cashier} · KRISHOE POS
-        </p>
-      </div>
+      ) : null}
 
       {canVoid ? (
         <details className="mx-auto mt-6 max-w-3xl rounded-xl border border-brand-clay/40 bg-brand-paper p-4 print:hidden" data-void-test-bill>
@@ -452,5 +228,294 @@ export default async function PosInvoicePage({ params, searchParams }: PosInvoic
         </details>
       ) : null}
     </section>
+  );
+}
+
+type Company = Awaited<ReturnType<typeof getAdminSettings>>["company"];
+
+/**
+ * One bill as it prints. A paper of two parts (owner, 2026-10-31) prints this
+ * twice, the factory's part first, each in its own business's name and PAN.
+ */
+function BillPaper({
+  invoice,
+  company,
+  sellerName,
+  shopDomain,
+}: {
+  invoice: PosInvoice;
+  company: Company;
+  sellerName: string;
+  shopDomain: string;
+}) {
+  return (
+  <div className="receipt-print mx-auto max-w-3xl rounded-lg border-2 border-brand-green-ink bg-white p-6 text-brand-green-ink shadow-sm print:border-2 print:shadow-none">
+    {/* Seller header — legal name, address, phone and PAN, centred like a
+        standard Nepal PAN sales invoice. Everything here comes from the
+        shop's company settings, so one edit updates every future bill. */}
+    <div className="border-b-2 border-brand-green-ink pb-3 text-center">
+      <div className="flex items-center justify-center gap-3">
+        <Image src="/images/logo-mark.png" alt="" aria-hidden width={128} height={128} className="h-9 w-9 shrink-0" />
+        <h1 className="font-display text-2xl font-black uppercase tracking-wide text-brand-green-ink md:text-3xl">
+          {sellerName}
+        </h1>
+      </div>
+      <p className="mt-1.5 text-sm text-brand-muted">
+        {company.address || "—"}
+        {company.phone ? <> · <span className="font-mono">+977 {company.phone}</span></> : null}
+      </p>
+      {company.panVatNumber ? (
+        <p className="mt-1 inline-block border-b-4 border-brand-gold/60 text-sm font-black text-brand-green-ink">
+          PAN No.: {company.panVatNumber}
+        </p>
+      ) : null}
+    </div>
+
+    <div className="my-4 flex justify-center">
+      <span className="rounded bg-brand-green-ink px-6 py-1.5 text-sm font-black uppercase tracking-[0.16em] text-white">
+        {invoice.kind === "Return" ? "Return Invoice" : "Sales Invoice"}
+      </span>
+    </div>
+
+    {/* Customer (left) and invoice meta (right). Address and PAN carry a
+        write-on line for now — a wholesale buyer's PAN can be filled by hand
+        until it is captured on the bill form. */}
+    <div className="receipt-fields grid gap-x-8 gap-y-2 border-b-2 border-brand-green-ink pb-3 text-sm sm:grid-cols-2">
+      <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Customer Name</span><span className="font-bold">: {invoice.customerName}</span></div>
+      <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice No.</span><span className="font-bold">: {invoice.invoiceNumber}</span></div>
+      <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">Address</span>{invoice.customerAddress ? <span className="font-bold">: {invoice.customerAddress}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
+      <div className="flex gap-1"><span className="w-28 shrink-0 text-brand-muted">Invoice Date</span><span className="font-bold">: <DateDisplayAdmin date={invoice.createdAt} time={false} /></span></div>
+      <div className="flex items-end gap-1"><span className="w-28 shrink-0 text-brand-muted">PAN No.</span>{invoice.customerPan ? <span className="font-bold">: {invoice.customerPan}</span> : <span className="flex-1 self-stretch border-b border-dotted border-brand-muted/50">:</span>}</div>
+      {/* A bill paid in parts names every part: the customer's copy has to
+          say where each rupee went, the exchange and the old credit too. */}
+      <div className="flex gap-1">
+        <span className="w-28 shrink-0 text-brand-muted">Payment Mode</span>
+        <span className="font-bold">
+          :{" "}
+          {invoice.payments && invoice.payments.length > 0
+            ? invoice.payments
+                .map((part) => {
+                  const ref = part.reference ? ` (${part.reference})` : "";
+                  if (part.method === "Exchange") return `Exchange ${money(part.amount)}${part.against ? ` (${part.against})` : ""}`;
+                  if (part.purpose === "due") return `Old credit ${part.method} ${money(part.amount)}${ref}`;
+                  if (part.purpose === "refund") return `Given back ${part.method} ${money(part.amount)}`;
+                  return `${part.method} ${money(part.amount)}${ref}`;
+                })
+                .join(" + ")
+            : invoice.paymentMethod}
+        </span>
+      </div>
+    </div>
+
+    {/* Items — S.No, HS Code, Description, Size, Qty, Rate, Amount.
+        A phone reads one line a shoe; the table stays for a computer and
+        for paper, word for word (owner's sample, 2026-10-12): seven
+        columns scrolled sideways on a phone. */}
+    <ol className="mt-4 grid list-none gap-1.5 pl-0 md:hidden print:hidden">
+      {groupBillLines(invoice.items, (item) => (item.discount > 0 ? item.id : "")).map((group, index) => {
+        const first = group.lines[0];
+        const pairs = group.lines.reduce((sum, item) => sum + item.quantity, 0);
+        const total = group.lines.reduce((sum, item) => sum + item.lineTotal, 0);
+        return (
+          <li key={`line-${group.key}`} className="grid gap-0.5 border-b border-brand-green-line pb-1.5 text-sm">
+            <div className="flex items-start justify-between gap-2">
+              <span className="min-w-0 break-words font-semibold text-brand-green-ink">
+                {index + 1}. {first.design}
+                {group.color ? <span className="font-normal text-brand-muted"> · {group.color}</span> : null}
+              </span>
+              <span className="shrink-0 font-bold tabular-nums">{amount(total)}</span>
+            </div>
+            <p className="text-xs text-brand-muted">
+              {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))
+                ? `Size ${sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))} · `
+                : ""}
+              {pairs} × {amount(group.rate)} · HS <span className="font-mono">{HS_CODE}</span>
+            </p>
+          </li>
+        );
+      })}
+      <li className="flex justify-between text-sm font-black">
+        <span>Total Pairs</span>
+        <span className="tabular-nums">{invoice.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
+      </li>
+    </ol>
+    <div className="mt-4 hidden overflow-x-auto md:block print:block">
+      <table className="min-w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-brand-green-ink text-left text-xs uppercase tracking-wide text-white">
+            <th className="border border-brand-green-ink px-2 py-2">S.No</th>
+            <th className="border border-brand-green-ink px-2 py-2">HS Code</th>
+            <th className="border border-brand-green-ink px-2 py-2">Product Description</th>
+            <th className="border border-brand-green-ink px-2 py-2">Size</th>
+            <th className="border border-brand-green-ink px-2 py-2 text-right">Qty</th>
+            <th className="border border-brand-green-ink px-2 py-2 text-right">Rate</th>
+            <th className="border border-brand-green-ink px-2 py-2 text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* One row per shoe, colour and rate, its sizes in the Size
+              column — a wholesale bill of two shoes in five sizes printed
+              ten rows. A line with its own discount keeps its own row, so
+              every row's amount is still quantity × rate less what shows. */}
+          {groupBillLines(invoice.items, (item) => (item.discount > 0 ? item.id : "")).map((group, index) => {
+            const first = group.lines[0];
+            const pairs = group.lines.reduce((sum, item) => sum + item.quantity, 0);
+            const total = group.lines.reduce((sum, item) => sum + item.lineTotal, 0);
+            return (
+              <tr key={group.key}>
+                <td className="border border-brand-green-line px-2 py-2 text-center">{index + 1}</td>
+                <td className="border border-brand-green-line px-2 py-2 font-mono text-xs">{HS_CODE}</td>
+                <td className="border border-brand-green-line px-2 py-2 font-semibold text-brand-green-ink">
+                  {first.design}
+                  {group.color ? <span className="font-normal text-brand-muted"> · {group.color}</span> : null}
+                </td>
+                {/* The size the customer took; older bills only carry the stock row. */}
+                <td className="border border-brand-green-line px-2 py-2">
+                  {sizeSummary(group.lines.map((item) => ({ size: item.size || item.sizeRun, pairs: item.quantity })))}
+                </td>
+                <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{pairs}</td>
+                <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">{amount(group.rate)}</td>
+                <td className="border border-brand-green-line px-2 py-2 text-right font-bold tabular-nums">{amount(total)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        {/* How many pairs in all — what a wholesale buyer counts first
+            when the carton is opened (owner, 2026-09-30). */}
+        <tfoot>
+          <tr className="bg-brand-mist font-black">
+            <td colSpan={4} className="border border-brand-green-line px-2 py-2 text-right">Total Pairs</td>
+            <td className="border border-brand-green-line px-2 py-2 text-right tabular-nums">
+              {invoice.items.reduce((sum, item) => sum + item.quantity, 0)}
+            </td>
+            <td colSpan={2} className="border border-brand-green-line px-2 py-2" />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    {/* Totals — Basic, Discount, Net. No VAT line: KRISHOE bills on PAN.
+        Basic Total only when something comes off or on it: with neither,
+        it printed the Net Total's figure twice (owner, 2026-09-30). */}
+    <div className="mt-4 flex justify-end">
+      <table className="border-collapse text-sm">
+        <tbody>
+          {invoice.discount > 0 || invoice.tax > 0 ? (
+            <tr>
+              <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Basic Total</td>
+              <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.subtotal)}</td>
+            </tr>
+          ) : null}
+          {invoice.discount > 0 ? (
+            <tr>
+              <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">Discount</td>
+              <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.discount)}</td>
+            </tr>
+          ) : null}
+          {invoice.tax > 0 ? (
+            <tr>
+              <td className="border border-brand-green-line px-3 py-1.5 text-brand-muted">VAT</td>
+              <td className="border border-brand-green-line px-3 py-1.5 text-right font-bold tabular-nums">{amount(invoice.tax)}</td>
+            </tr>
+          ) : null}
+          <tr className="bg-brand-mist">
+            <td className="border-2 border-brand-green-ink px-3 py-2 font-black text-brand-green-ink">Net Total</td>
+            <td className="border-2 border-brand-green-ink px-3 py-2 text-right text-base font-black tabular-nums text-brand-green-ink">{amount(invoice.total)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div className="mt-3 border-y border-brand-green-ink py-2 text-sm">
+      <span className="font-black">In Words:</span>{" "}
+      <span className="italic text-brand-muted">{amountInWords(invoice.total)}</span>
+    </div>
+
+    {/* The bill used to carry "Goods once sold will not be taken back"
+        here, which contradicts the shop: /return-policy and the storefront
+        trust strip both promise seven days to exchange or return. A
+        customer holding a bill that says the opposite of the website has
+        been told two different things by the same shop, and the one on
+        paper is the one they will believe.
+
+        The shop's own line now prints at the foot instead, from Settings. */}
+    {/* Remarks only when there is one; "Remarks: —" said nothing. */}
+    {invoice.note ? (
+      <div className="mt-2 text-xs text-brand-muted">
+        <p>Remarks: {invoice.note}</p>
+      </div>
+    ) : null}
+
+    {invoice.creditAmount > 0 ? (
+      <div className="mt-2 flex justify-end gap-6 text-sm">
+        <span className="text-brand-muted">Paid <span className="font-bold text-brand-green">{money(invoice.paidAmount)}</span></span>
+        <span className="text-brand-muted">Balance <span className="font-bold text-brand-clay">{money(invoice.creditAmount)}</span></span>
+      </div>
+    ) : null}
+
+    <div className="mt-8 flex items-end justify-between gap-8">
+      <div className="flex-1 text-center">
+        <div className="mt-6 border-t border-brand-green-ink pt-1 text-xs text-brand-muted">Received By</div>
+      </div>
+      <div className="flex-1 text-right">
+        <p className="text-xs font-black text-brand-green-ink">For: {sellerName}</p>
+        <div className="mt-6 border-t border-brand-green-ink pt-1 text-xs text-brand-muted">Authorized Signature</div>
+      </div>
+    </div>
+
+    {/* What this system adds over a plain paper bill: the sales channel, a
+        scannable barcode and QR, and a one-tap WhatsApp send. */}
+    <div className="mt-4 flex items-center gap-3 border-t border-dashed border-brand-green-line pt-3">
+      <span className="shrink-0 rounded-full border border-brand-green-ink px-2.5 py-1 text-xs font-black uppercase tracking-wide text-brand-green-ink">
+        {invoice.channel}
+      </span>
+      <img src={`/api/admin/pos/${invoice.id}/barcode`} alt={`Barcode for ${invoice.invoiceNumber}`} className="h-9 flex-1 object-contain" />
+      <img src={`/api/admin/pos/${invoice.id}/qr`} alt={`QR code for ${invoice.invoiceNumber}`} className="h-12 w-12 shrink-0 object-contain" />
+      {invoice.phone ? (
+        <span className="shrink-0 rounded-full border border-emerald-500 px-2.5 py-1 text-xs font-black text-emerald-700 print:hidden">WhatsApp ✓</span>
+      ) : null}
+    </div>
+
+    {/* What the customer can actually use, on the paper they take home.
+        The bill is the one thing they still have three days later, when
+        the shoe turns out to be a size small — and until now the foot of
+        it said "This is a computer generated invoice", which tells them
+        nothing.
+
+        The return line is the shop's own, from Settings, so the window
+        stays the shop's decision. Blank prints nothing rather than an
+        empty box. The phone and web address come from what the shop
+        already knows about itself, so there is no second place to keep
+        them in step. */}
+    {company.billFooterNote ? (
+      <p className="mt-3 border-t border-brand-green-line pt-2 text-center text-xs font-bold text-brand-green-ink">
+        {company.billFooterNote}
+      </p>
+    ) : null}
+
+    {/* Asking the counter customer for a review, on the paper they keep.
+        Counter customers leave no email, so this is the only ask that
+        reaches them (owner, 2026-09-29). */}
+    <div className="mt-3 flex items-center justify-center gap-3 border-t border-dashed border-brand-green-line pt-2">
+      <img src="/api/admin/review-qr" alt="QR code for the KRISHOE review page" className="h-16 w-16 shrink-0 object-contain" />
+      <p className="text-left text-xs font-bold leading-snug text-brand-green-ink">
+        <T
+          en="How were your shoes? Scan the QR and write two lines 🙏"
+          ne="जुत्ता कस्तो लाग्यो? QR स्क्यान गरी दुई शब्द लेखिदिनुहोस् 🙏"
+        />
+        <span className="block font-normal text-brand-muted">{shopDomain}/review</span>
+      </p>
+    </div>
+
+    <p className="mt-1 text-center text-xs text-brand-muted">
+      {company.phone ? <>☎ {company.phone} · </> : null}
+      {businessContact.whatsappDisplay ? <>WhatsApp {businessContact.whatsappDisplay} · </> : null}
+      <span className="font-bold">{shopDomain}</span>
+    </p>
+
+    <p className="mt-1 text-center text-xs text-brand-muted">
+      Billed by {invoice.cashier} · KRISHOE POS
+    </p>
+  </div>
   );
 }

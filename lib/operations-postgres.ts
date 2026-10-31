@@ -1059,6 +1059,7 @@ async function movePlacedPairs(
   stock: Pick<FinishedStock, "design" | "sizeRun">,
   movement: Pick<StockMovement, "type" | "pairs" | "channel">,
   direction: "apply" | "reverse",
+  first?: StockPlace,
 ) {
   const sizeRun = stock.sizeRun || "Mixed";
   // FOR UPDATE: two bills for the same shoe at once must not both read the
@@ -1076,7 +1077,7 @@ async function movePlacedPairs(
     }
   }
 
-  for (const change of placeChangesFor(movement, held, direction)) {
+  for (const change of placeChangesFor(movement, held, direction, first)) {
     await db.query(
       `INSERT INTO stock_locations (id, design, size_run, location, pairs)
        VALUES ($1, $2, $3, $4, GREATEST($5::int, 0))
@@ -1134,7 +1135,7 @@ export async function insertStockMovement(
   // movement list does not grow a second way of writing the same design.
   record.design = stock.design;
   await updateFinishedStockTotals(db, withStockMovementApplied(stock, record));
-  await movePlacedPairs(db, stock, record, "apply");
+  await movePlacedPairs(db, stock, record, "apply", movement.fromPlace);
   if (movement.placeArrivals) {
     for (const change of arrivalPlaceFor(record)) {
       await db.query(

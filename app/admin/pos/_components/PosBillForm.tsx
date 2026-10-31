@@ -17,7 +17,8 @@ import { useRouter } from "next/navigation";
 import { flushSync } from "react-dom";
 import { POS_ANSWER_FIELD, type PosQuestion } from "@/lib/pos-questions";
 import { POS_RESTORE_EVENT, POS_RESTORE_KEY, enqueue, isNetworkFailure, removeQueued, useOnline } from "@/lib/offline-queue";
-import { createPosInvoiceAction, openPosCustomerLedgerAction } from "@/app/admin/pos/actions";
+import { createPosInvoiceAction, openPosCustomerLedgerAction, setShoeOriginAction } from "@/app/admin/pos/actions";
+import type { BillBusiness } from "@/lib/bill-number";
 import type { ActionState } from "@/app/admin/actions";
 import ActionMessage from "@/components/admin/ActionMessage";
 import EnterWalkForm from "@/components/admin/EnterWalkForm";
@@ -87,7 +88,15 @@ type PosBillFormProps = {
    * on the bill asks for its bank and date. Banks used before come first.
    */
   chequeBook?: { ready: boolean; usedBanks: string[]; todayKey: string };
+  /**
+   * The factory and the shop as two businesses (owner, 2026-10-31): absent
+   * until the Owner's Settings OK. factoryReady once its name and PAN are in.
+   */
+  twoBusiness?: { factoryReady: boolean } | null;
 };
+
+/** A question the bill asks about one shoe before it can be saved (owner, 2026-10-31). */
+type ShoeAsk = { design: string; productId?: string; about: "origin" | "shopPart" | "toFactory" };
 
 type Kind = BillKind;
 type Payment = "Cash" | "QR" | "eSewa" | "Khalti" | "Credit" | "Bank" | "Cheque";
@@ -110,6 +119,9 @@ type HeldBill = {
   kind: Kind;
   phone: string;
   customerName: string;
+  /** Whose bill, and each shoe's part of the paper (two businesses). */
+  business?: BillBusiness;
+  partOf?: Record<string, BillBusiness>;
 };
 
 // Held bills live on this device only: a bill set aside while the customer
@@ -216,6 +228,7 @@ export default function PosBillForm({
   today = null,
   paymentsReady = false,
   chequeBook = { ready: false, usedBanks: [], todayKey: "" },
+  twoBusiness = null,
 }: PosBillFormProps) {
   const { text } = useLanguage();
   const router = useRouter();
@@ -234,6 +247,12 @@ export default function PosBillForm({
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [kind, setKind] = useState<Kind>("Sale");
   const [channel, setChannel] = useState("Retail");
+  // Whose bill (owner, 2026-10-31), and each shoe's part of the paper once the
+  // counter has answered for it — by design name. The shop's unless said.
+  const [business, setBusiness] = useState<BillBusiness>("shop");
+  const [partOf, setPartOf] = useState<Record<string, BillBusiness>>({});
+  // Made or bought, said at this counter for a shoe the app could not tell.
+  const [saidOrigin, setSaidOrigin] = useState<Record<string, "made" | "bought">>({});
   const [payment, setPayment] = useState<Payment>("Cash");
   const [received, setReceived] = useState("");
   // How a cash shortfall is covered: credit, or another method's second part.
@@ -335,6 +354,12 @@ export default function PosBillForm({
         const cheque = (bill.chequeDetails ?? {}) as Partial<ChequeDetails>;
         setKind("Sale");
         setChannel(kept.channel || "Retail");
+        setBusiness(words("business") === "factory" ? "factory" : "shop");
+        try {
+          setPartOf(JSON.parse(words("partOf") || "{}") as Record<string, BillBusiness>);
+        } catch {
+          setPartOf({});
+        }
         setCart(kept.cart);
         setStartedAt(Date.now());
         setPayment(PAYMENTS.includes(words("payment") as Payment) ? (words("payment") as Payment) : "Cash");
@@ -396,6 +421,59 @@ export default function PosBillForm({
     return have > 0 && have < least ? least - have : 0;
   };
   const shortDesigns = [...new Set(cart.filter((line) => !line.back).map((line) => line.design))].filter((design) => wholesaleShort(design) > 0);
+
+  // ---- whose bill: the factory's or the shop's (owner, 2026-10-31) --------
+  const designKeyOf = (design: string) => design.trim().toLowerCase();
+  const originOfDesign = (design: string) => saidOrigin[designKeyOf(design)] ?? itemFor(design)?.origin;
+  // A sale's lines each go to a part of the paper; a return or an exchange is all one business's.
+  const partOfLine = (line: CartLine): BillBusiness =>
+    !twoBusiness ? "shop" : kind !== "Sale" ? business : (partOf[designKeyOf(line.design)] ?? business);
+  const saleLines = cart.filter((line) => !line.back);
+  const factoryLines = twoBusiness && kind === "Sale" ? saleLines.filter((line) => partOfLine(line) === "factory") : [];
+  const paperSplit = factoryLines.length > 0 && factoryLines.length < saleLines.length;
+  const paperBusiness: BillBusiness = !twoBusiness ? "shop" : kind === "Sale" ? (factoryLines.length > 0 ? "factory" : "shop") : business;
+  const factoryPartWorth = factoryLines.reduce((sum, line) => sum + line.rate * line.quantity, 0);
+  // The one question the bill waits on, if any: asked shoe by shoe, once each.
+  const shoeAsk: ShoeAsk | null = (() => {
+    if (!twoBusiness || kind !== "Sale") return null;
+    const matters = business === "factory" || (channel === "Wholesale" && twoBusiness.factoryReady);
+    if (!matters) return null;
+    for (const design of [...new Set(saleLines.map((line) => line.design))]) {
+      if (partOf[designKeyOf(design)]) continue;
+      const origin = originOfDesign(design);
+      if (!origin) {
+        const productId = itemFor(design)?.productId;
+        if (productId) return { design, productId, about: "origin" };
+        if (business === "factory") return { design, about: "shopPart" };
+        continue;
+      }
+      if (business === "factory" && origin === "bought") return { design, about: "shopPart" };
+      if (business === "shop" && origin === "made") return { design, about: "toFactory" };
+    }
+    return null;
+  })();
+
+  function answerShoe(answer: "made" | "bought" | "shop" | "factory" | "drop") {
+    if (!shoeAsk) return;
+    const key = designKeyOf(shoeAsk.design);
+    if (answer === "made" || answer === "bought") {
+      setSaidOrigin((current) => ({ ...current, [key]: answer }));
+      if (shoeAsk.productId) void setShoeOriginAction(shoeAsk.productId, answer).catch(() => undefined);
+      return;
+    }
+    if (answer === "drop") {
+      setCart((current) => current.filter((line) => line.back || designKeyOf(line.design) !== key));
+      setNote(text(`${shoeAsk.design} taken off the bill.`, `${shoeAsk.design} बिलबाट हटाइयो।`));
+      return;
+    }
+    setPartOf((current) => ({ ...current, [key]: answer }));
+  }
+
+  function changeBusiness(next: BillBusiness) {
+    setBusiness(next);
+    setPartOf({});
+    setState(null);
+  }
 
   // ---- what the bill comes to -------------------------------------------
   const lines = billTotals(cart, 0, 0);
@@ -470,6 +548,8 @@ export default function PosBillForm({
   let blocked = "";
   if (cart.length === 0) {
     blocked = text("Tap a shoe to start", "जुत्ता थपेर सुरु गर्नुहोस्");
+  } else if (shoeAsk) {
+    blocked = text("Answer the question on the bill first", "बिलमाथिको प्रश्नको जवाफ दिनुहोस्");
   } else if (isExchange && (backLines.length === 0 || outLines.length === 0)) {
     blocked =
       backLines.length === 0
@@ -693,6 +773,11 @@ export default function PosBillForm({
   function changeChannel(next: string) {
     setChannel(next);
     setCart((current) => repriceForChannel(current, catalog, next));
+    // Online sales are the shop's (owner, 2026-10-31).
+    if (next === "Online") {
+      setBusiness("shop");
+      setPartOf({});
+    }
   }
 
   function resetBill() {
@@ -715,13 +800,15 @@ export default function PosBillForm({
     setChequeDetails({ bank: "", date: "", name: "", number: "" });
     setKind("Sale");
     setEditingRate(null);
+    setBusiness("shop");
+    setPartOf({});
   }
 
   function holdBill() {
     if (cart.length === 0) return;
     const next = [
       ...held,
-      { ...heldStamp(), cart, channel, kind, phone, customerName },
+      { ...heldStamp(), cart, channel, kind, phone, customerName, business, partOf },
     ];
     saveHeld(next);
     resetBill();
@@ -733,7 +820,7 @@ export default function PosBillForm({
     if (!bill) return;
     let rest = held.filter((entry) => entry.id !== id);
     if (cart.length > 0) {
-      rest = [...rest, { ...heldStamp(), cart, channel, kind, phone, customerName }];
+      rest = [...rest, { ...heldStamp(), cart, channel, kind, phone, customerName, business, partOf }];
     }
     saveHeld(rest);
     resetBill();
@@ -743,6 +830,27 @@ export default function PosBillForm({
     setPhone(bill.phone);
     setCustomerName(bill.customerName);
     setStartedAt(bill.heldAt);
+    setBusiness(twoBusiness && bill.business === "factory" ? "factory" : "shop");
+    setPartOf(twoBusiness ? (bill.partOf ?? {}) : {});
+  }
+
+  // The shop is short (owner, 2026-10-31): send the pairs by challan first —
+  // the bill is held and the challan opens with the shoes in it — or move the
+  // shoes the factory made onto its bill.
+  const shortShoes = state?.ask === "shortAtShop" ? (state.designs ?? []) : [];
+  const movableShoes = shortShoes.filter(
+    (design) => Boolean(twoBusiness?.factoryReady) && channel !== "Online" && originOfDesign(design) === "made",
+  );
+  function challanFirst() {
+    const shoes = shortShoes;
+    holdBill();
+    setState(null);
+    router.push(`/admin/stock?move=${encodeURIComponent(shoes.join("|"))}#move-pairs`);
+  }
+  function moveToFactoryBill() {
+    setPartOf((current) => ({ ...current, ...Object.fromEntries(movableShoes.map((design) => [designKeyOf(design), "factory" as const])) }));
+    setState(null);
+    setNote(text("Moved to the factory's bill — press Save again.", "कारखानाको बिलमा सारियो — फेरि Save थिच्नुहोस्।"));
   }
 
   function repeatLast() {
@@ -779,7 +887,7 @@ export default function PosBillForm({
     });
   }
 
-  const answerKey = JSON.stringify([channel, kind, cart]);
+  const answerKey = JSON.stringify([channel, kind, cart, business, partOf]);
   const givenAnswers = answers.key === answerKey ? answers.list : [];
 
   // A big discount is asked about once per bill as it stands (rule 3): the yes
@@ -797,7 +905,7 @@ export default function PosBillForm({
   // ⚡ The first pair of a retail sale, saved in cash in one press from the
   // size sheet (owner, 2026-10-20, rule 1: a bill in three presses). The same
   // save as the button — the bill's own questions are still asked.
-  const offersQuickCash = kind === "Sale" && channel === "Retail" && cart.length === 0;
+  const offersQuickCash = kind === "Sale" && channel === "Retail" && cart.length === 0 && business === "shop";
   function quickCash(item: SellableItem, size: string, color: string) {
     if (!canAddPair(item, size, [])) {
       setNote(text(`${item.design} size ${size} is not in stock.`, `${item.design} साइज ${size} stock मा छैन।`));
@@ -877,6 +985,8 @@ export default function PosBillForm({
         customerPan,
         cashier,
         chequeDetails,
+        business,
+        partOf: JSON.stringify(partOf),
         address: String(formData.get("customerAddress") ?? ""),
         note: String(formData.get("note") ?? ""),
       },
@@ -1020,6 +1130,9 @@ export default function PosBillForm({
         onChannel={changeChannel}
         lastBill={lastBill}
         onRepeatLast={repeatLast}
+        business={twoBusiness ? business : undefined}
+        onBusiness={twoBusiness ? changeBusiness : undefined}
+        factoryReady={Boolean(twoBusiness?.factoryReady)}
       />
 
       {/* The bill wider and the shoes a short list (owner, 2026-10-04). */}
@@ -1044,6 +1157,7 @@ export default function PosBillForm({
             note={note}
             searchRef={searchRef}
             onAddNew={channel !== "Online" && kind === "Sale" ? (name) => setNewItemName(name) : undefined}
+            factoryMode={Boolean(twoBusiness) && business === "factory"}
           />
         </div>
 
@@ -1066,6 +1180,7 @@ export default function PosBillForm({
             <input type="hidden" name="sourceSubmissionKey" value={submissionKey} />
             <input type="hidden" name="kind" value={kind} />
             <input type="hidden" name="channel" value={channel} />
+            {twoBusiness ? <input type="hidden" name="business" value={paperBusiness} /> : null}
             {givenAnswers.map((question) => (
               <input key={question} type="hidden" name={POS_ANSWER_FIELD[question]} value="yes" />
             ))}
@@ -1106,6 +1221,7 @@ export default function PosBillForm({
                 <input type="hidden" name={`item${index}Rate`} value={line.rate} />
                 <input type="hidden" name={`item${index}Discount`} value={0} />
                 <input type="hidden" name={`item${index}Direction`} value={line.back ? "in" : "out"} />
+                {twoBusiness ? <input type="hidden" name={`item${index}Part`} value={partOfLine(line)} /> : null}
               </span>
             ))}
 
@@ -1128,11 +1244,69 @@ export default function PosBillForm({
                 >
                   {channel === "Wholesale" ? text("Wholesale", "थोक") : channel === "Online" ? text("Online", "अनलाइन") : text("Retail", "खुद्रा")}
                 </span>
+                {twoBusiness && cart.length > 0 && (paperSplit || paperBusiness === "factory") ? (
+                  <span className="ml-1.5 rounded-full bg-[#EAF1F8] px-2.5 py-0.5 align-middle text-xs font-black text-[#2F5C8A]">
+                    🏭 {text("Factory", "कारखाना")}
+                  </span>
+                ) : null}
+                {paperSplit ? (
+                  <span className="ml-1.5 rounded-full bg-brand-green-wash px-2.5 py-0.5 align-middle text-xs font-black text-brand-green">
+                    🛒 {text("Shop", "पसल")}
+                  </span>
+                ) : null}
               </h2>
               <BillTimer startedAt={startedAt} />
             </div>
 
             {held.length > 0 ? <HeldBills bills={held} onResume={resumeBill} /> : null}
+
+            {shoeAsk ? (
+              <div role="alertdialog" aria-label={text("A question about a shoe", "जुत्ताबारे प्रश्न")} className="grid gap-2 rounded-2xl border-2 border-brand-gold-deep bg-brand-cream-soft p-3">
+                <p className="text-base font-black text-brand-green-ink">
+                  {shoeAsk.about === "origin"
+                    ? text(`Is ${shoeAsk.design} made in the factory or bought? Said once, it is kept.`, `${shoeAsk.design} बनाएको हो कि किनेको? एकपटक भनेपछि app ले सम्झिन्छ।`)
+                    : shoeAsk.about === "shopPart"
+                      ? text(
+                          `${shoeAsk.design} is not made in the factory, so it cannot go on the factory's bill. Add a shop part?`,
+                          `${shoeAsk.design} किनेको सामान हो। यो कारखानाको बिलमा राख्न मिल्दैन। पसलको भाग थप्ने?`,
+                        )
+                      : text(
+                          `${shoeAsk.design} is made in the factory. Made shoes are sold wholesale by the factory. Move it to the factory's bill?`,
+                          `${shoeAsk.design} कारखानामा बनेको हो। बनाएको जुत्ताको थोक कारखानाबाट बिक्छ। कारखानाको बिलमा सार्ने?`,
+                        )}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {shoeAsk.about === "origin" ? (
+                    <>
+                      <button type="button" onClick={() => answerShoe("made")} className="min-h-12 rounded-xl border-2 border-[#2F5C8A] bg-brand-paper px-3 text-base font-black text-[#2F5C8A]">
+                        🏭 {text("Made", "बनाएको")}
+                      </button>
+                      <button type="button" onClick={() => answerShoe("bought")} className="min-h-12 rounded-xl border-2 border-brand-gold-deep bg-brand-paper px-3 text-base font-black text-brand-gold-deep">
+                        🛒 {text("Bought", "किनेको")}
+                      </button>
+                    </>
+                  ) : shoeAsk.about === "shopPart" ? (
+                    <>
+                      <button type="button" onClick={() => answerShoe("shop")} className="min-h-12 rounded-xl border-2 border-brand-gold-deep bg-brand-paper px-3 text-base font-black text-brand-gold-deep">
+                        🛒 {text("Yes, add a shop part", "हो, पसलको भाग थप्ने")}
+                      </button>
+                      <button type="button" onClick={() => answerShoe("drop")} className="min-h-12 rounded-xl border-2 border-brand-green-line bg-brand-paper px-3 text-base font-black text-brand-muted">
+                        {text("No, take it off", "होइन, नथप्ने")}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button type="button" onClick={() => answerShoe("factory")} className="min-h-12 rounded-xl border-2 border-[#2F5C8A] bg-brand-paper px-3 text-base font-black text-[#2F5C8A]">
+                        🏭 {text("Yes, the factory's bill", "हो, कारखानाको बिलमा")}
+                      </button>
+                      <button type="button" onClick={() => answerShoe("shop")} className="min-h-12 rounded-xl border-2 border-brand-gold-deep bg-brand-paper px-3 text-base font-black text-brand-gold-deep">
+                        🛒 {text("Keep on the shop's bill", "पसलकै बिलमा राख्ने")}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-brand-gold-deep">
               <span className="grid h-5 w-5 place-items-center rounded-full bg-brand-gold-deep text-xs text-white">1</span>
@@ -1175,6 +1349,11 @@ export default function PosBillForm({
                       <div className="min-w-0">
                         <p className="truncate text-base font-black text-brand-green-ink lg:text-xl">
                           {back ? <span className="text-brand-clay">↩ </span> : null}
+                          {paperSplit && !back ? (
+                            <span className="mr-1 text-sm" title={partOfLine(first) === "factory" ? text("Factory's part", "कारखानाको भाग") : text("Shop's part", "पसलको भाग")}>
+                              {partOfLine(first) === "factory" ? "🏭" : "🛒"}
+                            </span>
+                          ) : null}
                           {first.design}
                         </p>
                         <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-brand-muted">
@@ -1389,6 +1568,15 @@ export default function PosBillForm({
                   </span>
                   <span>{money(totals.subtotal)}</span>
                 </div>
+                {paperSplit ? (
+                  <div className="flex flex-wrap justify-between gap-x-3 font-bold">
+                    <span className="text-[#2F5C8A]">🏭 {text("Factory part", "कारखानाको भाग")} {money(factoryPartWorth)}</span>
+                    <span className="text-brand-green">🛒 {text("Shop part", "पसलको भाग")} {money(totals.subtotal - factoryPartWorth)}</span>
+                    <span className="basis-full text-xs font-medium text-brand-muted">
+                      {text("One paper, two bills. Discount and payment are shared by worth.", "एउटै कागजमा दुई बिल। छुट र भुक्तानी रकमको अनुपातमा बाँडिन्छ।")}
+                    </span>
+                  </div>
+                ) : null}
                 {totals.bargained > 0 ? (
                   <div className="flex justify-between text-brand-muted">
                     <span>{text("Off the price by bargaining", "मोलमोलाईमा घटेको")}</span>
@@ -1892,7 +2080,27 @@ export default function PosBillForm({
                 the page, and the reason scrolled up under it (KR-BUG-002). */}
             <span ref={answerRef} aria-hidden="true" className="block scroll-mt-28" />
             <ActionMessage state={state} linkLabel={text("Open receipt", "रसिद खोल्ने")} />
-            {state?.ask && !givenAnswers.includes(state.ask) ? (
+            {shortShoes.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={challanFirst}
+                  className="min-h-12 rounded-lg border-2 border-brand-gold-deep bg-brand-cream-soft px-3 text-base font-black text-brand-gold-deep"
+                >
+                  🚚 {text("Challan first", "पहिले challan गर्ने")}
+                </button>
+                <button
+                  type="button"
+                  onClick={moveToFactoryBill}
+                  disabled={movableShoes.length === 0}
+                  title={movableShoes.length === 0 ? text("Only made shoes go on the factory's bill", "कारखानाको बिलमा बनाएको जुत्ता मात्र जान्छ") : undefined}
+                  className="min-h-12 rounded-lg border-2 border-[#2F5C8A] bg-[#EAF1F8] px-3 text-base font-black text-[#2F5C8A] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  🏭 {text("Move to the factory's bill", "कारखानाको बिलमा सार्ने")}
+                </button>
+              </div>
+            ) : null}
+            {state?.ask && state.ask !== "shortAtShop" && !givenAnswers.includes(state.ask) ? (
               <button
                 type="button"
                 onClick={() => state.ask && answerYes(state.ask)}

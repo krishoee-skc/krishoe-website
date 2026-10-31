@@ -15,13 +15,17 @@ import { addCustomerLedger, type CustomerLedger } from "@/lib/operations";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
 import { reportError, reportingErrors } from "@/lib/report-error";
 import { syncProductCatalogStockWithFinishedStock } from "@/lib/product-store";
+import { setChosenOrigin } from "@/lib/product-origins";
+import type { BillBusiness } from "@/lib/bill-number";
 import {
   createPosExchange,
   createPosInvoice,
+  createPosSplitBill,
   getPosInvoiceById,
   repairPosInvoicePosting,
   type PosChannel,
   type PosInvoiceKind,
+  type PosInvoice,
   type PosPaymentMethod,
 } from "@/lib/pos";
 import { PAYMENT_PART_METHODS, readPaymentParts, type PosPaymentPartMethod } from "@/lib/pos-payments";
@@ -91,6 +95,21 @@ function invoiceItems(formData: FormData) {
     size: textValue(formData, `item${index}Size`).slice(0, 8),
     color: textValue(formData, `item${index}Color`).slice(0, 40),
   }));
+}
+
+// Whose bill (owner, 2026-10-31): the factory's only when said.
+function businessFrom(formData: FormData): BillBusiness {
+  return textValue(formData, "business") === "factory" ? "factory" : "shop";
+}
+
+// Each line's part of the paper, the factory's or the shop's; a line that says
+// nothing is the bill's own business's.
+function partsOfItems(formData: FormData, count: number): BillBusiness[] {
+  const business = businessFrom(formData);
+  return Array.from({ length: count }, (_, index) => {
+    const part = textValue(formData, `item${index}Part`);
+    return part === "factory" || part === "shop" ? part : business;
+  });
 }
 
 // A bill paid in parts sends them as one JSON field; anything malformed in it
@@ -200,9 +219,21 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
   // book later (owner, 2026-10-01).
   const chequeBookOn = kind === "Sale" && paidByCheque && (await chequeBookReady());
 
-  let invoice;
+  // The lines by part: all one business's is one bill; a sale with both is
+  // one paper in two parts, the factory's and the shop's (owner, 2026-10-31).
+  const items = invoiceItems(formData);
+  const parts = partsOfItems(formData, items.length);
+  const factoryItems = items.filter((_, index) => parts[index] === "factory");
+  const shopItems = items.filter((_, index) => parts[index] !== "factory");
+  const split = kind === "Sale" && factoryItems.length > 0 && shopItems.length > 0;
+  const business: BillBusiness = kind === "Sale" ? (factoryItems.length > 0 ? "factory" : "shop") : businessFrom(formData);
+
+  let invoice: PosInvoice;
+  // The shop's part, when the paper has two.
+  let partner: PosInvoice | null = null;
   try {
-    invoice = await createPosInvoice({
+    const billInput = {
+      business,
       channel: optionValue(textValue(formData, "channel"), channels, "Retail"),
       kind,
       customerName: textValue(formData, "customerName"),
@@ -221,18 +252,30 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
       sourceSubmissionKey: textValue(formData, "sourceSubmissionKey"),
       // Only a bill kept on a phone carries it; the library checks the limits.
       soldAt: textValue(formData, "offlineSoldAt"),
-      items: invoiceItems(formData),
+      items,
       paymentParts,
       collectDue: dueFrom(formData),
       answerFromFactory: textValue(formData, POS_ANSWER_FIELD.fromFactory) === "yes",
       answerBelowMinimum: textValue(formData, POS_ANSWER_FIELD.belowMinimum) === "yes",
       answerHeldForOrder: textValue(formData, POS_ANSWER_FIELD.heldForOrder) === "yes",
       billedByOwner: role === "Owner",
-    });
+    };
+    if (split) {
+      const both = await createPosSplitBill({ ...billInput, items: shopItems, factoryItems });
+      invoice = both.factoryInvoice;
+      partner = both.shopInvoice;
+    } else {
+      invoice = await createPosInvoice(billInput);
+    }
   } catch (error) {
     // A question for the counter, or the minimum said again — not a failure.
     if (error instanceof PosNeedsAnswer) {
-      return { ok: false, message: error.message, ...(error.question ? { ask: error.question } : {}) };
+      return {
+        ok: false,
+        message: error.message,
+        ...(error.question ? { ask: error.question } : {}),
+        ...(error.designs.length > 0 ? { designs: error.designs } : {}),
+      };
     }
     if (isCounterRule(error)) return { ok: false, message: (error as Error).message };
     reportError("save POS bill", error);
@@ -241,25 +284,32 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
 
   await recordAdminAuditEvent(
     "pos_create_invoice",
-    `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
+    partner
+      ? `${invoice.invoiceNumber} (factory) and ${partner.invoiceNumber} (shop) on one paper, Rs. ${invoice.total} + Rs. ${partner.total}.`
+      : `${invoice.invoiceNumber} ${invoice.kind.toLowerCase()} invoice recorded for Rs. ${invoice.total}.`,
   );
+  // One cheque is one cheque, whichever parts of the paper it paid.
+  const chequeOnPaper = chequeAmount(invoice) + (partner ? chequeAmount(partner) : 0);
+  const paperNumber = partner ? `${invoice.invoiceNumber} + ${partner.invoiceNumber}` : invoice.invoiceNumber;
 
   // Into the cheque book, after the bill is safe: a cheque that fails to file
   // never undoes the sale, and the book lists the bill to fill in instead.
-  if (chequeBookOn && chequeAmount(invoice) > 0) {
-    const chequePart = (invoice.payments ?? []).find((part) => part.method === "Cheque" && part.purpose !== "refund");
+  if (chequeBookOn && chequeOnPaper > 0) {
+    const chequePart = [...(invoice.payments ?? []), ...(partner?.payments ?? [])].find(
+      (part) => part.method === "Cheque" && part.purpose !== "refund",
+    );
     const { session } = await requireAdminPermission("pos:write");
     await reportingErrors(`file the cheque on ${invoice.invoiceNumber}`, () =>
       addCheque({
         direction: "in",
         source: "bill",
         sourceId: invoice.id,
-        sourceNumber: invoice.invoiceNumber,
+        sourceNumber: paperNumber,
         partyName: invoice.customerName,
         partyPhone: invoice.phone,
         bank: textValue(formData, "chequeBank"),
         chequeNo: textValue(formData, "chequeNo") || chequePart?.reference || invoice.paymentReference,
-        amount: chequeAmount(invoice),
+        amount: chequeOnPaper,
         chequeDate: textValue(formData, "chequeDate"),
         nameOnCheque: textValue(formData, "chequeName"),
         by: session.name ?? "",
@@ -276,9 +326,28 @@ async function saveBill(_previousState: ActionState | null, formData: FormData):
 
   return {
     ok: true,
-    message: `Saved ${invoice.invoiceNumber} — Rs. ${invoice.total.toLocaleString("en-IN")}.`,
+    message: partner
+      ? `Saved ${paperNumber} on one paper — Rs. ${(invoice.total + partner.total).toLocaleString("en-IN")}.`
+      : `Saved ${invoice.invoiceNumber} — Rs. ${invoice.total.toLocaleString("en-IN")}.`,
     href: `/admin/pos/${invoice.id}`,
   };
+}
+
+/**
+ * The counter's word on a shoe the app could not tell (owner, 2026-10-31):
+ * made in the factory, or bought. Kept on the shoe, as its Item page keeps it,
+ * so it is asked once.
+ */
+export async function setShoeOriginAction(productId: string, origin: "made" | "bought"): Promise<{ ok: boolean }> {
+  const { session } = await requireAdminPermission("pos:write");
+  if (!productId || (origin !== "made" && origin !== "bought")) return { ok: false };
+  try {
+    await setChosenOrigin(productId.slice(0, 120), origin, session.name || session.email || "Counter");
+    return { ok: true };
+  } catch (error) {
+    reportError("save a shoe's origin from the counter", error);
+    return { ok: false };
+  }
 }
 
 /**
@@ -295,6 +364,7 @@ async function saveExchange(formData: FormData): Promise<ActionState> {
   let result;
   try {
     result = await createPosExchange({
+      business: businessFrom(formData),
       channel: optionValue(textValue(formData, "channel"), channels, "Retail"),
       customerName: textValue(formData, "customerName"),
       phone: textValue(formData, "phone"),

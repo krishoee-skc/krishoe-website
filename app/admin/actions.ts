@@ -65,6 +65,8 @@ export type ActionState = {
   href?: string;
   /** The bill waits for one answer from the counter (lib/pos-questions.ts). */
   ask?: PosQuestion;
+  /** The shoes that answer is about (shortAtShop). */
+  designs?: string[];
 };
 
 const orderStatusSchema = z.object({

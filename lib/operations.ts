@@ -189,6 +189,9 @@ export type StockMovementInput = Omit<StockMovement, "id" | "createdAt" | "sizeR
   // channel's own place. Only the Operations form sets it; every other caller
   // places its pairs itself (lib/stock-rules.ts arrivalPlaceFor).
   placeArrivals?: boolean;
+  // The place the pairs leave from first, or a return goes back to — the
+  // bill's business (owner, 2026-10-31). Without it, the channel decides.
+  fromPlace?: "Factory" | "Shop";
 };
 
 export type LedgerTransactionType =

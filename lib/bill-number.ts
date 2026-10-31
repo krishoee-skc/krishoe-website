@@ -11,19 +11,33 @@ import type { PosInvoiceKind } from "@/lib/pos";
  */
 export const BILL_PREFIX = { Sale: "KRB", Return: "KRR" } as const satisfies Record<PosInvoiceKind, string>;
 
-export function formatBillNumber(kind: PosInvoiceKind, count: number) {
-  return `${BILL_PREFIX[kind]}${String(count).padStart(3, "0")}`;
+/**
+ * The factory's own bills (owner, 2026-10-31): the factory is a business of
+ * its own, with its own PAN, so its bills count apart — KRF001 for a sale,
+ * KRFR001 for a return.
+ */
+export const FACTORY_BILL_PREFIX = { Sale: "KRF", Return: "KRFR" } as const satisfies Record<PosInvoiceKind, string>;
+
+/** Whose bill: the shop's, or the factory's. Every bill before this was the shop's. */
+export type BillBusiness = "shop" | "factory";
+
+export function billPrefix(kind: PosInvoiceKind, business: BillBusiness = "shop") {
+  return (business === "factory" ? FACTORY_BILL_PREFIX : BILL_PREFIX)[kind];
+}
+
+export function formatBillNumber(kind: PosInvoiceKind, count: number, business: BillBusiness = "shop") {
+  return `${billPrefix(kind, business)}${String(count).padStart(3, "0")}`;
 }
 
 /** The next number after the highest of its kind; old-style numbers do not count. */
-export function nextBillNumber(kind: PosInvoiceKind, existing: Iterable<string>) {
-  const pattern = new RegExp(`^${BILL_PREFIX[kind]}(\\d+)$`);
+export function nextBillNumber(kind: PosInvoiceKind, existing: Iterable<string>, business: BillBusiness = "shop") {
+  const pattern = new RegExp(`^${billPrefix(kind, business)}(\\d+)$`);
   let highest = 0;
   for (const number of existing) {
     const match = pattern.exec(String(number ?? "").trim());
     if (match) highest = Math.max(highest, Number(match[1]));
   }
-  return formatBillNumber(kind, highest + 1);
+  return formatBillNumber(kind, highest + 1, business);
 }
 
 /**
