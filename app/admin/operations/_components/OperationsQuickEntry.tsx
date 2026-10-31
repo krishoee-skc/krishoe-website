@@ -27,11 +27,14 @@ export default function OperationsQuickEntry({
   snapshot,
   workerNames = [],
   design = "",
+  vehicles = false,
 }: {
   snapshot: OperationsSnapshot;
   workerNames?: string[];
   /** Set when a shoe's form sent the Owner here: the stock box opens with its name in. */
   design?: string;
+  /** Whether the vehicle forms show (Settings › Setup and system). */
+  vehicles?: boolean;
 }) {
   // Pairs on hand per design, so the design picker shows "68 in stock" beside a
   // suggestion the way the POS picker does — whoever is bringing stock in sees
@@ -301,6 +304,9 @@ export default function OperationsQuickEntry({
             <SubmitActionButton label="Add worker task" />
           </EnterWalkForm>
 
+          {/* Hidden while the vehicle work is not used (owner, 2026-10-31). */}
+          {vehicles ? (
+          <>
           <EnterWalkForm action={createVehicleDispatchAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">
               <T en="Vehicle dispatch" ne="गाडी पठाउने" />
@@ -360,6 +366,8 @@ export default function OperationsQuickEntry({
             <textarea aria-label="Bill number, shop, return, or collection note" name="note" className={textareaClass} placeholder="Bill number, shop, return, or collection note" />
             <SubmitActionButton label="Add dispatch item" />
           </EnterWalkForm>
+          </>
+        ) : null}
 
           <EnterWalkForm action={createCustomerLedgerAction} className="grid gap-3 rounded-lg border border-brand-green-line bg-brand-paper-deep p-4">
             <h3 className="font-black text-brand-green-ink">

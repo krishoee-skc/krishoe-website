@@ -13,6 +13,7 @@ import { shoeReadiness } from "@/lib/product-readiness";
 import { stockSizesOf } from "@/lib/stock-by-size";
 import { getChosenCosts, getChosenOrigins, productOriginCostReady, productOriginsReady } from "@/lib/product-origins";
 import { getCostingSnapshot } from "@/lib/costing";
+import { getFactoryPrices, twoBusinessReady } from "@/lib/two-business";
 import { designKey } from "@/lib/design-name";
 import { originOf } from "@/lib/stock-origin";
 import { saveFailureMessage } from "@/lib/postgres/retryable";
@@ -92,6 +93,15 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     : null;
   // Its cost a pair and where that comes from (owner, 2026-10-30), read only
   // while a shoe is open. A bought shoe with no purchase bill may say its own.
+  // A made shoe's factory price (owner, 2026-10-31), once its column is there.
+  const editingMade = editingProduct ? Boolean(originOf(history, editingProduct.name)?.made) || chosen[editingProduct.id] === "made" : false;
+  const editingFactory =
+    editingProduct && editingMade && (await twoBusinessReady().catch(() => false))
+      ? {
+          price: (await getFactoryPrices().catch(() => ({}) as Record<string, number>))[editingProduct.id] ?? 0,
+          wholesale: Math.round((editingProduct.wholesalePriceValue ?? 0) / 100),
+        }
+      : undefined;
   const editingCost = editingProduct ? await pairCostFor(editingProduct.id, editingProduct.name, Boolean(originOf(history, editingProduct.name)?.made) || chosen[editingProduct.id] === "made") : undefined;
 
   return (
@@ -168,6 +178,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
               canChoose: canChooseOrigin,
             }}
             cost={editingCost}
+            factory={editingFactory}
           />
         </div>
       ) : null}

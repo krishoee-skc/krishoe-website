@@ -39,6 +39,11 @@ type ProductFormProps = {
    * other shoe shows its cost in words.
    */
   cost?: { source?: PairCostSource; typed: number; canType: boolean };
+  /**
+   * A made shoe's factory price, what the shop pays the factory (owner,
+   * 2026-10-31). Blank means its wholesale price; it may be lower.
+   */
+  factory?: { price: number; wholesale: number };
 };
 
 /**
@@ -116,12 +121,52 @@ function PairCost({ cost }: { cost: NonNullable<ProductFormProps["cost"]> }) {
   );
 }
 
+/** A made shoe's price to the shop: blank is its wholesale price, and it may be lower. */
+function FactoryPrice({ factory }: { factory: NonNullable<ProductFormProps["factory"]> }) {
+  const { text } = useLanguage();
+  const [typed, setTyped] = useState(factory.price > 0 ? String(factory.price) : "");
+  const value = Number(typed) || 0;
+  const above = value > 0 && factory.wholesale > 0 && value > factory.wholesale;
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-sm font-medium">{text("Factory price, to the shop", "कारखाना मूल्य, पसललाई")}</span>
+      <span className="flex items-center gap-2">
+        <span className="text-sm font-bold text-brand-muted">Rs.</span>
+        <input
+          name="factoryPrice"
+          type="number"
+          min={0}
+          step="0.01"
+          inputMode="decimal"
+          value={typed}
+          onChange={(event) => setTyped(event.target.value)}
+          placeholder={factory.wholesale > 0 ? String(factory.wholesale) : ""}
+          className="form-input w-36"
+        />
+      </span>
+      <span className="max-w-xs text-xs leading-5 text-brand-muted">
+        {factory.wholesale > 0
+          ? text(
+              `Blank means the wholesale price, ${money(factory.wholesale)}. It may be the same or lower.`,
+              `खाली छोडे थोक मूल्य, ${money(factory.wholesale)}। थोक बराबर वा कम राख्न मिल्छ।`,
+            )
+          : text("This shoe has no wholesale price yet: type one, or a factory price here.", "यो जुत्ताको थोक मूल्य छैन: थोक मूल्य वा यहाँ कारखाना मूल्य लेख्नुहोस्।")}
+      </span>
+      {above ? (
+        <span className="max-w-xs text-xs font-black text-brand-clay">
+          {text("Above the wholesale price — is that right?", "थोक मूल्यभन्दा बढी — ठीक हो?")}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
 /** Rupees as typed, shown the way the storefront will show them. */
 function rupeeLabel(rupees: number) {
   return formatPrice(Math.round(rupees * 100));
 }
 
-export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false, origin, cost }: ProductFormProps) {
+export default function ProductForm({ product, categories, takenCodes = [], autoDraft = false, origin, cost, factory }: ProductFormProps) {
   const isEditing = Boolean(product);
   const router = useRouter();
   const [state, setState] = useState<ActionState | null>(null);
@@ -581,6 +626,7 @@ export default function ProductForm({ product, categories, takenCodes = [], auto
           </label>
         ) : null}
         {product && cost ? <PairCost cost={cost} /> : null}
+        {product && factory ? <FactoryPrice factory={factory} /> : null}
         <div className="flex items-center gap-8 pt-5">
           <label className="flex items-center gap-2">
             <input type="checkbox" name="featured" defaultChecked={product?.featured} />

@@ -57,6 +57,7 @@ import { parseCheckoutItems } from "@/lib/order-pricing";
 import { placeCheckoutOrder } from "@/lib/checkout-order";
 import { whatsappOrderKey } from "@/lib/whatsapp-order";
 import { setChosenCost, setChosenOrigin } from "@/lib/product-origins";
+import { setFactoryPrice } from "@/lib/two-business";
 
 export type ActionState = {
   ok: boolean;
@@ -675,6 +676,13 @@ export async function upsertProductAction(
     const origin = textValue(formData, "origin");
     await setChosenOrigin(product.id, origin === "made" || origin === "bought" ? origin : "", access?.session?.name || access?.session?.email || "Owner").catch((error) =>
       reportError(`save made or bought for ${product.sku}`, error),
+    );
+  }
+  // A made shoe's factory price, when the form asked (owner, 2026-10-31).
+  if (formData.has("factoryPrice")) {
+    const factoryPrice = Number(textValue(formData, "factoryPrice")) || 0;
+    await setFactoryPrice(product.id, factoryPrice, access?.session?.name || access?.session?.email || "Owner").catch((error) =>
+      reportError(`save factory price for ${product.sku}`, error),
     );
   }
   // What a bought shoe cost a pair, when the form asked (owner, 2026-10-30).

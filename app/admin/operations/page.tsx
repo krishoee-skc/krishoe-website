@@ -5,6 +5,7 @@ import { readSavedMessage } from "@/lib/saved-message";
 import Link from "next/link";
 import OperationsOverview from "@/app/admin/operations/_components/OperationsOverview";
 import OperationsQuickEntry from "@/app/admin/operations/_components/OperationsQuickEntry";
+import { vehiclesShown } from "@/lib/two-business";
 import OperationsRecords from "@/app/admin/operations/_components/OperationsRecords";
 import { getCostingSnapshot } from "@/lib/costing";
 import { getOperationsSnapshot } from "@/lib/operations";
@@ -31,6 +32,8 @@ export default async function AdminOperationsPage({
 }) {
   // The action wrote both languages into the URL; the reader picks one.
   const saved = readSavedMessage((await searchParams)?.saved ?? "");
+  // The vehicle work, hidden while unused (owner, 2026-10-31).
+  const vehicles = await vehiclesShown().catch(() => false);
   // A shoe's form links here with its name, to bring its pairs in.
   const design = ((await searchParams)?.design ?? "").slice(0, 120);
   // The same Saturday-to-Friday week the wages page pays by, so the two pages
@@ -139,10 +142,10 @@ export default async function AdminOperationsPage({
         <PageTabs
           id="operations"
           tabs={[
-            { key: "enter", en: "➕ Enter", ne: "➕ टिप्ने", content: <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} design={design} /> },
-            { key: "flow", en: "📈 Flow", ne: "📈 चलखेल", content: <OperationsOverview snapshot={snapshot} costing={costing} /> },
+            { key: "enter", en: "➕ Enter", ne: "➕ टिप्ने", content: <OperationsQuickEntry snapshot={snapshot} workerNames={workerNames} design={design} vehicles={vehicles} /> },
+            { key: "flow", en: "📈 Flow", ne: "📈 चलखेल", content: <OperationsOverview snapshot={snapshot} costing={costing} vehicles={vehicles} /> },
             { key: "profit", en: "💹 Profit", ne: "💹 नाफा", content: <ProfitPerPair rows={profitRows} /> },
-            { key: "records", en: "📒 Records", ne: "📒 रेकर्ड", content: <OperationsRecords snapshot={snapshot} costing={costing} /> },
+            { key: "records", en: "📒 Records", ne: "📒 रेकर्ड", content: <OperationsRecords snapshot={snapshot} costing={costing} vehicles={vehicles} /> },
           ]}
         />
       </div>

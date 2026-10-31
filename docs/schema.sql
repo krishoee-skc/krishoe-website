@@ -228,7 +228,12 @@ CREATE TABLE IF NOT EXISTS company_settings (
   default_branch_id TEXT NOT NULL DEFAULT '',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   -- Added by 20261003_factory_worker_photos_robot: the photo robot's switch.
-  factory_photo_robot BOOLEAN NOT NULL DEFAULT true
+  factory_photo_robot BOOLEAN NOT NULL DEFAULT true,
+  -- The factory as its own business, and the vehicle switch (20261031_two_businesses.sql).
+  factory_name text NOT NULL DEFAULT '',
+  factory_pan text NOT NULL DEFAULT '',
+  factory_address text NOT NULL DEFAULT '',
+  show_vehicles boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS company_branches (
@@ -1075,6 +1080,9 @@ CREATE INDEX IF NOT EXISTS ledger_transactions_created_at_idx ON ledger_transact
 -- POS billing, e-billing payloads, and retail/wholesale/online sale trail
 CREATE TABLE IF NOT EXISTS pos_invoices (
   id TEXT PRIMARY KEY,
+  -- Which business the bill is, and the two parts of one paper (20261031_two_businesses.sql).
+  business text NOT NULL DEFAULT 'shop' CHECK (business IN ('shop', 'factory')),
+  bill_group text NOT NULL DEFAULT '',
   invoice_number TEXT NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   channel TEXT NOT NULL CHECK (channel IN ('Retail', 'Wholesale', 'Online')),
@@ -1597,7 +1605,9 @@ CREATE TABLE IF NOT EXISTS stock_transfer_items (
 
   -- Null until the challan is received. Counted at the shop, and allowed to
   -- differ from what was sent — that difference is the finding.
-  received_pairs INTEGER CHECK (received_pairs IS NULL OR received_pairs >= 0)
+  received_pairs INTEGER CHECK (received_pairs IS NULL OR received_pairs >= 0),
+  -- What the shop pays the factory a pair; 0 for bought goods only moved (20261031_two_businesses.sql).
+  unit_price numeric(12, 2) NOT NULL DEFAULT 0 CHECK (unit_price >= 0)
 );
 
 CREATE INDEX IF NOT EXISTS stock_transfer_items_transfer_idx
@@ -2042,5 +2052,7 @@ CREATE TABLE IF NOT EXISTS product_origins (
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by text NOT NULL DEFAULT '',
   -- What a bought shoe cost a pair, typed in its form (20261030_product_origin_cost.sql).
-  cost_per_pair numeric(12, 2) NOT NULL DEFAULT 0 CHECK (cost_per_pair >= 0)
+  cost_per_pair numeric(12, 2) NOT NULL DEFAULT 0 CHECK (cost_per_pair >= 0),
+  -- A made shoe's price to the shop; 0 means its wholesale price (20261031_two_businesses.sql).
+  factory_price numeric(12, 2) NOT NULL DEFAULT 0 CHECK (factory_price >= 0)
 );

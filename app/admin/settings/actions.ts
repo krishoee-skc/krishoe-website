@@ -40,6 +40,7 @@ import {
 import { emailLinkBaseUrl } from "@/lib/email-links";
 import { prepareCashDaysDatabase } from "@/lib/cash-days";
 import { prepareProductOriginsDatabase } from "@/lib/product-origins";
+import { prepareTwoBusinessDatabase, setFactoryBusiness, setVehiclesShown } from "@/lib/two-business";
 import { sendStaffSecurityEmail } from "@/lib/notifications";
 import { ownerAlertTitles, sendOwnerSecurityAlert } from "@/lib/owner-security-alert";
 import { temporaryPasswordProblem } from "@/lib/temporary-password";
@@ -943,4 +944,54 @@ export async function unlockStaffLoginAction(formData: FormData) {
     failSettingsPage(error);
   }
   refreshSettingsPage("Unlocked. They can sign in now.");
+}
+
+/** The Owner's "OK" on the two-business columns (2026-10-31): the factory and the shop as two businesses. */
+export async function prepareTwoBusinessDatabaseAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    if (textValue(formData, "confirm") !== "yes") {
+      throw new Error("Open the preview and press OK to add the columns.");
+    }
+    const { applied } = await prepareTwoBusinessDatabase();
+    await recordAdminAuditEvent(
+      "settings_database_two_businesses_ready",
+      applied.length
+        ? `Database prepared for the factory and the shop as two businesses: ${applied.join(", ")}.`
+        : "Database was already ready for the two businesses.",
+    );
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Database ready for the factory and the shop as two businesses.");
+}
+
+/** The factory's own name, PAN and address (owner, 2026-10-31). */
+export async function saveFactoryBusinessAction(formData: FormData) {
+  try {
+    await requireAdminPermission("settings:write");
+    await setFactoryBusiness({
+      name: textValue(formData, "factoryName"),
+      pan: textValue(formData, "factoryPan"),
+      address: textValue(formData, "factoryAddress"),
+    });
+    await recordAdminAuditEvent("settings_factory_business_saved", "Factory name, PAN and address saved.");
+  } catch (error) {
+    failSettingsPage(error);
+  }
+  refreshSettingsPage("Factory details saved.");
+}
+
+/** Show or hide the vehicle work (owner, 2026-10-31: hidden while unused). */
+export async function setVehiclesShownAction(on: boolean) {
+  try {
+    await requireAdminPermission("settings:write");
+    await setVehiclesShown(on);
+    await recordAdminAuditEvent("settings_vehicles_shown", on ? "Vehicle work shown." : "Vehicle work hidden.");
+    revalidatePath("/admin/operations");
+    revalidatePath("/admin/settings");
+    return { ok: true, en: on ? "Vehicle work is shown." : "Vehicle work is hidden.", ne: on ? "गाडीको काम देखिन्छ।" : "गाडीको काम लुकाइयो।" };
+  } catch {
+    return { ok: false, en: "Could not change it. Try again.", ne: "फेर्न सकिएन। फेरि थिच्नुहोस्।" };
+  }
 }

@@ -21,6 +21,8 @@ import {
   prepareChequesDatabaseAction,
   prepareCashDaysDatabaseAction,
   prepareProductOriginsDatabaseAction,
+  prepareTwoBusinessDatabaseAction,
+  saveFactoryBusinessAction,
   prepareWorkerPortalDatabaseAction,
   prepareNotificationTypesAction,
   prepareStockMovementTypesAction,
@@ -37,6 +39,8 @@ import { counterItemsDatabaseStatus } from "@/lib/counter-items-database";
 import { chequesDatabaseStatus } from "@/lib/cheques";
 import { cashDaysDatabaseStatus } from "@/lib/cash-days";
 import { productOriginsDatabaseStatus } from "@/lib/product-origins";
+import { getFactoryBusiness, twoBusinessDatabaseStatus, vehiclesShown } from "@/lib/two-business";
+import VehiclesSwitch from "./VehiclesSwitch";
 import { photoRobotReady, workerPortalDatabaseStatus } from "@/lib/worker-portal-db";
 import { photoRobotOn } from "@/lib/worker-portal";
 import { isAiConfigured } from "@/lib/ai/gemini";
@@ -177,6 +181,13 @@ export default async function AdminSettingsPage({
     reportError("check the made-or-bought table", error);
     return null;
   });
+  // The factory and the shop as two businesses (owner, 2026-10-31).
+  const twoBusinessDatabase = await twoBusinessDatabaseStatus().catch((error) => {
+    reportError("check the two-business columns", error);
+    return null;
+  });
+  const factoryBusiness = twoBusinessDatabase?.ready ? await getFactoryBusiness().catch(() => null) : null;
+  const vehiclesOn = twoBusinessDatabase?.ready ? await vehiclesShown().catch(() => false) : false;
   const cashDaysDatabase = await cashDaysDatabaseStatus().catch((error) => {
     reportError("check the cash drawer table", error);
     return null;
@@ -236,6 +247,43 @@ export default async function AdminSettingsPage({
     { en: "Delivery rule", ne: "डेलिभरी नियम", section: "delivery", done: deliverySet },
   ];
   const missingIn = (section: string) => todos.filter((todo) => todo.section === section && !todo.done).length;
+
+  // The factory's own name, PAN and address (owner, 2026-10-31): printed on
+  // its bills, which are its own, as the shop's are the shop's.
+  const factoryBody = factoryBusiness ? (
+    <EnterWalkForm action={saveFactoryBusinessAction} className={card}>
+      <div className="mb-5">
+        <h2 className="text-lg font-black text-brand-green-ink">🏭 <T en="Factory business" ne="कारखानाको विवरण" /></h2>
+        <p className="mt-1 text-sm text-brand-muted">
+          <T
+            en="The factory is its own business with its own PAN. Printed on the factory's bills (KRF), as the shop's details are on the shop's (KRB)."
+            ne="कारखाना आफ्नै PAN भएको छुट्टै व्यापार हो। कारखानाको बिल (KRF) मा यो छापिन्छ, जसरी पसलको बिल (KRB) मा पसलको।"
+          />
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Factory name" name="factoryName" defaultValue={factoryBusiness.name} placeholder="KRISHOE Factory" />
+        <Field label="Factory PAN" name="factoryPan" defaultValue={factoryBusiness.pan} />
+        <label className="grid gap-2 text-sm font-bold text-brand-green-ink md:col-span-2">
+          Factory address
+          <textarea name="factoryAddress" defaultValue={factoryBusiness.address} rows={2} className={textBox} />
+        </label>
+      </div>
+      <div className="mt-5">
+        <SubmitButton label="Save factory details" />
+      </div>
+    </EnterWalkForm>
+  ) : (
+    <div className={card}>
+      <h2 className="text-lg font-black text-brand-green-ink">🏭 <T en="Factory business" ne="कारखानाको विवरण" /></h2>
+      <p className="mt-2 text-sm leading-6 text-brand-muted">
+        <T
+          en="First press OK on “The factory and the shop as two businesses” in Setup and system."
+          ne="पहिले Setup and system मा “कारखाना र पसल दुई व्यापार” मा OK थिच्नुहोस्।"
+        />
+      </p>
+    </div>
+  );
 
   const shopBody = (
     <EnterWalkForm action={saveCompanySettingsAction} className={card}>
@@ -680,6 +728,22 @@ export default async function AdminSettingsPage({
         </section>
       ) : null}
 
+      {/* The vehicle work, hidden until it is used (owner, 2026-10-31). */}
+      {twoBusinessDatabase?.ready ? (
+        <section id="vehicles-switch" className="mt-4 max-w-2xl rounded-2xl border border-brand-green-line bg-brand-paper p-4">
+          <h3 className="text-base font-black text-brand-green-ink">
+            🚚 <T en="Vehicle work" ne="गाडीको काम" />
+          </h3>
+          <p className="mt-1 text-sm leading-6 text-brand-muted">
+            <T
+              en="Vehicle dispatch, market sale and collection in Operations. Hidden while not used; nothing is deleted."
+              ne="Operations मा गाडी पठाउने, बजार बिक्री र उठाएको पैसा। प्रयोग नभएसम्म लुकाइएको; केही मेटिएको छैन।"
+            />
+          </p>
+          <VehiclesSwitch on={vehiclesOn} />
+        </section>
+      ) : null}
+
       <Link href="/admin/settings/whatsapp" className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-brand-green-line px-4 text-sm font-bold text-brand-green-ink hover:bg-brand-mist">
         💬 <T en="WhatsApp settings" ne="WhatsApp सेटिङ" />
       </Link>
@@ -688,6 +752,7 @@ export default async function AdminSettingsPage({
 
   const sections: SettingsSection[] = [
     { id: "shop", icon: "🏪", en: "Shop details", ne: "पसलको विवरण", missing: missingIn("shop"), body: shopBody },
+    { id: "factory", icon: "🏭", en: "Factory business", ne: "कारखानाको विवरण", body: factoryBody },
     { id: "bill", icon: "🧾", en: "Bill and payment", ne: "बिल र भुक्तानी", missing: missingIn("bill"), body: billBody },
     { id: "delivery", icon: "🚚", en: "Delivery", ne: "डेलिभरी", missing: missingIn("delivery"), body: deliveryBody },
     { id: "goal", icon: "🎯", en: "This month's goal", ne: "यो महिनाको लक्ष्य", body: goalBody },
@@ -1084,6 +1149,39 @@ export default async function AdminSettingsPage({
                 <T en="Removed or changed: nothing ✅" ne="मेटिने वा बदलिने: केही छैन ✅" />
               </p>
               <form action={prepareProductOriginsDatabaseAction} className="mt-4">
+                <input type="hidden" name="confirm" value="yes" />
+                <SubmitButton label="✅ OK, add it" />
+              </form>
+            </details>
+          </section>
+        ) : null}
+
+        {twoBusinessDatabase && !twoBusinessDatabase.ready ? (
+          <section id="two-business-database" className="self-start rounded-lg border-2 border-brand-gold-bright/60 bg-brand-cream-soft p-5 shadow-sm">
+            <h2 className="text-lg font-black text-brand-green-ink">
+              🏭🛒 <T en="Prepare the database for the factory and the shop as two businesses" ne="कारखाना र पसल दुई व्यापारका लागि database तयार गर्ने" />
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-brand-muted">
+              <T
+                en="Adds new columns only: the factory's details, a made shoe's factory price, which business a bill is, a challan line's price, and the vehicle switch. Old bills stay the shop's; no bill, payment or stock changes. Take a backup first (Activity → Export backup)."
+                ne="नयाँ column मात्र थपिन्छ: कारखानाको विवरण, बनाएको जुत्ताको कारखाना मूल्य, बिल कसको, challan लाइनको मूल्य, र गाडीको switch। पुराना बिल पसलकै रहन्छन्; कुनै बिल, भुक्तानी वा स्टक बदलिँदैन। पहिले backup लिनुहोस् (Activity → Export backup)।"
+              />
+            </p>
+            <details className="mt-4 rounded-lg border border-brand-green-line bg-brand-paper p-4">
+              <summary className="cursor-pointer text-sm font-black text-brand-green">
+                👀 <T en="Preview first" ne="पहिले हेर्ने" />
+              </summary>
+              <ul className="mt-3 list-disc pl-5 text-sm text-brand-green-ink">
+                {twoBusinessDatabase.pending.map((item) => (
+                  <li key={item.name}>
+                    <T en={item.label.en} ne={item.label.ne} />
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-sm font-bold text-emerald-800">
+                <T en="Removed or changed: nothing ✅" ne="मेटिने वा बदलिने: केही छैन ✅" />
+              </p>
+              <form action={prepareTwoBusinessDatabaseAction} className="mt-4">
                 <input type="hidden" name="confirm" value="yes" />
                 <SubmitButton label="✅ OK, add it" />
               </form>

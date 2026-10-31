@@ -1044,9 +1044,12 @@ function LedgerTransactionHistory({ snapshot }: { snapshot: OperationsSnapshot }
 export default function OperationsRecords({
   snapshot,
   costing,
+  vehicles = false,
 }: {
   snapshot: OperationsSnapshot;
   costing: OperationsCostingSnapshot;
+  /** Whether the vehicle parts show (owner, 2026-10-31: hidden while unused). */
+  vehicles?: boolean;
 }) {
   // A part of the shop nobody has used yet — batches, vehicles, customer
   // ledgers — showed as a full empty section, twelve of them, between the
@@ -1068,7 +1071,10 @@ export default function OperationsRecords({
   ];
   // Every part shows, the ones in use first (owner, 2026-10-30): folded
   // under "More" he could not find them when he went to start using one.
-  const ordered = [...parts.filter((part) => part.used), ...parts.filter((part) => !part.used)];
+  // The vehicle parts only when the vehicle work is shown (owner, 2026-10-31).
+  const VEHICLE_PARTS = new Set(["collection", "vehicles", "dispatch-items"]);
+  const shownParts = parts.filter((part) => vehicles || !VEHICLE_PARTS.has(part.id));
+  const ordered = [...shownParts.filter((part) => part.used), ...shownParts.filter((part) => !part.used)];
 
   return (
     <>

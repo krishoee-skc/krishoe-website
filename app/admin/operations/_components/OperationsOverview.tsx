@@ -71,9 +71,12 @@ const reportExports = [
 export default function OperationsOverview({
   snapshot,
   costing,
+  vehicles = false,
 }: {
   snapshot: OperationsSnapshot;
   costing: OperationsCostingSnapshot;
+  /** Whether the vehicle lines show (owner, 2026-10-31: hidden while unused). */
+  vehicles?: boolean;
 }) {
   const reports = snapshot.reports;
   const topStockFlows = reports.stockMovementByDesignChannel.slice(0, 4);
@@ -242,9 +245,9 @@ export default function OperationsOverview({
           <dl>
             <ReportLine label={<T en="Production in" ne="उत्पादन चढेको" />} value={reports.stockMovementTotals["Production In"]} tone="good" />
             <ReportLine label={<T en="Purchase in" ne="खरिद आएको" />} value={reports.stockMovementTotals["Purchase In"]} tone="good" />
-            <ReportLine label={<T en="Dispatch out" ne="पठाएको" />} value={reports.stockMovementTotals["Dispatch Out"]} />
+            {vehicles ? <ReportLine label={<T en="Dispatch out" ne="पठाएको" />} value={reports.stockMovementTotals["Dispatch Out"]} /> : null}
             <ReportLine label={<T en="Sale out" ne="बिक्री" />} value={reports.stockMovementTotals["Sale Out"]} />
-            <ReportLine label={<T en="Market sale" ne="बजार बिक्री" />} value={reports.stockMovementTotals["Market Sale"]} />
+            {vehicles ? <ReportLine label={<T en="Market sale" ne="बजार बिक्री" />} value={reports.stockMovementTotals["Market Sale"]} /> : null}
             <ReportLine label={<T en="Return in" ne="फिर्ता आएको" />} value={reports.stockMovementTotals["Return In"]} tone="warn" />
             <ReportLine label={<T en="Adjustment" ne="मिलान" />} value={reports.stockMovementTotals.Adjustment} />
           </dl>
@@ -433,6 +436,7 @@ export default function OperationsOverview({
               <p className="mt-2 text-sm font-semibold text-brand-muted">Raw stock value is covered.</p>
             )}
           </div>
+          {vehicles ? (
           <div className="mt-4 border-t border-brand-green-line pt-3">
             <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-clay">
               Vehicle item totals
@@ -441,6 +445,7 @@ export default function OperationsOverview({
               Loaded {reports.dispatchItemTotals.loadedPairs}, sold {reports.dispatchItemTotals.soldPairs}, return {reports.dispatchItemTotals.returnedPairs}
             </p>
           </div>
+          ) : null}
         </section>
 
         {ledgersUsed ? (

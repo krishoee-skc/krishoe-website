@@ -70,7 +70,8 @@ describe("3 and 4. Enter walks the forms that lacked it", () => {
 
   it("walks the settings, staff and wholesale forms that take typing", async () => {
     const settings = await read("app/admin/settings/page.tsx");
-    expect(settings.split("<EnterWalkForm").length - 1).toBe(7);
+    // Eight since the factory's own details (owner, 2026-10-31).
+    expect(settings.split("<EnterWalkForm").length - 1).toBe(8);
     // The database buttons have nothing to type and stay plain forms.
     expect(settings).toContain("<form action={prepareChequesDatabaseAction}");
     const staff = await read("components/admin/StaffAccessManager.tsx");
