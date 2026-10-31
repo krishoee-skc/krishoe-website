@@ -53,9 +53,6 @@ const NOT_BACKED_UP: Record<string, string> = {
   cash_days: "the drawer's morning cash and evening count; waits for restore to accept older backups",
   // Same reason (2026-10-29): only a word per shoe, said again in its form if lost.
   product_origins: "made or bought, said by hand; waits for restore to accept older backups",
-  // Same reason (2026-10-31): the shop's payments to the factory. Each is also
-  // in the admin audit log, and can be typed again from it.
-  shop_factory_payments: "the shop's payments to the factory; waits for restore to accept older backups",
   admin_staff_sessions: "who is signed in now; everyone signs in again after a restore",
   admin_staff_access_history: "a log of sign-ins, kept in the live database",
   admin_passkeys: "a passkey belongs to one phone; it is set up again on that phone",

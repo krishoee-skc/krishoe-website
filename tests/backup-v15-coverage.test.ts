@@ -57,6 +57,8 @@ const shopTables = [
   "factory_worker_photos",
   "factory_worker_requests",
   "factory_worker_leave",
+  // Added 2026-10-31 (owner): the shop's payments to the factory.
+  "shop_factory_payments",
 ];
 
 function completeV15Backup() {
@@ -178,6 +180,23 @@ describe("admin backup schema v15 coverage", () => {
         ).toBe(true);
       }
     }
+  });
+
+  it("restores a backup made before the shop's payments and a challan's price", () => {
+    const before = completeV15Backup();
+    delete (before.data.shop as Record<string, unknown>).shop_factory_payments;
+    delete (before.counts.shop as Record<string, unknown>).shop_factory_payments;
+    before.data.shop.stock_transfers.push({
+      id: "trf-1", challan_number: "KR-CHA-20261030-01", created_at: "2026-10-30", sent_date: "2026-10-30",
+      from_location: "Factory", to_location: "Shop", sent_by: "", carried_by: "", note: "", status: "Received",
+      received_at: null, received_by: "", sent_pairs: 1, received_pairs: 1, signal: "Matched", submission_key: null,
+    });
+    before.counts.shop.stock_transfers = 1;
+    before.data.shop.stock_transfer_items.push({
+      id: "trfi-1", transfer_id: "trf-1", design: "Bantu Hill", size_run: "Mixed", sent_pairs: 1, received_pairs: 1,
+    });
+    before.counts.shop.stock_transfer_items = 1;
+    expect(() => validateBackupExtensionData(before)).not.toThrow();
   });
 
   it("keeps v14 readable but requires complete, whitelisted v15 raw groups", () => {

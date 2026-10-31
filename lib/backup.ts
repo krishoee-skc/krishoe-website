@@ -52,7 +52,23 @@ async function getBackupExtensionRows(): Promise<RawBackupGroups> {
 
     const snapshotRows: Array<readonly [string, string, RawBackupRow[]]> = [];
     for (const spec of backupExtensionTableSpecs) {
-      const { group, table, columns } = spec;
+      const { group, table } = spec;
+      // A table or column added later (optionalTable, optional) may not be in
+      // this database yet — its Settings OK not pressed. The backup still
+      // runs, without it, rather than failing every night until then.
+      const later = spec as typeof spec & { optional?: string[]; optionalTable?: boolean };
+      const optional: string[] = later.optional ?? [];
+      let columns: string[] = spec.columns;
+      if (later.optionalTable || optional.length > 0) {
+        const present = await db.query<{ column_name: string }>(
+          `SELECT column_name FROM information_schema.columns
+            WHERE table_schema = current_schema() AND table_name = $1`,
+          [table],
+        );
+        const have = new Set(present.map((row) => row.column_name));
+        if (later.optionalTable && have.size === 0) continue;
+        columns = columns.filter((column) => have.has(column) || !optional.includes(column));
+      }
       const selectedColumns = columns.map((column) =>
         table === "uploaded_images" && column === "bytes"
           ? `replace(replace(encode("bytes", 'base64'), E'\\n', ''), E'\\r', '') AS "bytes"`
